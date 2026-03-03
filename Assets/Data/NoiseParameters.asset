@@ -12,7 +12,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d4e5f6789012345678abcdef01234567, type: 3}
   m_Name: NoiseParameters
   m_EditorClassIdentifier: 
-  seed: 12345
+  seed: 4242
   frequency: 0.04
   octaves: 5
   lacunarity: 2

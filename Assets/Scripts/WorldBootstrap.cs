@@ -3,11 +3,17 @@ using Voxel.Core;
 
 namespace Voxel
 {
+    public enum CameraMode { TopDown, FreeFly }
+
     [DefaultExecutionOrder(-100)]
     public class WorldBootstrap : MonoBehaviour
     {
         [SerializeField] private NoiseParameters noiseParameters;
         [SerializeField] private WorldParameters worldParameters;
+        [SerializeField] private CameraMode cameraMode = CameraMode.TopDown;
+        [SerializeField] private Camera mainCamera;
+        [SerializeField] private TopDownCamera topDownCamera;
+        [SerializeField] private FreeFlyCamera freeFlyCamera;
 
         private VoxelGrid _grid;
         private VoxelGridRenderer _renderer;
@@ -30,7 +36,7 @@ namespace Voxel
 
             _renderer.Initialize(_grid, worldParameters);
 
-            SetupOverheadCamera();
+            SetupCamera();
         }
 
         private VoxelGrid CreateNewWorld()
@@ -57,21 +63,38 @@ namespace Voxel
             return grid;
         }
 
-        private void SetupOverheadCamera()
+        private void SetupCamera()
         {
-            var cam = Camera.main;
+            var cam = mainCamera != null ? mainCamera : Camera.main;
             if (cam == null || _grid == null) return;
 
             float scale = worldParameters != null ? worldParameters.BlockScale : 1f;
-            float centerX = _grid.Width * 0.5f * scale;
-            float centerZ = _grid.Depth * 0.5f * scale;
-            float centerY = _grid.Height * 0.5f * scale;
-            float distance = Mathf.Max(_grid.Width, _grid.Depth) * 0.5f * scale;
 
-            cam.transform.position = new Vector3(centerX, centerY + distance, centerZ);
-            cam.transform.LookAt(new Vector3(centerX, centerY, centerZ));
-            cam.orthographic = true;
-            cam.orthographicSize = Mathf.Max(_grid.Width, _grid.Depth) * 0.5f * scale;
+            var topDown = topDownCamera != null ? topDownCamera : cam.GetComponent<TopDownCamera>();
+            var freeFly = freeFlyCamera != null ? freeFlyCamera : cam.GetComponent<FreeFlyCamera>();
+
+            if (cameraMode == CameraMode.TopDown)
+            {
+                if (topDown == null)
+                    topDown = cam.gameObject.AddComponent<TopDownCamera>();
+                topDown.enabled = true;
+                if (freeFly != null) freeFly.enabled = false;
+                topDown.Initialize(_grid, scale);
+                topDown.FrameWorld(_grid, scale);
+            }
+            else
+            {
+                if (freeFly != null) freeFly.enabled = true;
+                if (topDown != null) topDown.enabled = false;
+                float centerX = _grid.Width * 0.5f * scale;
+                float centerZ = _grid.Depth * 0.5f * scale;
+                float centerY = _grid.Height * 0.5f * scale;
+                float distance = Mathf.Max(_grid.Width, _grid.Depth) * 0.5f * scale;
+                cam.transform.position = new Vector3(centerX, centerY + distance, centerZ);
+                cam.transform.LookAt(new Vector3(centerX, centerY, centerZ));
+                cam.orthographic = false;
+                cam.farClipPlane = Mathf.Max(2000f, distance * 3f);
+            }
         }
 
         public void RegenerateWorld()
@@ -80,7 +103,7 @@ namespace Voxel
             _grid = CreateNewWorld();
             WorldPersistenceService.Save(_grid);
             _renderer.Initialize(_grid, worldParameters);
-            SetupOverheadCamera();
+            SetupCamera();
         }
 
         public VoxelGrid Grid => _grid;
