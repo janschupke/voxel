@@ -34,6 +34,14 @@ public class HUDController : MonoBehaviour
                 if (housePlacementController != null)
                     houseButton.clicked += housePlacementController.TogglePlacementMode;
             }
+
+            var treeButton = uiDocument.rootVisualElement.Q<Button>("Tree");
+            if (treeButton != null)
+            {
+                var treePlacementController = FindAnyObjectByType<TreePlacementController>();
+                if (treePlacementController != null)
+                    treeButton.clicked += treePlacementController.TogglePlacementMode;
+            }
         }
     }
 

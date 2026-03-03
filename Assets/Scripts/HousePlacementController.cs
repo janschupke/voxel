@@ -73,6 +73,10 @@ namespace Voxel
 
         public void TogglePlacementMode()
         {
+            var treeController = FindAnyObjectByType<TreePlacementController>();
+            if (treeController != null)
+                treeController.CancelPlacementMode();
+
             _placementModeActive = !_placementModeActive;
             if (_houseButton != null)
             {
@@ -85,7 +89,7 @@ namespace Voxel
                 CancelPlacementMode();
         }
 
-        private void CancelPlacementMode()
+        public void CancelPlacementMode()
         {
             _placementModeActive = false;
             _rotationY = 0f;
