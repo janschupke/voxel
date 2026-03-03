@@ -56,17 +56,19 @@ namespace Voxel.Rendering
         /// <param name="voxelScale">Scale factor for vertex positions (e.g. 8 for 8 units per voxel).</param>
         /// <param name="terrainConfig">Optional height-based material config. Null = single band.</param>
         /// <param name="waterConfig">Optional water config. When enabled, adds water mesh for air below water level.</param>
+        /// <param name="mountainMaterial">Optional material for Stone blocks (mountain stage). When set, Stone blocks use this instead of height bands.</param>
         public static Mesh[] Build(VoxelGrid grid, int chunkX, int chunkY, int chunkZ, float voxelScale = 1f,
-            TerrainMaterialConfig terrainConfig = null, WaterConfig waterConfig = null)
+            TerrainMaterialConfig terrainConfig = null, WaterConfig waterConfig = null, Material mountainMaterial = null)
         {
             var (ox, oy, oz) = GetChunkOrigin(chunkX, chunkY, chunkZ);
-            int bandCount = terrainConfig != null ? terrainConfig.BandCount : 1;
+            int terrainBandCount = terrainConfig != null ? terrainConfig.BandCount : 1;
+            int bandCount = terrainBandCount + (mountainMaterial != null ? 1 : 0);
 
             var verticesPerBand = CreateBandBuffers<Vector3>(bandCount);
             var normalsPerBand = CreateBandBuffers<Vector3>(bandCount);
             var trianglesPerBand = CreateBandBuffers<int>(bandCount);
 
-            CollectVisibleFaces(grid, ox, oy, oz, bandCount, terrainConfig, voxelScale,
+            CollectVisibleFaces(grid, ox, oy, oz, terrainBandCount, bandCount, terrainConfig, mountainMaterial, voxelScale,
                 verticesPerBand, normalsPerBand, trianglesPerBand);
 
             var meshes = CreateMeshesFromBands(verticesPerBand, normalsPerBand, trianglesPerBand, bandCount);
@@ -117,10 +119,11 @@ namespace Voxel.Rendering
         /// <summary>
         /// Iterates over all blocks in the chunk and adds visible faces to the appropriate band buffers.
         /// Faces are only added when the adjacent block is air (greedy meshing / face culling).
+        /// Stone blocks use mountain band when mountainMaterial is provided; others use height-based bands.
         /// </summary>
         private static void CollectVisibleFaces(
-            VoxelGrid grid, int ox, int oy, int oz, int bandCount,
-            TerrainMaterialConfig terrainConfig, float voxelScale,
+            VoxelGrid grid, int ox, int oy, int oz, int terrainBandCount, int bandCount,
+            TerrainMaterialConfig terrainConfig, Material mountainMaterial, float voxelScale,
             List<Vector3>[] verticesPerBand, List<Vector3>[] normalsPerBand, List<int>[] trianglesPerBand)
         {
             for (int x = 0; x < ChunkSize; x++)
@@ -136,7 +139,11 @@ namespace Voxel.Rendering
                         if (!grid.IsSolid(wx, wy, wz))
                             continue;
 
-                        int bandIndex = GetBandIndex(wy, grid.Height, bandCount, terrainConfig);
+                        int bandIndex;
+                        if (mountainMaterial != null && grid.GetBlock(wx, wy, wz) == BlockType.Stone)
+                            bandIndex = terrainBandCount;
+                        else
+                            bandIndex = GetBandIndex(wy, grid.Height, terrainBandCount, terrainConfig);
 
                         for (int face = 0; face < 6; face++)
                         {
@@ -158,7 +165,7 @@ namespace Voxel.Rendering
         /// Returns the material band index for a block at the given world Y.
         /// Uses normalized height (0–1) so band thresholds work across different grid sizes.
         /// </summary>
-        private static int GetBandIndex(int worldY, int gridHeight, int bandCount, TerrainMaterialConfig terrainConfig)
+        private static int GetBandIndex(int worldY, int gridHeight, int terrainBandCount, TerrainMaterialConfig terrainConfig)
         {
             if (terrainConfig == null) return 0;
 
@@ -166,7 +173,7 @@ namespace Voxel.Rendering
                 ? Mathf.Clamp01((worldY + 0.5f) / gridHeight)
                 : 0f;
             int index = terrainConfig.GetMaterialIndex(normalizedY);
-            return index >= bandCount ? bandCount - 1 : index;
+            return index >= terrainBandCount ? terrainBandCount - 1 : index;
         }
 
         /// <summary>

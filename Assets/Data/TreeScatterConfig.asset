@@ -20,7 +20,7 @@ MonoBehaviour:
   clusterDensityBoost: 2
   densityNoiseFrequency: 0.3
   clusterNoiseFrequency: 0.3
-  excludeMountains: 0
+  excludeMountains: 1
   randomRotation: 1
   prefabHeightInUnits: 1
   scaleMultiplier: 2

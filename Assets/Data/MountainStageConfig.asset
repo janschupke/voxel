@@ -13,9 +13,11 @@ MonoBehaviour:
   m_Name: MountainStageConfig
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.MountainStageConfig
   minMountainHeight: 1
-  maxMountainHeight: 1
-  smoothRadius: 3
+  maxMountainHeight: 10
+  peakThreshold: 0.65
+  smoothRadius: 0
   noiseFrequency: 0.02
   octaves: 4
   lacunarity: 2
   persistence: 0.5
+  material: {fileID: 2100000, guid: 511fc37d4bc4e4a7e9a4592fd583c8f1, type: 2}

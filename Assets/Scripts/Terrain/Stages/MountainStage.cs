@@ -30,7 +30,7 @@ namespace Voxel
 
             int minH = _config.MinMountainHeight;
             int maxH = _config.MaxMountainHeight;
-            float threshold = (float)minH / maxH;
+            float peakThreshold = _config.PeakThreshold;
 
             var noiseMap = new float[width, depth];
             for (int z = 0; z < depth; z++)
@@ -47,7 +47,9 @@ namespace Voxel
                 }
             }
 
-            var smoothed = SmoothNoise(noiseMap, width, depth, _config.SmoothRadius);
+            var smoothed = _config.SmoothRadius > 0
+                ? SmoothNoise(noiseMap, width, depth, _config.SmoothRadius)
+                : noiseMap;
 
             for (int z = 0; z < depth; z++)
             {
@@ -57,11 +59,11 @@ namespace Voxel
                     if (topY < waterLevelY) continue;
 
                     float n = smoothed[x, z];
-                    if (n <= threshold) continue;
+                    if (n <= peakThreshold) continue;
 
-                    float t = (n - threshold) / (1f - threshold);
-                    int h = Mathf.RoundToInt(t * maxH);
-                    if (h < minH) continue;
+                    float t = (n - peakThreshold) / (1f - peakThreshold);
+                    int h = Mathf.RoundToInt(Mathf.Lerp(minH, maxH, t));
+                    if (h < 1) continue;
 
                     for (int y = topY + 1; y <= topY + h && y < gridHeight; y++)
                         grid.SetBlock(x, y, z, BlockType.Stone);

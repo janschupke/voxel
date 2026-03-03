@@ -17,6 +17,7 @@ namespace Voxel
 
         public int MasterSeed => masterSeed;
         public TreeScatterConfig TreeScatterConfig => treeScatterConfig;
+        public MountainStageConfig MountainStageConfig => mountainStageConfig;
 
         public List<ITerrainStage> BuildStages(Transform treeParent = null, WorldScale worldScale = default)
         {

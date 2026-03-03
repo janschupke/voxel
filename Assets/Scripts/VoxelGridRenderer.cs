@@ -14,7 +14,7 @@ namespace Voxel
         private VoxelGrid _grid;
         private Transform _chunkParent;
 
-        public void Initialize(VoxelGrid grid, WorldParameters worldParameters = null)
+        public void Initialize(VoxelGrid grid, WorldParameters worldParameters = null, Material mountainMaterial = null)
         {
             if (_chunkParent != null)
                 Destroy(_chunkParent.gameObject);
@@ -30,7 +30,7 @@ namespace Voxel
             }
 
             _chunkParent = new GameObject("VoxelWorld").transform;
-            _chunkManager = new ChunkManager(_grid, _chunkParent, mat, worldScale, terrainMaterialConfig, waterConfig);
+            _chunkManager = new ChunkManager(_grid, _chunkParent, mat, worldScale, terrainMaterialConfig, waterConfig, mountainMaterial);
             _chunkManager.BuildAllChunks();
 
             var debugger = GetComponent<Voxel.Debug.TerrainMaterialDebugger>();

@@ -43,7 +43,10 @@ namespace Voxel
             if (_renderer == null)
                 _renderer = gameObject.AddComponent<VoxelGridRenderer>();
 
-            _renderer.Initialize(_grid, worldParameters);
+            var mountainMaterial = terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null
+                ? islandPipelineConfig.MountainStageConfig?.Material
+                : null;
+            _renderer.Initialize(_grid, worldParameters, mountainMaterial);
 
             SetupCamera();
         }
@@ -138,7 +141,10 @@ namespace Voxel
             WorldPersistenceService.DeleteWorld();
             _grid = CreateNewWorld();
             WorldPersistenceService.Save(_grid, CollectTreesForSave());
-            _renderer.Initialize(_grid, worldParameters);
+            var mountainMaterial = terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null
+                ? islandPipelineConfig.MountainStageConfig?.Material
+                : null;
+            _renderer.Initialize(_grid, worldParameters, mountainMaterial);
             SetupCamera();
         }
 
