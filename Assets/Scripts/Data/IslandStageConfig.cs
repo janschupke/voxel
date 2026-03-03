@@ -11,8 +11,11 @@ namespace Voxel
         [SerializeField] [Min(1)] [Tooltip("Maximum island radius in voxels")]
         private int maxIslandRadius = 20;
 
-        [SerializeField] [Min(1)] [Tooltip("Minimum distance between island centers in voxels")]
-        private int minDistanceBetweenIslands = 30;
+        [SerializeField] [Min(0)] [Tooltip("Minimum water gap in voxels between island edges (ensures islands never touch)")]
+        private int minGapBetweenIslands = 5;
+
+        [SerializeField] [Range(0f, 1f)] [Tooltip("How much noise perturbs island boundaries (0 = perfect circles, 1 = very irregular)")]
+        private float shapeIrregularity = 0.35f;
 
         [SerializeField] [Min(100)] [Tooltip("World area divided by this gives approximate island count")]
         private int islandDensity = 5000;
@@ -25,7 +28,8 @@ namespace Voxel
 
         public int MinIslandRadius => minIslandRadius;
         public int MaxIslandRadius => maxIslandRadius;
-        public int MinDistanceBetweenIslands => minDistanceBetweenIslands;
+        public int MinGapBetweenIslands => minGapBetweenIslands;
+        public float ShapeIrregularity => shapeIrregularity;
         public int IslandDensity => islandDensity;
         public float CornerMarginPercent => cornerMarginPercent;
         public int BaseIslandHeight => baseIslandHeight;

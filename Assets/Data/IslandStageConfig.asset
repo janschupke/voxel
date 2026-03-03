@@ -14,7 +14,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.IslandStageConfig
   minIslandRadius: 15
   maxIslandRadius: 50
-  minDistanceBetweenIslands: 30
+  minGapBetweenIslands: 8
+  shapeIrregularity: 0.35
   islandDensity: 5000
   cornerMarginPercent: 0.1
   baseIslandHeight: 10

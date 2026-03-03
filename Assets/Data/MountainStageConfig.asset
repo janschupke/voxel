@@ -12,9 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b862720d0ab8246cfb1e19b8ac859c0f, type: 3}
   m_Name: MountainStageConfig
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.MountainStageConfig
-  density: 0
-  minMountainHeight: 5
-  maxMountainHeight: 10
+  density: 0.543
+  minMountainHeight: 10
+  maxMountainHeight: 15
   noiseFrequency: 0.03
   octaves: 4
   lacunarity: 2
