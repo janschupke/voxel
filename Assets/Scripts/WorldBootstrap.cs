@@ -24,19 +24,24 @@ namespace Voxel
         private VoxelGrid _grid;
         private VoxelGridRenderer _renderer;
         private Transform _treesParent;
+        private Transform _housesParent;
+
+        [SerializeField] private GameObject housePrefab;
 
         private void Start()
         {
             if (WorldPersistenceService.WorldExists())
             {
-                var (grid, trees) = WorldPersistenceService.Load();
+                var (grid, trees, houses) = WorldPersistenceService.Load();
                 _grid = grid;
+                EnsureHousesParent();
+                LoadHouses(houses);
                 LoadTrees(trees);
             }
             else
             {
                 _grid = CreateNewWorld();
-                WorldPersistenceService.Save(_grid, CollectTreesForSave());
+                WorldPersistenceService.Save(_grid, CollectTreesForSave(), CollectHousesForSave());
             }
 
             _renderer = GetComponent<VoxelGridRenderer>();
@@ -57,6 +62,11 @@ namespace Voxel
             {
                 Destroy(_treesParent.gameObject);
                 _treesParent = null;
+            }
+            if (_housesParent != null)
+            {
+                Destroy(_housesParent.gameObject);
+                _housesParent = null;
             }
 
             int width = worldParameters != null ? worldParameters.Width : 1000;
@@ -99,6 +109,7 @@ namespace Voxel
                 terrainGen.Generate();
             }
 
+            EnsureHousesParent();
             return grid;
         }
 
@@ -136,11 +147,17 @@ namespace Voxel
             }
         }
 
+        public void SaveWorld()
+        {
+            if (_grid != null)
+                WorldPersistenceService.Save(_grid, CollectTreesForSave(), CollectHousesForSave());
+        }
+
         public void RegenerateWorld()
         {
             WorldPersistenceService.DeleteWorld();
             _grid = CreateNewWorld();
-            WorldPersistenceService.Save(_grid, CollectTreesForSave());
+            WorldPersistenceService.Save(_grid, CollectTreesForSave(), CollectHousesForSave());
             var mountainMaterial = terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null
                 ? islandPipelineConfig.MountainStageConfig?.Material
                 : null;
@@ -150,6 +167,20 @@ namespace Voxel
 
         public VoxelGrid Grid => _grid;
         public VoxelGridRenderer Renderer => _renderer;
+        public Transform TreesParent => _treesParent;
+        public Transform HousesParent => _housesParent;
+        public GameObject HousePrefab => housePrefab;
+        public WaterConfig WaterConfig => waterConfig;
+        public WorldParameters WorldParameters => worldParameters;
+
+        private void EnsureHousesParent()
+        {
+            if (_housesParent == null)
+            {
+                _housesParent = new GameObject("Houses").transform;
+                _housesParent.SetParent(transform);
+            }
+        }
 
         private List<TreePlacementData> CollectTreesForSave()
         {
@@ -166,6 +197,47 @@ namespace Voxel
             }
 
             return list.Count > 0 ? list : null;
+        }
+
+        private List<HousePlacementData> CollectHousesForSave()
+        {
+            if (_housesParent == null) return null;
+
+            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
+            var list = new List<HousePlacementData>();
+
+            for (int i = 0; i < _housesParent.childCount; i++)
+            {
+                var child = _housesParent.GetChild(i);
+                var (bx, by, bz) = worldScale.WorldToBlock(child.position);
+                list.Add(new HousePlacementData(bx, by, bz, child.eulerAngles.y));
+            }
+
+            return list.Count > 0 ? list : null;
+        }
+
+        private void LoadHouses(IReadOnlyList<HousePlacementData> houses)
+        {
+            if (housePrefab == null) return;
+
+            EnsureHousesParent();
+            if (_housesParent.childCount > 0)
+            {
+                for (int i = _housesParent.childCount - 1; i >= 0; i--)
+                    Object.Destroy(_housesParent.GetChild(i).gameObject);
+            }
+
+            if (houses == null || houses.Count == 0) return;
+
+            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
+            var scale = worldScale.ScaleVectorForBlockSizedPrefab(2f);
+
+            foreach (var h in houses)
+            {
+                var instance = Object.Instantiate(housePrefab, h.ToWorldPosition(worldScale), h.ToRotation(), _housesParent);
+                instance.name = housePrefab.name;
+                instance.transform.localScale = scale;
+            }
         }
 
         private void LoadTrees(IReadOnlyList<TreePlacementData> trees)

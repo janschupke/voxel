@@ -3,5 +3,6 @@
     <ui:VisualElement name="Overlay">
         <ui:Label name="FPS" text="0 FPS"/>
         <ui:Button text="Generate" name="Generate"/>
+        <ui:Button text="House" name="House"/>
     </ui:VisualElement>
 </ui:UXML>

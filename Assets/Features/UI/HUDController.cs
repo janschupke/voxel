@@ -26,6 +26,14 @@ public class HUDController : MonoBehaviour
                 if (worldBootstrap != null)
                     generateButton.clicked += worldBootstrap.RegenerateWorld;
             }
+
+            var houseButton = uiDocument.rootVisualElement.Q<Button>("House");
+            if (houseButton != null)
+            {
+                var housePlacementController = FindAnyObjectByType<HousePlacementController>();
+                if (housePlacementController != null)
+                    houseButton.clicked += housePlacementController.TogglePlacementMode;
+            }
         }
     }
 

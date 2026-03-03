@@ -23,3 +23,7 @@ Button {
 Button:hover {
     background-color: rgba(0, 0, 0, 0.8);
 }
+
+Button.placing {
+    background-color: rgba(0, 100, 0, 0.7);
+}
