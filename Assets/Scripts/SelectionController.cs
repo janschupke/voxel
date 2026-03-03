@@ -98,6 +98,7 @@ namespace Voxel
         private void ApplyOutlineHighlight(Transform t, Color color, float width)
         {
             if (t == null || _outlineShader == null) return;
+            if (IsEntryParentOrWorldRoot(t)) return;
 
             if (_outlineObjects.TryGetValue(t, out GameObject existing))
             {
@@ -199,7 +200,7 @@ namespace Voxel
                 Ray ray = cam.ScreenPointToRay(Mouse.current.position.ReadValue());
                 if (TryGetSelectableAtRay(ray, out Transform hitTransform, out string entryName))
                 {
-                    SelectObject(GetRootPlacedObject(hitTransform) ?? hitTransform, entryName);
+                    SelectObject(hitTransform, entryName);
                     return;
                 }
 
@@ -282,6 +283,19 @@ namespace Voxel
             for (int i = 1; i < renderers.Length; i++)
                 b.Encapsulate(renderers[i].bounds);
             return b;
+        }
+
+        private bool IsEntryParentOrWorldRoot(Transform t)
+        {
+            if (t == null || worldBootstrap == null || registry == null) return false;
+            if (t == worldBootstrap.transform) return true;
+            foreach (var entry in registry.Entries)
+            {
+                if (entry == null) continue;
+                var parent = worldBootstrap.GetParentByEntryName(entry.Name);
+                if (parent != null && t == parent) return true;
+            }
+            return false;
         }
 
         private bool IsSelectablePlacedObject(Transform t, out string entryName)

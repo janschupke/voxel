@@ -81,6 +81,7 @@ namespace Voxel
             _dragStartBlock = null;
             RestoreHiddenTrees();
             _preview?.Clear();
+            _preview = null;
             _previewBlock = null;
         }
 
@@ -165,10 +166,14 @@ namespace Voxel
             bool isBlockValid(int x, int y, int z) =>
                 !worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
 
-            if (_activeEntry.Prefab == null) { _preview?.Clear(); _previewBlock = null; return; }
+            if (_activeEntry.Prefab == null) { _preview?.Clear(); _preview = null; _previewBlock = null; return; }
             float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
             float scaleMult = _activeEntry.ScaleMultiplier > 0 ? _activeEntry.ScaleMultiplier : 1f;
-            _preview ??= new PlacementPreview(_activeEntry.Prefab, WorldScale, prefabHeight, scaleMult);
+            if (_preview == null || _preview.Prefab != _activeEntry.Prefab)
+            {
+                _preview?.Clear();
+                _preview = new PlacementPreview(_activeEntry.Prefab, WorldScale, prefabHeight, scaleMult);
+            }
 
             if (_activeEntry.PlacementMode == PlacementMode.Area || _activeEntry.PlacementMode == PlacementMode.Line)
             {

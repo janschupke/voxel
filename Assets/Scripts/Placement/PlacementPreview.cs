@@ -15,6 +15,8 @@ namespace Voxel
         private readonly List<GameObject> _instances = new();
         private const int MaxAreaPreviews = 256;
 
+        public GameObject Prefab => _prefab;
+
         public PlacementPreview(GameObject prefab, WorldScale worldScale, float prefabHeightInUnits = 2f, float scaleMultiplier = 1f)
         {
             _prefab = prefab;
