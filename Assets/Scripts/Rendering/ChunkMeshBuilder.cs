@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Voxel;
 using Voxel.Core;
 
 namespace Voxel.Rendering
@@ -29,15 +30,19 @@ namespace Voxel.Rendering
             new(0, 0, -1), new(0, 0, 1), new(-1, 0, 0), new(1, 0, 0), new(0, -1, 0), new(0, 1, 0)
         };
 
-        public static Mesh Build(VoxelGrid grid, int chunkX, int chunkY, int chunkZ, float voxelScale = 1f)
+        public static Mesh Build(VoxelGrid grid, int chunkX, int chunkY, int chunkZ, float voxelScale = 1f,
+            TerrainMaterialConfig terrainConfig = null)
         {
             int ox = chunkX * ChunkSize;
             int oy = chunkY * ChunkSize;
             int oz = chunkZ * ChunkSize;
 
+            int bandCount = terrainConfig != null ? terrainConfig.BandCount : 1;
             var vertices = new List<Vector3>();
             var normals = new List<Vector3>();
-            var triangles = new List<int>();
+            var trianglesPerBand = new List<int>[bandCount];
+            for (int i = 0; i < bandCount; i++)
+                trianglesPerBand[i] = new List<int>();
 
             for (int x = 0; x < ChunkSize; x++)
             {
@@ -51,6 +56,10 @@ namespace Voxel.Rendering
 
                         if (!grid.IsSolid(wx, wy, wz))
                             continue;
+
+                        float normalizedY = (oy + y) / (float)grid.Height;
+                        int bandIndex = terrainConfig != null ? terrainConfig.GetMaterialIndex(normalizedY) : 0;
+                        if (bandIndex >= bandCount) bandIndex = bandCount - 1;
 
                         for (int f = 0; f < 6; f++)
                         {
@@ -66,6 +75,7 @@ namespace Voxel.Rendering
                                     (z + CubeVertices[vi].z) * voxelScale));
                                 normals.Add(FaceNormals[f]);
                             }
+                            var triangles = trianglesPerBand[bandIndex];
                             triangles.Add(baseIndex);
                             triangles.Add(baseIndex + 1);
                             triangles.Add(baseIndex + 2);
@@ -80,7 +90,9 @@ namespace Voxel.Rendering
             var mesh = new Mesh();
             mesh.SetVertices(vertices);
             mesh.SetNormals(normals);
-            mesh.SetTriangles(triangles, 0);
+            mesh.subMeshCount = bandCount;
+            for (int i = 0; i < bandCount; i++)
+                mesh.SetTriangles(trianglesPerBand[i], i);
             mesh.RecalculateBounds();
             return mesh;
         }

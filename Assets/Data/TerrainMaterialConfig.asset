@@ -1,0 +1,21 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: c4d5e6f7890123456789abcdef012345, type: 3}
+  m_Name: TerrainMaterialConfig
+  m_EditorClassIdentifier: 
+  bands:
+  - heightThreshold: 0
+    material: {fileID: 2100000, guid: e988b9a39a0754869bb034962ed04490, type: 2}
+  - heightThreshold: 0.33
+    material: {fileID: 2100000, guid: 511fc37d4bc4e4a7e9a4592fd583c8f1, type: 2}
+  - heightThreshold: 0.66
+    material: {fileID: 2100000, guid: f384856d3bdba45629f77160e333e3f1, type: 2}

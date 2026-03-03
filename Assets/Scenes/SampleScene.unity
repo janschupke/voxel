@@ -483,6 +483,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.VoxelGridRenderer
   chunkMaterial: {fileID: 0}
+  terrainMaterialConfig: {fileID: 11400000, guid: c7d8e9f0a1234567890abcdef0123456, type: 2}
 --- !u!114 &1088007617
 MonoBehaviour:
   m_ObjectHideFlags: 0

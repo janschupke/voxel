@@ -7,6 +7,7 @@ namespace Voxel
     public class VoxelGridRenderer : MonoBehaviour
     {
         [SerializeField] private Material chunkMaterial;
+        [SerializeField] private TerrainMaterialConfig terrainMaterialConfig;
 
         private ChunkManager _chunkManager;
         private VoxelGrid _grid;
@@ -28,7 +29,7 @@ namespace Voxel
             }
 
             _chunkParent = new GameObject("VoxelWorld").transform;
-            _chunkManager = new ChunkManager(_grid, _chunkParent, mat, blockScale);
+            _chunkManager = new ChunkManager(_grid, _chunkParent, mat, blockScale, terrainMaterialConfig);
             _chunkManager.BuildAllChunks();
         }
 

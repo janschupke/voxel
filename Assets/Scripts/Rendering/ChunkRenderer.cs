@@ -9,11 +9,11 @@ namespace Voxel.Rendering
         private MeshRenderer _meshRenderer;
         private Mesh _mesh;
 
-        public void Initialize(Material mat)
+        public void Initialize(Material[] materials)
         {
             _meshFilter = gameObject.AddComponent<MeshFilter>();
             _meshRenderer = gameObject.AddComponent<MeshRenderer>();
-            _meshRenderer.material = mat;
+            _meshRenderer.sharedMaterials = materials;
             _meshRenderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.On;
             _meshRenderer.receiveShadows = true;
         }
