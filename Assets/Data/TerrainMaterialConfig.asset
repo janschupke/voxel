@@ -15,7 +15,7 @@ MonoBehaviour:
   bands:
   - heightThreshold: 0
     material: {fileID: 2100000, guid: e988b9a39a0754869bb034962ed04490, type: 2}
-  - heightThreshold: 0.45
+  - heightThreshold: 0.5
     material: {fileID: 2100000, guid: 511fc37d4bc4e4a7e9a4592fd583c8f1, type: 2}
-  - heightThreshold: 0.6
+  - heightThreshold: 0.7
     material: {fileID: 2100000, guid: f384856d3bdba45629f77160e333e3f1, type: 2}

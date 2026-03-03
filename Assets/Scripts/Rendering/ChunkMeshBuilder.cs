@@ -47,6 +47,7 @@ namespace Voxel.Rendering
         /// <summary>
         /// Builds separate meshes per material band to avoid multi-submesh transparency issues with URP.
         /// Returns one mesh per band; when terrainConfig is null, returns a single mesh.
+        /// When waterConfig is provided and enabled, appends a water mesh at the end.
         /// </summary>
         /// <param name="grid">The voxel grid to sample.</param>
         /// <param name="chunkX">Chunk index in X.</param>
@@ -54,8 +55,9 @@ namespace Voxel.Rendering
         /// <param name="chunkZ">Chunk index in Z.</param>
         /// <param name="voxelScale">Scale factor for vertex positions (e.g. 8 for 8 units per voxel).</param>
         /// <param name="terrainConfig">Optional height-based material config. Null = single band.</param>
+        /// <param name="waterConfig">Optional water config. When enabled, adds water mesh for air below water level.</param>
         public static Mesh[] Build(VoxelGrid grid, int chunkX, int chunkY, int chunkZ, float voxelScale = 1f,
-            TerrainMaterialConfig terrainConfig = null)
+            TerrainMaterialConfig terrainConfig = null, WaterConfig waterConfig = null)
         {
             var (ox, oy, oz) = GetChunkOrigin(chunkX, chunkY, chunkZ);
             int bandCount = terrainConfig != null ? terrainConfig.BandCount : 1;
@@ -67,7 +69,26 @@ namespace Voxel.Rendering
             CollectVisibleFaces(grid, ox, oy, oz, bandCount, terrainConfig, voxelScale,
                 verticesPerBand, normalsPerBand, trianglesPerBand);
 
-            return CreateMeshesFromBands(verticesPerBand, normalsPerBand, trianglesPerBand, bandCount);
+            var meshes = CreateMeshesFromBands(verticesPerBand, normalsPerBand, trianglesPerBand, bandCount);
+
+            if (waterConfig != null && waterConfig.Enabled)
+            {
+                var waterVertices = new List<Vector3>();
+                var waterNormals = new List<Vector3>();
+                var waterTriangles = new List<int>();
+                CollectWaterFaces(grid, ox, oy, oz, waterConfig, voxelScale,
+                    waterVertices, waterNormals, waterTriangles);
+                Mesh waterMesh = waterTriangles.Count > 0
+                    ? CreateMesh(waterVertices, waterNormals, waterTriangles)
+                    : null;
+                var combined = new Mesh[meshes.Length + 1];
+                for (int i = 0; i < meshes.Length; i++)
+                    combined[i] = meshes[i];
+                combined[meshes.Length] = waterMesh;
+                meshes = combined;
+            }
+
+            return meshes;
         }
 
         /// <summary>
@@ -229,6 +250,80 @@ namespace Voxel.Rendering
                 5 => !grid.IsSolid(x, y + 1, z),
                 _ => false
             };
+        }
+
+        /// <summary>
+        /// Collects water faces for air voxels below water level. When surfaceOnly is true,
+        /// only the +Y face is added (Minecraft-style). Otherwise all visible faces are added.
+        /// </summary>
+        private static void CollectWaterFaces(
+            VoxelGrid grid, int ox, int oy, int oz, WaterConfig waterConfig, float voxelScale,
+            List<Vector3> vertices, List<Vector3> normals, List<int> triangles)
+        {
+            int waterLevelY = waterConfig.GetWaterLevelY(grid.Height);
+            bool surfaceOnly = waterConfig.SurfaceOnly;
+
+            for (int x = 0; x < ChunkSize; x++)
+            {
+                for (int y = 0; y < ChunkSize; y++)
+                {
+                    for (int z = 0; z < ChunkSize; z++)
+                    {
+                        int wx = ox + x;
+                        int wy = oy + y;
+                        int wz = oz + z;
+
+                        if (grid.IsSolid(wx, wy, wz))
+                            continue;
+                        if (wy >= waterLevelY)
+                            continue;
+
+                        if (surfaceOnly)
+                        {
+                            if (!IsWaterFaceVisible(grid, wx, wy, wz, 5, waterLevelY))
+                                continue;
+                            AddFaceToBand(x, y, z, 5, voxelScale, vertices, normals, triangles);
+                        }
+                        else
+                        {
+                            for (int face = 0; face < 6; face++)
+                            {
+                                if (!IsWaterFaceVisible(grid, wx, wy, wz, face, waterLevelY))
+                                    continue;
+                                AddFaceToBand(x, y, z, face, voxelScale, vertices, normals, triangles);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        /// <summary>
+        /// Returns true if a water face should be rendered. A face is visible when the adjacent
+        /// voxel is not water (i.e. solid, or air above water level, or out of bounds).
+        /// </summary>
+        /// <param name="face">0=-Z, 1=+Z, 2=-X, 3=+X, 4=-Y, 5=+Y</param>
+        private static bool IsWaterFaceVisible(VoxelGrid grid, int x, int y, int z, int face, int waterLevelY)
+        {
+            (int nx, int ny, int nz) = face switch
+            {
+                0 => (x, y, z - 1),
+                1 => (x, y, z + 1),
+                2 => (x - 1, y, z),
+                3 => (x + 1, y, z),
+                4 => (x, y - 1, z),
+                5 => (x, y + 1, z),
+                _ => (x, y, z)
+            };
+
+            if (nx < 0 || nx >= grid.Width || ny < 0 || ny >= grid.Height || nz < 0 || nz >= grid.Depth)
+                return true;
+
+            if (grid.IsSolid(nx, ny, nz))
+                return true;
+            if (ny >= waterLevelY)
+                return true;
+            return false;
         }
     }
 }

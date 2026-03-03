@@ -289,15 +289,15 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   orthographic: 0
-  lookAngle: 0
-  rotationYaw: 0
-  moveSpeed: 200
-  edgePanSpeed: 200
+  lookAngle: 20
+  rotationYaw: 45
+  moveSpeed: 500
+  edgePanSpeed: 500
   edgePanMargin: 20
   panSensitivity: 0.15
   zoomSpeed: 50
-  minOrthoSize: 20
-  maxOrthoSize: 100
+  minOrthoSize: 1
+  maxOrthoSize: 20
   minFov: 15
   maxFov: 75
   terrainClearance: 10
@@ -511,6 +511,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.VoxelGridRenderer
   chunkMaterial: {fileID: 0}
   terrainMaterialConfig: {fileID: 11400000, guid: c7d8e9f0a1234567890abcdef0123456, type: 2}
+  waterConfig: {fileID: 11400000, guid: d37f56012c61445f99c39141c08d21a3, type: 2}
 --- !u!114 &1088007617
 MonoBehaviour:
   m_ObjectHideFlags: 0

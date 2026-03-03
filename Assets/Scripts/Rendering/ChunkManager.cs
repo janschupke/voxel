@@ -19,6 +19,7 @@ namespace Voxel.Rendering
         private readonly Transform _parent;
         private readonly Material[] _materials;
         private readonly TerrainMaterialConfig _terrainConfig;
+        private readonly WaterConfig _waterConfig;
         private readonly Dictionary<(int, int, int), ChunkRenderer> _chunks = new();
         private readonly HashSet<(int, int, int)> _dirtyChunks = new();
         private readonly Queue<(int, int, int)> _dirtyQueue = new();
@@ -31,13 +32,14 @@ namespace Voxel.Rendering
         private readonly float _voxelScale;
 
         public ChunkManager(VoxelGrid grid, Transform parent, Material material, float voxelScale = 1f,
-            TerrainMaterialConfig terrainConfig = null)
+            TerrainMaterialConfig terrainConfig = null, WaterConfig waterConfig = null)
         {
             _grid = grid;
             _parent = parent;
             _terrainConfig = terrainConfig;
+            _waterConfig = waterConfig;
             _voxelScale = voxelScale;
-            _materials = ResolveMaterials(material, terrainConfig);
+            _materials = ResolveMaterials(material, terrainConfig, waterConfig, voxelScale);
 
 #if UNITY_EDITOR
             if (terrainConfig != null && _materials != null)
@@ -48,22 +50,62 @@ namespace Voxel.Rendering
 #endif
         }
 
-        private static Material[] ResolveMaterials(Material fallbackMaterial, TerrainMaterialConfig config)
+        private static Material[] ResolveMaterials(Material fallbackMaterial, TerrainMaterialConfig config,
+            WaterConfig waterConfig, float blockScale = 1f)
         {
-            if (config == null || config.Bands == null || config.Bands.Count == 0)
-                return new[] { fallbackMaterial };
-
             var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
             if (shader == null) shader = Shader.Find("Sprites/Default");
 
-            return config.Bands.Select((band, i) =>
+            Material[] terrainMaterials;
+            if (config == null || config.Bands == null || config.Bands.Count == 0)
+                terrainMaterials = new[] { fallbackMaterial };
+            else
             {
-                if (band.material != null)
-                    return band.material;
-                var mat = new Material(shader);
-                mat.color = i < DefaultBandColors.Length ? DefaultBandColors[i] : Color.gray;
-                return mat;
-            }).ToArray();
+                terrainMaterials = config.Bands.Select((band, i) =>
+                {
+                    if (band.material != null)
+                        return band.material;
+                    var mat = new Material(shader);
+                    mat.color = i < DefaultBandColors.Length ? DefaultBandColors[i] : Color.gray;
+                    return mat;
+                }).ToArray();
+            }
+
+            if (waterConfig != null && waterConfig.Enabled)
+            {
+                var waterMat = waterConfig.Material;
+                if (waterMat == null)
+                {
+                    var waterShader = Shader.Find("Voxel/Water");
+                    waterMat = waterShader != null
+                        ? new Material(waterShader)
+                        : new Material(shader) { color = new Color(0.2f, 0.5f, 0.9f, 0.7f) };
+                }
+                ApplyWaterConfigToMaterial(waterMat, waterConfig, blockScale);
+                var combined = new Material[terrainMaterials.Length + 1];
+                for (int i = 0; i < terrainMaterials.Length; i++)
+                    combined[i] = terrainMaterials[i];
+                combined[terrainMaterials.Length] = waterMat;
+                return combined;
+            }
+
+            return terrainMaterials;
+        }
+
+        private static void ApplyWaterConfigToMaterial(Material waterMat, WaterConfig waterConfig, float blockScale = 1f)
+        {
+            if (waterMat == null || waterConfig == null) return;
+            float waveAmp = waterConfig.WaveAmplitude * blockScale;
+            if (waterMat.HasProperty("_WaveAmplitude"))
+                waterMat.SetFloat("_WaveAmplitude", waveAmp);
+            if (waterMat.HasProperty("_WaveFrequency"))
+                waterMat.SetFloat("_WaveFrequency", waterConfig.WaveFrequency);
+            if (waterMat.HasProperty("_WaveSpeed"))
+                waterMat.SetFloat("_WaveSpeed", waterConfig.WaveSpeed);
+            if (waterMat.HasProperty("_RefractionStrength"))
+                waterMat.SetFloat("_RefractionStrength", waterConfig.RefractionStrength);
+            if (waterMat.HasProperty("_RefractionEnabled"))
+                waterMat.SetFloat("_RefractionEnabled", waterConfig.RefractionEnabled ? 1f : 0f);
         }
 
         public void BuildAllChunks()
@@ -134,7 +176,7 @@ namespace Voxel.Rendering
                 _chunks[key] = renderer;
             }
 
-            var meshes = ChunkMeshBuilder.Build(_grid, cx, cy, cz, _voxelScale, _terrainConfig);
+            var meshes = ChunkMeshBuilder.Build(_grid, cx, cy, cz, _voxelScale, _terrainConfig, _waterConfig);
             renderer.SetMeshes(meshes);
 
 #if UNITY_EDITOR
