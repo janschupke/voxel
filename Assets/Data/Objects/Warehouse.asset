@@ -16,7 +16,7 @@ MonoBehaviour:
   Prefab: {fileID: 3532374132240110004, guid: f5c36034406144ab28b22eb3dea335fa, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
-  ArealPlacementEnabled: 0
+  PlacementMode: 0
   PrefabHeightInUnits: 2
   ScaleMultiplier: 1
   RandomRotation: 0

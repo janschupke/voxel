@@ -2,6 +2,13 @@ using UnityEngine;
 
 namespace Voxel
 {
+    public enum PlacementMode
+    {
+        Single,
+        Area,
+        Line
+    }
+
     [CreateAssetMenu(fileName = "PlacedObject", menuName = "Voxel/Placed Object Entry")]
     public class PlacedObjectEntry : ScriptableObject
     {
@@ -20,8 +27,8 @@ namespace Voxel
         [Tooltip("When true, no 3D prefab is instantiated; placement adds to a data structure (e.g. RoadOverlay) instead.")]
         public bool IsSurfaceOverlay;
 
-        [Tooltip("Enable drag-to-place area selection instead of single-click")]
-        public bool ArealPlacementEnabled;
+        [Tooltip("Placement mode: Single (click), Area (drag rectangle), Line (drag path).")]
+        public PlacementMode PlacementMode = PlacementMode.Single;
 
         [Min(0.01f)] [Tooltip("Prefab height in its local units (used to scale to 1 block)")]
         public float PrefabHeightInUnits = 2f;

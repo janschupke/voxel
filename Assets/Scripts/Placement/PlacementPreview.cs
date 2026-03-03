@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Voxel.Core;
+using Voxel.Pathfinding;
 
 namespace Voxel
 {
@@ -63,6 +64,36 @@ namespace Voxel
                         _instances.Add(instance);
                         count++;
                     }
+                }
+            }
+        }
+
+        public void SetLine((int x, int z) start, (int x, int z) end, VoxelGrid grid, int waterLevelY,
+            System.Func<int, int, int, bool> isBlockValid)
+        {
+            Clear();
+            if (_prefab == null || grid == null) return;
+
+            var graph = new SurfacePathGraph(grid, waterLevelY, isBlockValid);
+            var path = PathBuilder.BuildPath(graph, new GridNode(start.x, start.z), new GridNode(end.x, end.z));
+            if (path == null || path.Count == 0) return;
+
+            int count = 0;
+            foreach (var node in path)
+            {
+                if (count >= MaxAreaPreviews) break;
+
+                int topY = PlacementUtility.GetTopSolidY(grid, node.X, node.Z, grid.Height);
+                if (topY < 0) continue;
+
+                int surfaceY = topY + 1;
+                bool valid = topY >= waterLevelY && isBlockValid(node.X, surfaceY, node.Z);
+
+                var instance = CreatePreviewInstance((node.X, surfaceY, node.Z), 0f, valid);
+                if (instance != null)
+                {
+                    _instances.Add(instance);
+                    count++;
                 }
             }
         }
@@ -138,6 +169,7 @@ namespace Voxel
 
             foreach (var mr in go.GetComponentsInChildren<MeshRenderer>())
             {
+                if (mr.sharedMaterial == null) continue;
                 var mat = new Material(mr.sharedMaterial);
                 mr.sharedMaterial = mat;
                 if (mat.HasProperty("_BaseColor"))

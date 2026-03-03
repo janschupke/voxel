@@ -3,6 +3,7 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 using Voxel.Core;
+using Voxel.Pathfinding;
 
 namespace Voxel
 {
@@ -93,7 +94,7 @@ namespace Voxel
                 return;
             }
 
-            if (_activeEntry.ArealPlacementEnabled)
+            if (_activeEntry.PlacementMode == PlacementMode.Area || _activeEntry.PlacementMode == PlacementMode.Line)
             {
                 if (Mouse.current != null)
                 {
@@ -105,7 +106,12 @@ namespace Voxel
                         {
                             var endBlock = GetBlockUnderMouse();
                             if (endBlock.HasValue)
-                                PlaceInArea(_dragStartBlock.Value, endBlock.Value);
+                            {
+                                if (_activeEntry.PlacementMode == PlacementMode.Line)
+                                    PlaceInLine(_dragStartBlock.Value, endBlock.Value);
+                                else
+                                    PlaceInArea(_dragStartBlock.Value, endBlock.Value);
+                            }
                             _dragStartBlock = null;
                         }
                     }
@@ -164,15 +170,18 @@ namespace Voxel
             float scaleMult = _activeEntry.ScaleMultiplier > 0 ? _activeEntry.ScaleMultiplier : 1f;
             _preview ??= new PlacementPreview(_activeEntry.Prefab, WorldScale, prefabHeight, scaleMult);
 
-            if (_activeEntry.ArealPlacementEnabled)
+            if (_activeEntry.PlacementMode == PlacementMode.Area || _activeEntry.PlacementMode == PlacementMode.Line)
             {
                 if (_dragStartBlock.HasValue)
                 {
                     var endBlock = GetBlockUnderMouse();
                     if (endBlock.HasValue)
                     {
-                        _preview.SetAreaWithValidity(_dragStartBlock.Value, endBlock.Value, Grid, waterLevelY,
-                            isBlockValid, _activeEntry.RandomRotation);
+                        if (_activeEntry.PlacementMode == PlacementMode.Line)
+                            _preview.SetLine(_dragStartBlock.Value, endBlock.Value, Grid, waterLevelY, isBlockValid);
+                        else
+                            _preview.SetAreaWithValidity(_dragStartBlock.Value, endBlock.Value, Grid, waterLevelY,
+                                isBlockValid, _activeEntry.RandomRotation);
                     }
                     else
                     {
@@ -273,6 +282,72 @@ namespace Voxel
             instance.transform.localScale = scale;
 
             worldBootstrap.SaveWorld();
+        }
+
+        private void PlaceInLine((int x, int z) start, (int x, int z) end)
+        {
+            int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
+            bool isBlockValid(int x, int y, int z) =>
+                !worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
+
+            var graph = new SurfacePathGraph(Grid, waterLevelY, isBlockValid);
+            var path = PathBuilder.BuildPath(graph, new GridNode(start.x, start.z), new GridNode(end.x, end.z));
+            if (path == null || path.Count == 0) return;
+
+            if (_activeEntry.IsSurfaceOverlay)
+            {
+                int roadPlaced = 0;
+                foreach (var node in path)
+                {
+                    int topY = PlacementUtility.GetTopSolidY(Grid, node.X, node.Z, Grid.Height);
+                    if (topY < 0 || topY < waterLevelY) continue;
+
+                    int surfaceY = topY + 1;
+                    if (worldBootstrap.HasBlockingObjectAtBlock(node.X, surfaceY, node.Z)) continue;
+
+                    if (_activeEntry.CanReplaceTrees)
+                        RemoveTreesAtBlock((node.X, surfaceY, node.Z));
+
+                    worldBootstrap.AddRoadAt(node.X, surfaceY, node.Z);
+                    worldBootstrap.Renderer?.InvalidateChunkAt(node.X, topY, node.Z);
+                    roadPlaced++;
+                }
+                if (roadPlaced > 0)
+                    worldBootstrap.SaveWorld();
+                return;
+            }
+
+            var parent = worldBootstrap.GetParentForEntry(_activeEntry);
+            if (parent == null || _activeEntry?.Prefab == null) return;
+
+            worldBootstrap?.GetOrCreateParentForEntry(_activeEntry.Name);
+            float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
+            float scaleMult = _activeEntry.ScaleMultiplier > 0 ? _activeEntry.ScaleMultiplier : 1f;
+            var scale = WorldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
+
+            int placed = 0;
+            foreach (var node in path)
+            {
+                int topY = PlacementUtility.GetTopSolidY(Grid, node.X, node.Z, Grid.Height);
+                if (topY < 0 || topY < waterLevelY) continue;
+
+                int surfaceY = topY + 1;
+                if (worldBootstrap.HasBlockingObjectAtBlock(node.X, surfaceY, node.Z)) continue;
+
+                if (_activeEntry.CanReplaceTrees)
+                    RemoveTreesAtBlock((node.X, surfaceY, node.Z));
+
+                var pos = WorldScale.BlockToWorld(node.X + 0.5f, surfaceY, node.Z + 0.5f);
+                var rotation = _activeEntry.RandomRotation
+                    ? Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)
+                    : Quaternion.identity;
+                var instance = Instantiate(_activeEntry.Prefab, pos, rotation, parent);
+                instance.name = _activeEntry.Prefab.name;
+                instance.transform.localScale = scale;
+                placed++;
+            }
+            if (placed > 0)
+                worldBootstrap.SaveWorld();
         }
 
         private void PlaceInArea((int x, int z) start, (int x, int z) end)
