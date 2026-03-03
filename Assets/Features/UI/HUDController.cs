@@ -6,6 +6,10 @@ public class HUDController : MonoBehaviour
 {
     [SerializeField] private UIDocument uiDocument;
 
+    private Label _fpsLabel;
+    private float _fpsAccumulator;
+    private int _fpsFrameCount;
+
     private void Start()
     {
         if (uiDocument == null)
@@ -13,6 +17,8 @@ public class HUDController : MonoBehaviour
 
         if (uiDocument?.rootVisualElement != null)
         {
+            _fpsLabel = uiDocument.rootVisualElement.Q<Label>("FPS");
+
             var generateButton = uiDocument.rootVisualElement.Q<Button>("Generate");
             if (generateButton != null)
             {
@@ -20,6 +26,21 @@ public class HUDController : MonoBehaviour
                 if (worldBootstrap != null)
                     generateButton.clicked += worldBootstrap.RegenerateWorld;
             }
+        }
+    }
+
+    private void Update()
+    {
+        if (_fpsLabel == null) return;
+
+        _fpsAccumulator += Time.unscaledDeltaTime;
+        _fpsFrameCount++;
+        if (_fpsAccumulator >= 0.25f)
+        {
+            int fps = Mathf.RoundToInt(_fpsFrameCount / _fpsAccumulator);
+            _fpsLabel.text = $"{fps} FPS";
+            _fpsAccumulator = 0f;
+            _fpsFrameCount = 0;
         }
     }
 }

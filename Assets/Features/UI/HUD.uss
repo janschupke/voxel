@@ -2,6 +2,15 @@
     flex-grow: 1;
     flex-direction: column-reverse;
     align-items: center;
+    position: relative;
+}
+
+#FPS {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    color: white;
+    font-size: 14px;
 }
 
 Button {
