@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -12,15 +13,30 @@ namespace Voxel
         [SerializeField] private UIDocument uiDocument;
         [SerializeField] private PlacedObjectRegistry registry;
 
+        [Header("Outline")]
+        [SerializeField] private Color hoverOutlineColor = new Color(0.2f, 0.5f, 0.9f, 1f);
+        [SerializeField] private Color selectedOutlineColor = new Color(0.4f, 0.7f, 1f, 1f);
+        [SerializeField, Tooltip("Outline thickness in pixels")] private float hoverOutlineWidth = 3f;
+        [SerializeField, Tooltip("Outline thickness in pixels")] private float selectedOutlineWidth = 6f;
+
         private VisualElement _selectionDetail;
         private Label _selectionName;
         private Button _locateButton;
         private Transform _selectedObject;
         private string _selectedEntryName;
+        private Transform _hoveredObject;
+        private Transform _lastHoveredObject;
+        private Transform _lastSelectedObject;
         private ObjectPlacementController _placementController;
+
+        private readonly Dictionary<Transform, GameObject> _outlineObjects = new Dictionary<Transform, GameObject>();
+        private Shader _outlineShader;
+        private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
+        private static readonly int OutlineWidthId = Shader.PropertyToID("_OutlineWidth");
 
         private void Start()
         {
+            _outlineShader = Shader.Find("Voxel/SelectionOutline");
             if (worldBootstrap == null)
                 worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
             if (registry == null && worldBootstrap != null)
@@ -42,29 +58,145 @@ namespace Voxel
 
         public void ClearSelection()
         {
-            _selectedObject = null;
+            if (_selectedObject != null)
+            {
+                ClearHighlight(_selectedObject);
+                _selectedObject = null;
+            }
             _selectedEntryName = null;
             HideSelectionDetail();
+        }
+
+        private void ClearHoverHighlight()
+        {
+            if (_hoveredObject != null && _hoveredObject != _selectedObject)
+                ClearHighlight(_hoveredObject);
+            _hoveredObject = null;
+        }
+
+        private void UpdateHighlights()
+        {
+            if (_placementController != null && _placementController.IsPlacementModeActive)
+                return;
+
+            if (_lastHoveredObject != _hoveredObject && _lastHoveredObject != _selectedObject)
+                ClearHighlight(_lastHoveredObject);
+            if (_lastSelectedObject != _selectedObject)
+                ClearHighlight(_lastSelectedObject);
+
+            ApplyOutlineHighlight(_selectedObject, selectedOutlineColor, selectedOutlineWidth);
+            if (_hoveredObject != null && _hoveredObject != _selectedObject)
+                ApplyOutlineHighlight(_hoveredObject, hoverOutlineColor, hoverOutlineWidth);
+
+            _lastHoveredObject = _hoveredObject;
+            _lastSelectedObject = _selectedObject;
+        }
+
+        private void ApplyOutlineHighlight(Transform t, Color color, float width)
+        {
+            if (t == null || _outlineShader == null) return;
+
+            if (_outlineObjects.TryGetValue(t, out GameObject existing))
+            {
+                existing.SetActive(true);
+                ApplyOutlineParams(existing, color, width);
+                return;
+            }
+
+            var meshFilters = t.GetComponentsInChildren<MeshFilter>();
+            if (meshFilters == null || meshFilters.Length == 0) return;
+
+            var outlineRoot = new GameObject("SelectionOutline");
+            outlineRoot.transform.SetParent(t, false);
+            outlineRoot.transform.localPosition = Vector3.zero;
+            outlineRoot.transform.localRotation = Quaternion.identity;
+            outlineRoot.transform.localScale = Vector3.one;
+
+            var mat = new Material(_outlineShader);
+            mat.SetColor(OutlineColorId, color);
+            mat.SetFloat(OutlineWidthId, width);
+
+            foreach (var mf in meshFilters)
+            {
+                if (mf.sharedMesh == null) continue;
+                var child = new GameObject("OutlineMesh");
+                child.transform.SetParent(outlineRoot.transform, false);
+                child.transform.localPosition = t.InverseTransformPoint(mf.transform.position);
+                child.transform.localRotation = Quaternion.Inverse(t.rotation) * mf.transform.rotation;
+                child.transform.localScale = Vector3.one;
+
+                var filter = child.AddComponent<MeshFilter>();
+                filter.sharedMesh = mf.sharedMesh;
+
+                var renderer = child.AddComponent<MeshRenderer>();
+                renderer.sharedMaterial = mat;
+                renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
+                renderer.receiveShadows = false;
+            }
+
+            _outlineObjects[t] = outlineRoot;
+        }
+
+        private void ApplyOutlineParams(GameObject outlineRoot, Color color, float width)
+        {
+            foreach (var r in outlineRoot.GetComponentsInChildren<MeshRenderer>())
+            {
+                if (r.sharedMaterial != null)
+                {
+                    r.sharedMaterial.SetColor(OutlineColorId, color);
+                    r.sharedMaterial.SetFloat(OutlineWidthId, width);
+                }
+            }
+        }
+
+        private void ClearHighlight(Transform t)
+        {
+            if (t == null) return;
+            if (_outlineObjects.TryGetValue(t, out GameObject outlineRoot))
+            {
+                _outlineObjects.Remove(t);
+                Destroy(outlineRoot);
+            }
         }
 
         private void Update()
         {
             if (worldBootstrap == null || registry == null) return;
             if (_placementController != null && _placementController.IsPlacementModeActive)
+            {
+                ClearHoverHighlight();
                 return;
+            }
+
+            var cam = Camera.main;
+            if (cam != null && Mouse.current != null)
+            {
+                Ray ray = cam.ScreenPointToRay(Mouse.current.position.ReadValue());
+                bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+
+                if (!overUI && TryGetSelectableAtRay(ray, out Transform hitTransform, out _))
+                    _hoveredObject = hitTransform;
+                else
+                    _hoveredObject = null;
+            }
+            else
+            {
+                _hoveredObject = null;
+            }
+
+            UpdateHighlights();
 
             if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
                 if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
                     return;
 
-                var cam = Camera.main;
                 if (cam == null) return;
 
                 Ray ray = cam.ScreenPointToRay(Mouse.current.position.ReadValue());
                 if (TryGetSelectableAtRay(ray, out Transform hitTransform, out string entryName))
                 {
-                    SelectObject(hitTransform, entryName);
+                    SelectObject(GetRootPlacedObject(hitTransform) ?? hitTransform, entryName);
                     return;
                 }
 

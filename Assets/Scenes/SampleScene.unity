@@ -572,6 +572,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HUDController
   uiDocument: {fileID: 0}
+  placedObjectRegistry: {fileID: 0}
 --- !u!114 &1314134876
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -639,6 +640,10 @@ MonoBehaviour:
   worldBootstrap: {fileID: 1088007617}
   uiDocument: {fileID: 1314134876}
   registry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
+  hoverOutlineColor: {r: 0.2, g: 0.5, b: 0.9, a: 1}
+  selectedOutlineColor: {r: 0.4, g: 0.7, b: 1, a: 1}
+  hoverOutlineWidth: 1
+  selectedOutlineWidth: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
