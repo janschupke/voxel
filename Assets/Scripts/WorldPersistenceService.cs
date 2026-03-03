@@ -10,6 +10,7 @@ namespace Voxel
     public static class WorldPersistenceService
     {
         private const string WorldFileName = "world.dat";
+        private const int SaveVersion = 2;
         private static string WorldPath => Path.Combine(Application.persistentDataPath, "World", WorldFileName);
 
         public static bool WorldExists()
@@ -23,7 +24,7 @@ namespace Voxel
                 File.Delete(WorldPath);
         }
 
-        public static void Save(VoxelGrid grid, IReadOnlyList<TreePlacementData> trees = null, IReadOnlyList<HousePlacementData> houses = null)
+        public static void Save(VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects = null)
         {
             var dir = Path.GetDirectoryName(WorldPath);
             if (!string.IsNullOrEmpty(dir))
@@ -33,6 +34,7 @@ namespace Voxel
             using var gzip = new GZipStream(file, System.IO.Compression.CompressionLevel.Optimal);
 
             using var writer = new BinaryWriter(gzip);
+            writer.Write(SaveVersion);
             writer.Write(grid.Width);
             writer.Write(grid.Depth);
             writer.Write(grid.Height);
@@ -41,36 +43,23 @@ namespace Voxel
             writer.Write(blocks.Length);
             writer.Write(blocks);
 
-            int treeCount = trees?.Count ?? 0;
-            writer.Write(treeCount);
-            if (treeCount > 0)
+            int count = placedObjects?.Count ?? 0;
+            writer.Write(count);
+            if (count > 0)
             {
-                for (int i = 0; i < treeCount; i++)
+                for (int i = 0; i < count; i++)
                 {
-                    var t = trees[i];
-                    writer.Write(t.BlockX);
-                    writer.Write(t.BlockY);
-                    writer.Write(t.BlockZ);
-                    writer.Write(t.RotationY);
-                }
-            }
-
-            int houseCount = houses?.Count ?? 0;
-            writer.Write(houseCount);
-            if (houseCount > 0)
-            {
-                for (int i = 0; i < houseCount; i++)
-                {
-                    var h = houses[i];
-                    writer.Write(h.BlockX);
-                    writer.Write(h.BlockY);
-                    writer.Write(h.BlockZ);
-                    writer.Write(h.RotationY);
+                    var p = placedObjects[i];
+                    writer.Write(p.EntryName ?? "");
+                    writer.Write(p.BlockX);
+                    writer.Write(p.BlockY);
+                    writer.Write(p.BlockZ);
+                    writer.Write(p.RotationY);
                 }
             }
         }
 
-        public static (VoxelGrid grid, IReadOnlyList<TreePlacementData> trees, IReadOnlyList<HousePlacementData> houses) Load()
+        public static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects) Load()
         {
             if (!WorldExists())
                 throw new FileNotFoundException("No saved world found", WorldPath);
@@ -79,6 +68,18 @@ namespace Voxel
             using var gzip = new GZipStream(file, CompressionMode.Decompress);
 
             using var reader = new BinaryReader(gzip);
+            int version = reader.ReadInt32();
+
+            if (version < 100)
+            {
+                return LoadV2(reader);
+            }
+
+            return LoadV1(reader, version);
+        }
+
+        private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects) LoadV2(BinaryReader reader)
+        {
             int width = reader.ReadInt32();
             int depth = reader.ReadInt32();
             int height = reader.ReadInt32();
@@ -88,17 +89,51 @@ namespace Voxel
             var blocks = reader.ReadBytes(blockCount);
             grid.LoadBlocks(blocks);
 
-            List<TreePlacementData> trees = null;
-            List<HousePlacementData> houses = null;
+            List<PlacedObjectData> placedObjects = null;
+            try
+            {
+                int count = reader.ReadInt32();
+                if (count > 0 && count < 1000000)
+                {
+                    placedObjects = new List<PlacedObjectData>(count);
+                    for (int i = 0; i < count; i++)
+                    {
+                        placedObjects.Add(new PlacedObjectData(
+                            reader.ReadString(),
+                            reader.ReadInt32(),
+                            reader.ReadInt32(),
+                            reader.ReadInt32(),
+                            reader.ReadSingle()));
+                    }
+                }
+            }
+            catch (EndOfStreamException)
+            {
+                placedObjects = new List<PlacedObjectData>();
+            }
+
+            return (grid, placedObjects ?? new List<PlacedObjectData>());
+        }
+
+        private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects) LoadV1(BinaryReader reader, int width)
+        {
+            int depth = reader.ReadInt32();
+            int height = reader.ReadInt32();
+            int blockCount = reader.ReadInt32();
+
+            var grid = new VoxelGrid(width, depth, height);
+            var blocks = reader.ReadBytes(blockCount);
+            grid.LoadBlocks(blocks);
+
+            var placedObjects = new List<PlacedObjectData>();
             try
             {
                 int treeCount = reader.ReadInt32();
                 if (treeCount > 0 && treeCount < 1000000)
                 {
-                    trees = new List<TreePlacementData>(treeCount);
                     for (int i = 0; i < treeCount; i++)
                     {
-                        trees.Add(new TreePlacementData(
+                        placedObjects.Add(new PlacedObjectData("Tree",
                             reader.ReadInt32(),
                             reader.ReadInt32(),
                             reader.ReadInt32(),
@@ -109,10 +144,9 @@ namespace Voxel
                 int houseCount = reader.ReadInt32();
                 if (houseCount > 0 && houseCount < 1000000)
                 {
-                    houses = new List<HousePlacementData>(houseCount);
                     for (int i = 0; i < houseCount; i++)
                     {
-                        houses.Add(new HousePlacementData(
+                        placedObjects.Add(new PlacedObjectData("House",
                             reader.ReadInt32(),
                             reader.ReadInt32(),
                             reader.ReadInt32(),
@@ -122,10 +156,9 @@ namespace Voxel
             }
             catch (EndOfStreamException)
             {
-                // Old format, no trees or houses
             }
 
-            return (grid, trees, houses);
+            return (grid, placedObjects);
         }
     }
 }

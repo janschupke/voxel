@@ -221,23 +221,25 @@ namespace Voxel
                 }
             }
 
-            foreach (var parent in new[] { worldBootstrap.HousesParent, worldBootstrap.TreesParent })
+            if (registry?.Entries != null)
             {
-                if (parent == null) continue;
-                string typeName = parent == worldBootstrap.HousesParent ? "House" : "Tree";
-                var entry = registry.GetByName(typeName);
-                if (entry == null || !entry.IsSelectable) continue;
-
-                for (int i = 0; i < parent.childCount; i++)
+                foreach (var entry in registry.Entries)
                 {
-                    var child = parent.GetChild(i);
-                    var bounds = GetBounds(child);
-                    if (bounds.HasValue && bounds.Value.IntersectRay(ray, out float distance) &&
-                        distance > 0 && distance < closestDistance)
+                    if (entry == null || !entry.IsSelectable) continue;
+                    var parent = worldBootstrap.GetParentByEntryName(entry.Name);
+                    if (parent == null) continue;
+
+                    for (int i = 0; i < parent.childCount; i++)
                     {
-                        closestDistance = distance;
-                        hitTransform = child;
-                        entryName = typeName;
+                        var child = parent.GetChild(i);
+                        var bounds = GetBounds(child);
+                        if (bounds.HasValue && bounds.Value.IntersectRay(ray, out float distance) &&
+                            distance > 0 && distance < closestDistance)
+                        {
+                            closestDistance = distance;
+                            hitTransform = child;
+                            entryName = entry.Name;
+                        }
                     }
                 }
             }
@@ -247,12 +249,23 @@ namespace Voxel
 
         private Transform GetRootPlacedObject(Transform t)
         {
-            if (t == null) return null;
+            if (t == null || worldBootstrap == null || registry == null) return null;
             Transform root = t;
             while (t != null)
             {
-                if (t.parent == worldBootstrap.HousesParent || t.parent == worldBootstrap.TreesParent)
-                    root = t;
+                if (registry.Entries != null)
+                {
+                    foreach (var entry in registry.Entries)
+                    {
+                        if (entry == null) continue;
+                        var parent = worldBootstrap.GetParentByEntryName(entry.Name);
+                        if (t.parent == parent)
+                        {
+                            root = t;
+                            break;
+                        }
+                    }
+                }
                 t = t.parent;
             }
             return root;
@@ -276,23 +289,22 @@ namespace Voxel
             Transform parent = t.parent;
             while (parent != null)
             {
-                if (parent == worldBootstrap.HousesParent)
+                if (registry.Entries != null)
                 {
-                    entryName = "House";
-                    break;
-                }
-                if (parent == worldBootstrap.TreesParent)
-                {
-                    entryName = "Tree";
-                    break;
+                    foreach (var entry in registry.Entries)
+                    {
+                        if (entry == null || !entry.IsSelectable) continue;
+                        if (worldBootstrap.GetParentByEntryName(entry.Name) == parent)
+                        {
+                            entryName = entry.Name;
+                            return true;
+                        }
+                    }
                 }
                 parent = parent.parent;
             }
 
-            if (string.IsNullOrEmpty(entryName)) return false;
-
-            var entry = registry.GetByName(entryName);
-            return entry != null && entry.IsSelectable;
+            return false;
         }
 
         private void SelectObject(Transform obj, string entryName)

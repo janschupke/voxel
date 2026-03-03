@@ -19,8 +19,7 @@ namespace Voxel
 
         private VoxelGrid _grid;
         private VoxelGridRenderer _renderer;
-        private Transform _treesParent;
-        private Transform _housesParent;
+        private readonly Dictionary<string, Transform> _parentsByEntryName = new Dictionary<string, Transform>();
 
         [SerializeField] private PlacedObjectRegistry placedObjectRegistry;
 
@@ -28,16 +27,14 @@ namespace Voxel
         {
             if (WorldPersistenceService.WorldExists())
             {
-                var (grid, trees, houses) = WorldPersistenceService.Load();
+                var (grid, placedObjects) = WorldPersistenceService.Load();
                 _grid = grid;
-                EnsureHousesParent();
-                LoadHouses(houses);
-                LoadTrees(trees);
+                LoadPlacedObjects(placedObjects);
             }
             else
             {
                 _grid = CreateNewWorld();
-                WorldPersistenceService.Save(_grid, CollectTreesForSave(), CollectHousesForSave());
+                WorldPersistenceService.Save(_grid, CollectPlacedObjectsForSave());
             }
 
             _renderer = GetComponent<VoxelGridRenderer>();
@@ -63,16 +60,12 @@ namespace Voxel
 
         private VoxelGrid CreateNewWorld()
         {
-            if (_treesParent != null)
+            foreach (var kv in _parentsByEntryName)
             {
-                Destroy(_treesParent.gameObject);
-                _treesParent = null;
+                if (kv.Value != null)
+                    Destroy(kv.Value.gameObject);
             }
-            if (_housesParent != null)
-            {
-                Destroy(_housesParent.gameObject);
-                _housesParent = null;
-            }
+            _parentsByEntryName.Clear();
 
             int width = worldParameters != null ? worldParameters.Width : 1000;
             int depth = worldParameters != null ? worldParameters.Depth : 1000;
@@ -87,12 +80,11 @@ namespace Voxel
                     : Mathf.Clamp(15, 0, height - 1);
 
                 var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-                _treesParent = new GameObject("Trees").transform;
-                _treesParent.SetParent(transform);
+                var treesParent = GetOrCreateParentForEntry("Tree");
 
                 var heightBuffer = new HeightBuffer(width, depth);
                 var context = new TerrainPipelineContext(heightBuffer, grid, waterLevelY, islandPipelineConfig.MasterSeed);
-                var stages = islandPipelineConfig.BuildStages(_treesParent, worldScale);
+                var stages = islandPipelineConfig.BuildStages(treesParent, worldScale);
 
                 if (stages != null && stages.Count > 0)
                     TerrainPipeline.Execute(stages, context);
@@ -114,7 +106,6 @@ namespace Voxel
                 terrainGen.Generate();
             }
 
-            EnsureHousesParent();
             return grid;
         }
 
@@ -138,14 +129,14 @@ namespace Voxel
         public void SaveWorld()
         {
             if (_grid != null)
-                WorldPersistenceService.Save(_grid, CollectTreesForSave(), CollectHousesForSave());
+                WorldPersistenceService.Save(_grid, CollectPlacedObjectsForSave());
         }
 
         public void RegenerateWorld()
         {
             WorldPersistenceService.DeleteWorld();
             _grid = CreateNewWorld();
-            WorldPersistenceService.Save(_grid, CollectTreesForSave(), CollectHousesForSave());
+            WorldPersistenceService.Save(_grid, CollectPlacedObjectsForSave());
             var mountainMaterial = terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null
                 ? islandPipelineConfig.MountainStageConfig?.Material
                 : null;
@@ -155,8 +146,6 @@ namespace Voxel
 
         public VoxelGrid Grid => _grid;
         public VoxelGridRenderer Renderer => _renderer;
-        public Transform TreesParent => _treesParent;
-        public Transform HousesParent => _housesParent;
         public PlacedObjectRegistry PlacedObjectRegistry => placedObjectRegistry;
         public IslandPipelineConfig IslandPipelineConfig => islandPipelineConfig;
 
@@ -170,134 +159,83 @@ namespace Voxel
 
         public Transform GetParentForEntry(PlacedObjectEntry entry)
         {
-            if (entry == null) return null;
-            if (entry.Name == "House") return _housesParent;
-            if (entry.Name == "Tree") return _treesParent;
-            return null;
-        }
-        public WaterConfig WaterConfig => waterConfig;
-        public WorldParameters WorldParameters => worldParameters;
-
-        private void EnsureHousesParent()
-        {
-            if (_housesParent == null)
-            {
-                _housesParent = new GameObject("Houses").transform;
-                _housesParent.SetParent(transform);
-            }
+            if (entry == null || string.IsNullOrEmpty(entry.Name)) return null;
+            return GetOrCreateParentForEntry(entry.Name);
         }
 
-        public void EnsureTreesParent()
+        public Transform GetOrCreateParentForEntry(string entryName)
         {
-            if (_treesParent == null)
-            {
-                _treesParent = new GameObject("Trees").transform;
-                _treesParent.SetParent(transform);
-            }
+            if (string.IsNullOrEmpty(entryName)) return null;
+            if (_parentsByEntryName.TryGetValue(entryName, out var parent) && parent != null)
+                return parent;
+            var go = new GameObject(entryName + "s");
+            go.transform.SetParent(transform);
+            _parentsByEntryName[entryName] = go.transform;
+            return go.transform;
         }
 
-        public bool HasHouseAtBlock(int bx, int by, int bz)
+        public bool HasBlockingObjectAtBlock(int bx, int by, int bz)
         {
-            if (_housesParent == null) return false;
+            if (placedObjectRegistry == null) return false;
             var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-            for (int i = 0; i < _housesParent.childCount; i++)
+            foreach (var entry in placedObjectRegistry.Entries)
             {
-                var (hx, hy, hz) = worldScale.WorldToBlock(_housesParent.GetChild(i).position);
+                if (entry == null || !entry.IsBlocking) continue;
+                if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
+                for (int i = 0; i < parent.childCount; i++)
+                {
+                    var (hx, hy, hz) = worldScale.WorldToBlock(parent.GetChild(i).position);
+                    if (hx == bx && hy == by && hz == bz) return true;
+                }
+            }
+            return false;
+        }
+
+        public bool HasEntryAtBlock(string entryName, int bx, int by, int bz)
+        {
+            if (string.IsNullOrEmpty(entryName) || !_parentsByEntryName.TryGetValue(entryName, out var parent) || parent == null)
+                return false;
+            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var (hx, hy, hz) = worldScale.WorldToBlock(parent.GetChild(i).position);
                 if (hx == bx && hy == by && hz == bz) return true;
             }
             return false;
         }
 
-        public bool HasTreeAtBlock(int bx, int by, int bz)
+        public Transform GetParentByEntryName(string entryName)
         {
-            if (_treesParent == null) return false;
-            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-            for (int i = 0; i < _treesParent.childCount; i++)
-            {
-                var (tx, ty, tz) = worldScale.WorldToBlock(_treesParent.GetChild(i).position);
-                if (tx == bx && ty == by && tz == bz) return true;
-            }
-            return false;
+            return _parentsByEntryName.TryGetValue(entryName ?? "", out var p) ? p : null;
         }
 
-        private List<TreePlacementData> CollectTreesForSave()
+        public WaterConfig WaterConfig => waterConfig;
+        public WorldParameters WorldParameters => worldParameters;
+
+        private List<PlacedObjectData> CollectPlacedObjectsForSave()
         {
-            if (_treesParent == null) return null;
+            if (placedObjectRegistry == null) return null;
 
             var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-            var list = new List<TreePlacementData>();
+            var list = new List<PlacedObjectData>();
 
-            for (int i = 0; i < _treesParent.childCount; i++)
+            foreach (var kv in _parentsByEntryName)
             {
-                var child = _treesParent.GetChild(i);
-                var (bx, by, bz) = worldScale.WorldToBlock(child.position);
-                list.Add(new TreePlacementData(bx, by, bz, child.eulerAngles.y));
+                if (kv.Value == null) continue;
+                for (int i = 0; i < kv.Value.childCount; i++)
+                {
+                    var child = kv.Value.GetChild(i);
+                    var (bx, by, bz) = worldScale.WorldToBlock(child.position);
+                    list.Add(new PlacedObjectData(kv.Key, bx, by, bz, child.eulerAngles.y));
+                }
             }
 
             return list.Count > 0 ? list : null;
         }
 
-        private List<HousePlacementData> CollectHousesForSave()
+        private void LoadPlacedObjects(IReadOnlyList<PlacedObjectData> placedObjects)
         {
-            if (_housesParent == null) return null;
-
-            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-            var list = new List<HousePlacementData>();
-
-            for (int i = 0; i < _housesParent.childCount; i++)
-            {
-                var child = _housesParent.GetChild(i);
-                var (bx, by, bz) = worldScale.WorldToBlock(child.position);
-                list.Add(new HousePlacementData(bx, by, bz, child.eulerAngles.y));
-            }
-
-            return list.Count > 0 ? list : null;
-        }
-
-        private void LoadHouses(IReadOnlyList<HousePlacementData> houses)
-        {
-            var entry = placedObjectRegistry != null ? placedObjectRegistry.GetByName("House") : null;
-            var prefab = entry?.Prefab;
-            if (prefab == null) return;
-
-            EnsureHousesParent();
-            if (_housesParent.childCount > 0)
-            {
-                for (int i = _housesParent.childCount - 1; i >= 0; i--)
-                    Object.Destroy(_housesParent.GetChild(i).gameObject);
-            }
-
-            if (houses == null || houses.Count == 0) return;
-
-            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-            float prefabHeight = entry.PrefabHeightInUnits > 0 ? entry.PrefabHeightInUnits : 2f;
-            float scaleMult = entry.ScaleMultiplier > 0 ? entry.ScaleMultiplier : 1f;
-            var scale = worldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
-
-            foreach (var h in houses)
-            {
-                var instance = Object.Instantiate(prefab, h.ToWorldPosition(worldScale), h.ToRotation(), _housesParent);
-                instance.name = prefab.name;
-                instance.transform.localScale = scale;
-            }
-        }
-
-        private void LoadTrees(IReadOnlyList<TreePlacementData> trees)
-        {
-            var entry = placedObjectRegistry != null ? placedObjectRegistry.GetByName("Tree") : null;
-            var prefab = entry?.Prefab ?? islandPipelineConfig?.TreeScatterConfig?.TreePrefab;
-            var treeConfig = islandPipelineConfig?.TreeScatterConfig;
-
-            if (prefab == null && (treeConfig == null || treeConfig.TreePrefab == null))
-                return;
-
-            if (_treesParent != null)
-                Destroy(_treesParent.gameObject);
-
-            _treesParent = new GameObject("Trees").transform;
-            _treesParent.SetParent(transform);
-
-            if (trees == null || trees.Count == 0)
+            if (placedObjectRegistry == null || placedObjects == null || placedObjects.Count == 0)
             {
                 if (terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null)
                     RunTreePlacement();
@@ -305,15 +243,28 @@ namespace Voxel
             }
 
             var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-            float prefabHeight = entry != null ? entry.PrefabHeightInUnits : (treeConfig != null ? treeConfig.PrefabHeightInUnits : 2f);
-            float scaleMult = entry != null ? entry.ScaleMultiplier : (treeConfig != null ? treeConfig.ScaleMultiplier : 1f);
-            var scale = worldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
 
-            foreach (var t in trees)
+            foreach (var p in placedObjects)
             {
-                var instance = Object.Instantiate(prefab, t.ToWorldPosition(worldScale), t.ToRotation(), _treesParent);
+                var entry = placedObjectRegistry.GetByName(p.EntryName);
+                var prefab = entry?.Prefab ?? (p.EntryName == "Tree" ? islandPipelineConfig?.TreeScatterConfig?.TreePrefab : null);
+                if (prefab == null) continue;
+
+                var parent = GetOrCreateParentForEntry(p.EntryName);
+                float prefabHeight = entry != null && entry.PrefabHeightInUnits > 0 ? entry.PrefabHeightInUnits : 2f;
+                float scaleMult = entry != null && entry.ScaleMultiplier > 0 ? entry.ScaleMultiplier : 1f;
+                var scale = worldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
+
+                var instance = Object.Instantiate(prefab, p.ToWorldPosition(worldScale), p.ToRotation(), parent);
                 instance.name = prefab.name;
                 instance.transform.localScale = scale;
+            }
+
+            if (terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null)
+            {
+                var treeParent = GetParentByEntryName("Tree");
+                if (treeParent == null || treeParent.childCount == 0)
+                    RunTreePlacement();
             }
         }
 
@@ -330,9 +281,10 @@ namespace Voxel
             int waterLevelY = waterConfig != null ? waterConfig.GetWaterLevelY(height) : Mathf.Clamp(15, 0, height - 1);
             var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
 
+            var treeParent = GetOrCreateParentForEntry("Tree");
             var heightBuffer = new HeightBuffer(_grid.Width, _grid.Depth);
             var context = new TerrainPipelineContext(heightBuffer, _grid, waterLevelY, islandPipelineConfig.MasterSeed);
-            var stage = new TreeScatterStage(treeConfig, _treesParent, worldScale);
+            var stage = new TreeScatterStage(treeConfig, treeParent, worldScale);
             stage.Execute(context);
         }
     }

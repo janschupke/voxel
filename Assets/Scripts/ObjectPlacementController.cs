@@ -22,7 +22,6 @@ namespace Voxel
         private readonly Dictionary<string, Button> _buttonsByType = new();
 
         private VoxelGrid Grid => worldBootstrap?.Grid;
-        private Transform TreesParent => worldBootstrap?.TreesParent;
         private WaterConfig WaterConfig => worldBootstrap?.WaterConfig;
         private WorldParameters WorldParameters => worldBootstrap?.WorldParameters;
 
@@ -156,7 +155,7 @@ namespace Voxel
 
             int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
             bool isBlockValid(int x, int y, int z) =>
-                !worldBootstrap.HasHouseAtBlock(x, y, z) && !worldBootstrap.HasTreeAtBlock(x, y, z);
+                !worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
 
             float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
             float scaleMult = _activeEntry.ScaleMultiplier > 0 ? _activeEntry.ScaleMultiplier : 1f;
@@ -194,19 +193,19 @@ namespace Voxel
             {
                 if (PlacementUtility.TryRaycastTopSurface(cam, Grid, WorldScale, waterLevelY, out var block, out bool valid))
                 {
-                    bool houseValid = valid && !worldBootstrap.HasHouseAtBlock(block.bx, block.by, block.bz)
-                        && (_activeEntry.CanReplaceTrees || !worldBootstrap.HasTreeAtBlock(block.bx, block.by, block.bz));
+                    bool placeValid = valid && !worldBootstrap.HasBlockingObjectAtBlock(block.bx, block.by, block.bz)
+                        && (_activeEntry.CanReplaceTrees || !worldBootstrap.HasEntryAtBlock("Tree", block.bx, block.by, block.bz));
 
-                    if (!_previewBlock.HasValue || _previewBlock.Value != block || _previewValid != houseValid)
+                    if (!_previewBlock.HasValue || _previewBlock.Value != block || _previewValid != placeValid)
                     {
                         _previewBlock = block;
-                        _previewValid = houseValid;
+                        _previewValid = placeValid;
                         RestoreHiddenTrees();
-                        if (houseValid && _activeEntry.CanReplaceTrees)
-                            HideTreesAtBlock(block);
+                        if (placeValid && _activeEntry.CanReplaceTrees)
+                            HideReplaceableAtBlock(block);
                     }
 
-                    _preview.SetSingle(block, _rotationY, houseValid);
+                    _preview.SetSingle(block, _rotationY, placeValid);
                 }
                 else
                 {
@@ -218,12 +217,13 @@ namespace Voxel
             }
         }
 
-        private void HideTreesAtBlock((int x, int y, int z) block)
+        private void HideReplaceableAtBlock((int x, int y, int z) block)
         {
-            if (TreesParent == null) return;
-            for (int i = 0; i < TreesParent.childCount; i++)
+            var parent = worldBootstrap?.GetParentByEntryName("Tree");
+            if (parent == null) return;
+            for (int i = 0; i < parent.childCount; i++)
             {
-                var child = TreesParent.GetChild(i);
+                var child = parent.GetChild(i);
                 var (bx, by, bz) = WorldScale.WorldToBlock(child.position);
                 if (bx == block.x && by == block.y && bz == block.z)
                 {
@@ -269,8 +269,7 @@ namespace Voxel
             var parent = worldBootstrap.GetParentForEntry(_activeEntry);
             if (parent == null || _activeEntry?.Prefab == null) return;
 
-            if (_activeEntry.Name == "Tree")
-                worldBootstrap.EnsureTreesParent();
+            worldBootstrap?.GetOrCreateParentForEntry(_activeEntry.Name);
 
             int minX = Mathf.Min(start.x, end.x);
             int maxX = Mathf.Max(start.x, end.x);
@@ -293,8 +292,7 @@ namespace Voxel
                     if (topY < 0 || topY < waterLevelY) continue;
 
                     int surfaceY = topY + 1;
-                    if (worldBootstrap.HasHouseAtBlock(x, surfaceY, z)) continue;
-                    if (worldBootstrap.HasTreeAtBlock(x, surfaceY, z)) continue;
+                    if (worldBootstrap.HasBlockingObjectAtBlock(x, surfaceY, z)) continue;
 
                     var pos = WorldScale.BlockToWorld(x + 0.5f, surfaceY, z + 0.5f);
                     var rotation = _activeEntry.RandomRotation
@@ -313,12 +311,13 @@ namespace Voxel
 
         private void RemoveTreesAtBlock((int x, int y, int z) block)
         {
-            if (TreesParent == null) return;
+            var parent = worldBootstrap?.GetParentByEntryName("Tree");
+            if (parent == null) return;
 
             var toDestroy = new List<Transform>();
-            for (int i = 0; i < TreesParent.childCount; i++)
+            for (int i = 0; i < parent.childCount; i++)
             {
-                var child = TreesParent.GetChild(i);
+                var child = parent.GetChild(i);
                 var (bx, by, bz) = WorldScale.WorldToBlock(child.position);
                 if (bx == block.x && by == block.y && bz == block.z)
                     toDestroy.Add(child);

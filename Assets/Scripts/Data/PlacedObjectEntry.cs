@@ -15,6 +15,9 @@ namespace Voxel
         [Tooltip("When placing, remove trees at the target block(s)")]
         public bool CanReplaceTrees;
 
+        [Tooltip("Blocks placement of other objects at the same block (e.g. buildings). False for vegetation like trees.")]
+        public bool IsBlocking = true;
+
         [Tooltip("Enable drag-to-place area selection instead of single-click")]
         public bool ArealPlacementEnabled;
 
