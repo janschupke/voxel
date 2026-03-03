@@ -40,6 +40,13 @@ namespace Voxel
             }
         }
 
+        public void ClearSelection()
+        {
+            _selectedObject = null;
+            _selectedEntryName = null;
+            HideSelectionDetail();
+        }
+
         private void Update()
         {
             if (worldBootstrap == null || registry == null) return;
@@ -101,13 +108,6 @@ namespace Voxel
             _selectedObject = obj;
             _selectedEntryName = entryName;
             ShowSelectionDetail(entryName);
-        }
-
-        private void ClearSelection()
-        {
-            _selectedObject = null;
-            _selectedEntryName = null;
-            HideSelectionDetail();
         }
 
         private void ShowSelectionDetail(string name)

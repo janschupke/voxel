@@ -87,7 +87,7 @@ namespace Voxel
         {
             if (!_placementModeActive || worldBootstrap == null || _activeEntry == null) return;
 
-            if (Mouse.current != null && (Mouse.current.rightButton.wasPressedThisFrame || (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)))
+            if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
             {
                 CancelPlacementMode();
                 return;

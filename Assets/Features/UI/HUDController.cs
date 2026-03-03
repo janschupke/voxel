@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 using Voxel;
 #if UNITY_EDITOR
@@ -68,6 +69,14 @@ public class HUDController : MonoBehaviour
 
     private void Update()
     {
+        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
+        {
+            var placementController = FindAnyObjectByType<ObjectPlacementController>();
+            var selectionController = FindAnyObjectByType<SelectionController>();
+            placementController?.CancelPlacementMode();
+            selectionController?.ClearSelection();
+        }
+
         if (_fpsLabel == null) return;
 
         _fpsAccumulator += Time.unscaledDeltaTime;
