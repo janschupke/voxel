@@ -13,10 +13,12 @@ namespace Voxel
         [SerializeField] private IslandStageConfig islandStageConfig;
         [SerializeField] private ConnectionStageConfig connectionStageConfig;
         [SerializeField] private MountainStageConfig mountainStageConfig;
+        [SerializeField] private TreeScatterConfig treeScatterConfig;
 
         public int MasterSeed => masterSeed;
+        public TreeScatterConfig TreeScatterConfig => treeScatterConfig;
 
-        public List<ITerrainStage> BuildStages()
+        public List<ITerrainStage> BuildStages(Transform treeParent = null, WorldScale worldScale = default)
         {
             var stages = new List<ITerrainStage>();
 
@@ -28,6 +30,11 @@ namespace Voxel
 
             if (mountainStageConfig != null)
                 stages.Add(new MountainStage(mountainStageConfig));
+
+            if (treeScatterConfig != null && treeParent != null)
+                stages.Add(new TreeScatterStage(treeScatterConfig, treeParent, worldScale));
+            else if (treeScatterConfig != null && treeParent == null)
+                UnityEngine.Debug.LogWarning("[TreeScatter] TreeScatterConfig is set but TreeParent is null - trees will not be placed");
 
             return stages;
         }

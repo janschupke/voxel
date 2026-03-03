@@ -20,7 +20,7 @@ namespace Voxel
                 Destroy(_chunkParent.gameObject);
 
             _grid = grid;
-            float blockScale = worldParameters != null ? worldParameters.BlockScale : 1f;
+            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
 
             Material mat = chunkMaterial;
             if (mat == null)
@@ -30,7 +30,7 @@ namespace Voxel
             }
 
             _chunkParent = new GameObject("VoxelWorld").transform;
-            _chunkManager = new ChunkManager(_grid, _chunkParent, mat, blockScale, terrainMaterialConfig, waterConfig);
+            _chunkManager = new ChunkManager(_grid, _chunkParent, mat, worldScale, terrainMaterialConfig, waterConfig);
             _chunkManager.BuildAllChunks();
 
             var debugger = GetComponent<Voxel.Debug.TerrainMaterialDebugger>();

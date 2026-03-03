@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.IO.Compression;
 using UnityEngine;
@@ -22,7 +23,7 @@ namespace Voxel
                 File.Delete(WorldPath);
         }
 
-        public static void Save(VoxelGrid grid)
+        public static void Save(VoxelGrid grid, IReadOnlyList<TreePlacementData> trees = null)
         {
             var dir = Path.GetDirectoryName(WorldPath);
             if (!string.IsNullOrEmpty(dir))
@@ -39,9 +40,23 @@ namespace Voxel
             var blocks = grid.GetBlocksCopy();
             writer.Write(blocks.Length);
             writer.Write(blocks);
+
+            int treeCount = trees?.Count ?? 0;
+            writer.Write(treeCount);
+            if (treeCount > 0)
+            {
+                for (int i = 0; i < treeCount; i++)
+                {
+                    var t = trees[i];
+                    writer.Write(t.BlockX);
+                    writer.Write(t.BlockY);
+                    writer.Write(t.BlockZ);
+                    writer.Write(t.RotationY);
+                }
+            }
         }
 
-        public static VoxelGrid Load()
+        public static (VoxelGrid grid, IReadOnlyList<TreePlacementData> trees) Load()
         {
             if (!WorldExists())
                 throw new FileNotFoundException("No saved world found", WorldPath);
@@ -59,7 +74,29 @@ namespace Voxel
             var blocks = reader.ReadBytes(blockCount);
             grid.LoadBlocks(blocks);
 
-            return grid;
+            List<TreePlacementData> trees = null;
+            try
+            {
+                int treeCount = reader.ReadInt32();
+                if (treeCount > 0 && treeCount < 1000000)
+                {
+                    trees = new List<TreePlacementData>(treeCount);
+                    for (int i = 0; i < treeCount; i++)
+                    {
+                        trees.Add(new TreePlacementData(
+                            reader.ReadInt32(),
+                            reader.ReadInt32(),
+                            reader.ReadInt32(),
+                            reader.ReadSingle()));
+                    }
+                }
+            }
+            catch (EndOfStreamException)
+            {
+                // Old format, no trees
+            }
+
+            return (grid, trees);
         }
     }
 }

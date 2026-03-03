@@ -9,7 +9,7 @@ namespace Voxel
         [SerializeField] [Min(16)] private int width = 1000;
         [SerializeField] [Min(16)] private int depth = 1000;
         [SerializeField] [Min(16)] private int height = 50;
-        [SerializeField] [Range(0.25f, 16f)] [Tooltip("Unity units per voxel. 1 = 1 unit per voxel, 8 = 8 units per voxel (larger blocks).")]
+        [SerializeField] [Range(0.25f, 16f)] [Tooltip("Unity world units per block. 1 = 1 unit per block (standard). Use WorldScale utility for conversions.")]
         private float blockScale = 1f;
         [SerializeField] [Range(0.1f, 2f)] private float heightScale = 1f;
         [SerializeField] [Range(-0.5f, 0.5f)] private float heightOffset;

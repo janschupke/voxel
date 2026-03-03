@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 using Voxel.Core;
 
@@ -22,17 +23,20 @@ namespace Voxel
 
         private VoxelGrid _grid;
         private VoxelGridRenderer _renderer;
+        private Transform _treesParent;
 
         private void Start()
         {
             if (WorldPersistenceService.WorldExists())
             {
-                _grid = WorldPersistenceService.Load();
+                var (grid, trees) = WorldPersistenceService.Load();
+                _grid = grid;
+                LoadTrees(trees);
             }
             else
             {
                 _grid = CreateNewWorld();
-                WorldPersistenceService.Save(_grid);
+                WorldPersistenceService.Save(_grid, CollectTreesForSave());
             }
 
             _renderer = GetComponent<VoxelGridRenderer>();
@@ -46,6 +50,12 @@ namespace Voxel
 
         private VoxelGrid CreateNewWorld()
         {
+            if (_treesParent != null)
+            {
+                Destroy(_treesParent.gameObject);
+                _treesParent = null;
+            }
+
             int width = worldParameters != null ? worldParameters.Width : 1000;
             int depth = worldParameters != null ? worldParameters.Depth : 1000;
             int height = worldParameters != null ? worldParameters.Height : 50;
@@ -58,9 +68,13 @@ namespace Voxel
                     ? waterConfig.GetWaterLevelY(height)
                     : Mathf.Clamp(15, 0, height - 1);
 
+                var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
+                _treesParent = new GameObject("Trees").transform;
+                _treesParent.SetParent(transform);
+
                 var heightBuffer = new HeightBuffer(width, depth);
                 var context = new TerrainPipelineContext(heightBuffer, grid, waterLevelY, islandPipelineConfig.MasterSeed);
-                var stages = islandPipelineConfig.BuildStages();
+                var stages = islandPipelineConfig.BuildStages(_treesParent, worldScale);
 
                 if (stages != null && stages.Count > 0)
                     TerrainPipeline.Execute(stages, context);
@@ -90,7 +104,7 @@ namespace Voxel
             var cam = mainCamera != null ? mainCamera : Camera.main;
             if (cam == null || _grid == null) return;
 
-            float scale = worldParameters != null ? worldParameters.BlockScale : 1f;
+            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
 
             var topDown = topDownCamera != null ? topDownCamera : cam.GetComponent<TopDownCamera>();
             var freeFly = freeFlyCamera != null ? freeFlyCamera : cam.GetComponent<FreeFlyCamera>();
@@ -101,17 +115,17 @@ namespace Voxel
                     topDown = cam.gameObject.AddComponent<TopDownCamera>();
                 topDown.enabled = true;
                 if (freeFly != null) freeFly.enabled = false;
-                topDown.Initialize(_grid, scale);
-                topDown.FrameWorld(_grid, scale);
+                topDown.Initialize(_grid, worldScale);
+                topDown.FrameWorld(_grid, worldScale);
             }
             else
             {
                 if (freeFly != null) freeFly.enabled = true;
                 if (topDown != null) topDown.enabled = false;
-                float centerX = _grid.Width * 0.5f * scale;
-                float centerZ = _grid.Depth * 0.5f * scale;
-                float centerY = _grid.Height * 0.5f * scale;
-                float distance = Mathf.Max(_grid.Width, _grid.Depth) * 0.5f * scale;
+                float centerX = _grid.Width * 0.5f * worldScale.BlockScale;
+                float centerZ = _grid.Depth * 0.5f * worldScale.BlockScale;
+                float centerY = _grid.Height * 0.5f * worldScale.BlockScale;
+                float distance = Mathf.Max(_grid.Width, _grid.Depth) * 0.5f * worldScale.BlockScale;
                 cam.transform.position = new Vector3(centerX, centerY + distance, centerZ);
                 cam.transform.LookAt(new Vector3(centerX, centerY, centerZ));
                 cam.orthographic = false;
@@ -123,12 +137,80 @@ namespace Voxel
         {
             WorldPersistenceService.DeleteWorld();
             _grid = CreateNewWorld();
-            WorldPersistenceService.Save(_grid);
+            WorldPersistenceService.Save(_grid, CollectTreesForSave());
             _renderer.Initialize(_grid, worldParameters);
             SetupCamera();
         }
 
         public VoxelGrid Grid => _grid;
         public VoxelGridRenderer Renderer => _renderer;
+
+        private List<TreePlacementData> CollectTreesForSave()
+        {
+            if (_treesParent == null) return null;
+
+            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
+            var list = new List<TreePlacementData>();
+
+            for (int i = 0; i < _treesParent.childCount; i++)
+            {
+                var child = _treesParent.GetChild(i);
+                var (bx, by, bz) = worldScale.WorldToBlock(child.position);
+                list.Add(new TreePlacementData(bx, by, bz, child.eulerAngles.y));
+            }
+
+            return list.Count > 0 ? list : null;
+        }
+
+        private void LoadTrees(IReadOnlyList<TreePlacementData> trees)
+        {
+            if (terrainMode != TerrainGenerationMode.IslandPipeline || islandPipelineConfig == null)
+                return;
+
+            var treeConfig = islandPipelineConfig.TreeScatterConfig;
+            if (treeConfig == null || treeConfig.TreePrefab == null)
+                return;
+
+            if (_treesParent != null)
+                Destroy(_treesParent.gameObject);
+
+            _treesParent = new GameObject("Trees").transform;
+            _treesParent.SetParent(transform);
+
+            if (trees == null || trees.Count == 0)
+            {
+                RunTreePlacement();
+                return;
+            }
+
+            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
+            var scale = worldScale.ScaleVectorForBlockSizedPrefab(treeConfig.PrefabHeightInUnits) * treeConfig.ScaleMultiplier;
+
+            foreach (var t in trees)
+            {
+                var instance = Object.Instantiate(treeConfig.TreePrefab, t.ToWorldPosition(worldScale), t.ToRotation(), _treesParent);
+                instance.name = treeConfig.TreePrefab.name;
+                instance.transform.localScale = scale;
+            }
+        }
+
+        private void RunTreePlacement()
+        {
+            if (terrainMode != TerrainGenerationMode.IslandPipeline || islandPipelineConfig == null)
+                return;
+
+            var treeConfig = islandPipelineConfig.TreeScatterConfig;
+            if (treeConfig == null || treeConfig.TreePrefab == null)
+                return;
+
+            int height = _grid.Height;
+            int waterLevelY = waterConfig != null ? waterConfig.GetWaterLevelY(height) : Mathf.Clamp(15, 0, height - 1);
+            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
+
+            var heightBuffer = new HeightBuffer(_grid.Width, _grid.Depth);
+            var context = new TerrainPipelineContext(heightBuffer, _grid, waterLevelY, islandPipelineConfig.MasterSeed);
+            var stage = new TreeScatterStage(treeConfig, _treesParent, worldScale);
+            stage.Execute(context);
+        }
     }
 }

@@ -16,3 +16,4 @@ MonoBehaviour:
   islandStageConfig: {fileID: 11400000, guid: 522ab705e4bcc451c8e757f39afdd29b, type: 2}
   connectionStageConfig: {fileID: 11400000, guid: b020246a374ae451490cec8a7ad4f24b, type: 2}
   mountainStageConfig: {fileID: 11400000, guid: 49e812300065146edb84d4141b91cbde, type: 2}
+  treeScatterConfig: {fileID: 11400000, guid: 5fe8a4f0782434d428c698c1ca956b23, type: 2}

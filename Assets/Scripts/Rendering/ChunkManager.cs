@@ -29,17 +29,17 @@ namespace Voxel.Rendering
         public int ChunkCountY => (_grid.Height + ChunkMeshBuilder.ChunkSize - 1) / ChunkMeshBuilder.ChunkSize;
         public int ChunkCountZ => (_grid.Depth + ChunkMeshBuilder.ChunkSize - 1) / ChunkMeshBuilder.ChunkSize;
 
-        private readonly float _voxelScale;
+        private readonly WorldScale _worldScale;
 
-        public ChunkManager(VoxelGrid grid, Transform parent, Material material, float voxelScale = 1f,
+        public ChunkManager(VoxelGrid grid, Transform parent, Material material, WorldScale worldScale = default,
             TerrainMaterialConfig terrainConfig = null, WaterConfig waterConfig = null)
         {
             _grid = grid;
             _parent = parent;
             _terrainConfig = terrainConfig;
             _waterConfig = waterConfig;
-            _voxelScale = voxelScale;
-            _materials = ResolveMaterials(material, terrainConfig, waterConfig, voxelScale);
+            _worldScale = worldScale.BlockScale > 0f ? worldScale : new WorldScale(1f);
+            _materials = ResolveMaterials(material, terrainConfig, waterConfig, _worldScale.BlockScale);
         }
 
         private static Material[] ResolveMaterials(Material fallbackMaterial, TerrainMaterialConfig config,
@@ -164,11 +164,11 @@ namespace Voxel.Rendering
                 go.transform.SetParent(_parent);
                 renderer = go.AddComponent<ChunkRenderer>();
                 renderer.Initialize(_materials);
-                renderer.SetPosition(cx, cy, cz, _voxelScale);
+                renderer.SetPosition(cx, cy, cz, _worldScale.BlockScale);
                 _chunks[key] = renderer;
             }
 
-            var meshes = ChunkMeshBuilder.Build(_grid, cx, cy, cz, _voxelScale, _terrainConfig, _waterConfig);
+            var meshes = ChunkMeshBuilder.Build(_grid, cx, cy, cz, _worldScale.BlockScale, _terrainConfig, _waterConfig);
             renderer.SetMeshes(meshes);
         }
     }

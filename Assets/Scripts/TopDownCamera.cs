@@ -33,17 +33,17 @@ namespace Voxel
 
         private Camera _camera;
         private VoxelGrid _grid;
-        private float _blockScale;
+        private WorldScale _worldScale;
         private float _blocksVisible;
         private Vector2 _lastPanPosition;
         private InputAction _moveAction;
 
-        private float Scale => _blockScale > 0f ? _blockScale : 1f;
+        private float Scale => _worldScale.BlockScale > 0f ? _worldScale.BlockScale : 1f;
 
-        public void Initialize(VoxelGrid grid, float blockScale)
+        public void Initialize(VoxelGrid grid, WorldScale worldScale)
         {
             _grid = grid;
-            _blockScale = blockScale;
+            _worldScale = worldScale.BlockScale > 0f ? worldScale : new WorldScale(1f);
             if (_blocksVisible < minBlocksVisible || _blocksVisible > maxBlocksVisible)
                 _blocksVisible = (minBlocksVisible + maxBlocksVisible) * 0.5f;
         }
@@ -76,8 +76,8 @@ namespace Voxel
 
         private float HeightForBlocks(float blocks)
         {
-            if (_blockScale <= 0f) return 0f;
-            return blocks * _blockScale / (2f * Mathf.Tan(fieldOfView * 0.5f * Mathf.Deg2Rad));
+            if (_worldScale.BlockScale <= 0f) return 0f;
+            return blocks * _worldScale.BlockScale / (2f * Mathf.Tan(fieldOfView * 0.5f * Mathf.Deg2Rad));
         }
 
         private void GetHorizontalAxes(out Vector3 right, out Vector3 forward)
@@ -139,7 +139,7 @@ namespace Voxel
 
         private void HandleZoomInput()
         {
-            if (Mouse.current == null || _blockScale <= 0f) return;
+            if (Mouse.current == null || _worldScale.BlockScale <= 0f) return;
             float scroll = Mouse.current.scroll.ReadValue().y;
             if (Mathf.Abs(scroll) < 0.01f) return;
 
@@ -151,7 +151,7 @@ namespace Voxel
 
         private void AdjustHeightForTerrain()
         {
-            if (_grid == null || _blockScale <= 0f) return;
+            if (_grid == null || _worldScale.BlockScale <= 0f) return;
             Vector3 pos = transform.position;
             pos.y = GetMaxTerrainHeightInView() + HeightForBlocks(_blocksVisible);
             transform.position = pos;
@@ -176,8 +176,7 @@ namespace Voxel
                     float u = (i / (float)n - 0.5f) * 2f;
                     float v = (j / (float)n - 0.5f) * 2f;
                     Vector3 sample = center + right * (u * halfWidth) + forward * (v * halfHeight);
-                    int gx = Mathf.FloorToInt(sample.x / _blockScale);
-                    int gz = Mathf.FloorToInt(sample.z / _blockScale);
+                    var (gx, _, gz) = _worldScale.WorldToBlock(sample);
 
                     if (gx < 0 || gx >= _grid.Width || gz < 0 || gz >= _grid.Depth) continue;
 
@@ -185,7 +184,7 @@ namespace Voxel
                     {
                         if (_grid.IsSolid(gx, gy, gz))
                         {
-                            float worldY = (gy + 1) * _blockScale;
+                            float worldY = _worldScale.BlockToWorld(0, gy + 1, 0).y;
                             if (worldY > maxY) maxY = worldY;
                             break;
                         }
@@ -195,21 +194,23 @@ namespace Voxel
             return maxY;
         }
 
-        public void FrameWorld(VoxelGrid grid, float blockScale)
+        public void FrameWorld(VoxelGrid grid, WorldScale worldScale)
         {
             if (grid == null || _camera == null) return;
 
-            float centerX = grid.Width * 0.5f * blockScale;
-            float centerZ = grid.Depth * 0.5f * blockScale;
-            float size = Mathf.Max(grid.Width, grid.Depth) * 0.5f * blockScale;
-            float worldHeight = grid.Height * blockScale;
+            _worldScale = worldScale.BlockScale > 0f ? worldScale : new WorldScale(1f);
+            var ws = _worldScale;
+            float centerX = grid.Width * 0.5f * ws.BlockScale;
+            float centerZ = grid.Depth * 0.5f * ws.BlockScale;
+            float size = Mathf.Max(grid.Width, grid.Depth) * 0.5f * ws.BlockScale;
+            float worldHeight = grid.Height * ws.BlockScale;
 
             _camera.orthographic = false;
             _camera.fieldOfView = fieldOfView;
             _camera.farClipPlane = Mathf.Max(2000f, size * 3f, worldHeight * 2f);
 
             _blocksVisible = (minBlocksVisible + maxBlocksVisible) * 0.5f;
-            float heightAboveGround = _blockScale > 0f ? HeightForBlocks(_blocksVisible) : size;
+            float heightAboveGround = ws.BlockScale > 0f ? HeightForBlocks(_blocksVisible) : size;
 
             Vector3 lookAt = new Vector3(centerX, worldHeight * 0.5f, centerZ);
             Vector3 forward = Quaternion.Euler(90f - lookAngle, rotationYaw, 0f) * Vector3.forward;

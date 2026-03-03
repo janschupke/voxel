@@ -15,7 +15,7 @@ MonoBehaviour:
   width: 500
   depth: 500
   height: 50
-  blockScale: 16
+  blockScale: 1
   heightScale: 1
   heightOffset: 0
   blockType: 1
