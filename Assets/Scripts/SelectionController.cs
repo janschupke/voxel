@@ -62,18 +62,78 @@ namespace Voxel
                 if (cam == null) return;
 
                 Ray ray = cam.ScreenPointToRay(Mouse.current.position.ReadValue());
-                if (Physics.Raycast(ray, out RaycastHit hit))
+                if (TryGetSelectableAtRay(ray, out Transform hitTransform, out string entryName))
                 {
-                    var hitTransform = hit.transform;
-                    if (IsSelectablePlacedObject(hitTransform, out string entryName))
-                    {
-                        SelectObject(hitTransform, entryName);
-                        return;
-                    }
+                    SelectObject(hitTransform, entryName);
+                    return;
                 }
 
                 ClearSelection();
             }
+        }
+
+        private bool TryGetSelectableAtRay(Ray ray, out Transform hitTransform, out string entryName)
+        {
+            hitTransform = null;
+            entryName = null;
+            float closestDistance = float.MaxValue;
+
+            foreach (var hit in Physics.RaycastAll(ray))
+            {
+                if (hit.distance < closestDistance && hit.distance > 0 &&
+                    IsSelectablePlacedObject(hit.transform, out string name))
+                {
+                    closestDistance = hit.distance;
+                    hitTransform = GetRootPlacedObject(hit.transform);
+                    entryName = name;
+                }
+            }
+
+            foreach (var parent in new[] { worldBootstrap.HousesParent, worldBootstrap.TreesParent })
+            {
+                if (parent == null) continue;
+                string typeName = parent == worldBootstrap.HousesParent ? "House" : "Tree";
+                var entry = registry.GetByName(typeName);
+                if (entry == null || !entry.IsSelectable) continue;
+
+                for (int i = 0; i < parent.childCount; i++)
+                {
+                    var child = parent.GetChild(i);
+                    var bounds = GetBounds(child);
+                    if (bounds.HasValue && bounds.Value.IntersectRay(ray, out float distance) &&
+                        distance > 0 && distance < closestDistance)
+                    {
+                        closestDistance = distance;
+                        hitTransform = child;
+                        entryName = typeName;
+                    }
+                }
+            }
+
+            return hitTransform != null;
+        }
+
+        private Transform GetRootPlacedObject(Transform t)
+        {
+            if (t == null) return null;
+            Transform root = t;
+            while (t != null)
+            {
+                if (t.parent == worldBootstrap.HousesParent || t.parent == worldBootstrap.TreesParent)
+                    root = t;
+                t = t.parent;
+            }
+            return root;
+        }
+
+        private static Bounds? GetBounds(Transform t)
+        {
+            var renderers = t.GetComponentsInChildren<Renderer>();
+            if (renderers == null || renderers.Length == 0) return null;
+            Bounds b = renderers[0].bounds;
+            for (int i = 1; i < renderers.Length; i++)
+                b.Encapsulate(renderers[i].bounds);
+            return b;
         }
 
         private bool IsSelectablePlacedObject(Transform t, out string entryName)
