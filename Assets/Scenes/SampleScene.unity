@@ -532,7 +532,7 @@ MonoBehaviour:
   topDownCamera: {fileID: 330585551}
   freeFlyCamera: {fileID: 330585550}
   housePrefab: {fileID: 3532374132240110004, guid: e4869eb4234ab4317b9c3f5a9b040066, type: 3}
-  treePrefab: {fileID: 100002, guid: 46ec642aae69b4fc6ae81977426efd4c, type: 3}
+  treePrefab: {fileID: 4056082060252207166, guid: 46ec642aae69b4fc6ae81977426efd4c, type: 3}
 --- !u!4 &1088007618
 Transform:
   m_ObjectHideFlags: 0

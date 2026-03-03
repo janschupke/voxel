@@ -13,6 +13,7 @@ namespace Voxel
 
         private bool _placementModeActive;
         private (int x, int z)? _dragStartBlock;
+        private PlacementPreview _preview;
         private Button _treeButton;
 
         private VoxelGrid Grid => worldBootstrap?.Grid;
@@ -66,6 +67,8 @@ namespace Voxel
                     _dragStartBlock = null;
                 }
             }
+
+            UpdatePreview();
         }
 
         public void TogglePlacementMode()
@@ -92,6 +95,7 @@ namespace Voxel
             _dragStartBlock = null;
             if (_treeButton != null)
                 _treeButton.RemoveFromClassList("placing");
+            _preview?.Clear();
         }
 
         private (int x, int z)? GetBlockUnderMouse()
@@ -101,10 +105,62 @@ namespace Voxel
             var cam = Camera.main;
             if (cam == null) return null;
 
-            int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
-            if (TryRaycastTopSurface(cam, Grid, WorldScale, out var block))
+            if (PlacementUtility.TryRaycastTopSurface(cam, Grid, WorldScale, out var block))
                 return (block.bx, block.bz);
             return null;
+        }
+
+        private void UpdatePreview()
+        {
+            if (Grid == null || TreePrefab == null || WaterConfig == null)
+            {
+                _preview?.Clear();
+                return;
+            }
+
+            var cam = Camera.main;
+            if (cam == null)
+            {
+                _preview?.Clear();
+                return;
+            }
+
+            int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
+            bool isTreeBlockValid(int x, int y, int z) =>
+                !worldBootstrap.HasHouseAtBlock(x, y, z) && !worldBootstrap.HasTreeAtBlock(x, y, z);
+
+            var treeConfig = IslandPipelineConfig?.TreeScatterConfig;
+            float prefabHeight = treeConfig != null ? treeConfig.PrefabHeightInUnits : 2f;
+            float scaleMult = treeConfig != null ? treeConfig.ScaleMultiplier : 1f;
+            bool randomRotation = treeConfig != null && treeConfig.RandomRotation;
+
+            _preview ??= new PlacementPreview(TreePrefab, WorldScale, prefabHeight, scaleMult);
+
+            if (_dragStartBlock.HasValue)
+            {
+                var endBlock = GetBlockUnderMouse();
+                if (endBlock.HasValue)
+                {
+                    _preview.SetAreaWithValidity(_dragStartBlock.Value, endBlock.Value, Grid, waterLevelY,
+                        isTreeBlockValid, randomRotation);
+                }
+                else
+                {
+                    _preview.Clear();
+                }
+            }
+            else
+            {
+                if (PlacementUtility.TryRaycastTopSurface(cam, Grid, WorldScale, waterLevelY, out var block, out bool valid))
+                {
+                    bool treeValid = valid && isTreeBlockValid(block.bx, block.by, block.bz);
+                    _preview.SetSingle(block, 0f, treeValid);
+                }
+                else
+                {
+                    _preview.Clear();
+                }
+            }
         }
 
         private void PlaceTreesInArea((int x, int z) start, (int x, int z) end)
@@ -132,7 +188,7 @@ namespace Voxel
                 {
                     if (x < 0 || x >= Grid.Width || z < 0 || z >= Grid.Depth) continue;
 
-                    int topY = GetTopSolidY(Grid, x, z, Grid.Height);
+                    int topY = PlacementUtility.GetTopSolidY(Grid, x, z, Grid.Height);
                     if (topY < 0 || topY < waterLevelY) continue;
 
                     int surfaceY = topY + 1;
@@ -152,54 +208,6 @@ namespace Voxel
 
             if (placed > 0)
                 worldBootstrap.SaveWorld();
-        }
-
-        private static bool TryRaycastTopSurface(Camera cam, VoxelGrid grid, WorldScale scale, out (int bx, int by, int bz) block)
-        {
-            block = default;
-
-            if (Mouse.current == null) return false;
-
-            Vector2 screenPos = Mouse.current.position.ReadValue();
-            Ray ray = cam.ScreenPointToRay(screenPos);
-
-            float blockScale = scale.BlockScale;
-            if (blockScale <= 0f) return false;
-
-            for (int surfaceY = grid.Height; surfaceY >= 1; surfaceY--)
-            {
-                float planeY = surfaceY * blockScale;
-                float dy = ray.direction.y;
-                if (Mathf.Abs(dy) < 0.0001f) continue;
-
-                float t = (planeY - ray.origin.y) / dy;
-                if (t <= 0f) continue;
-
-                Vector3 hitWorld = ray.origin + ray.direction * t;
-                var (bx, _, bz) = scale.WorldToBlock(hitWorld);
-
-                if (bx < 0 || bx >= grid.Width || bz < 0 || bz >= grid.Depth)
-                    continue;
-
-                int topY = GetTopSolidY(grid, bx, bz, grid.Height);
-                if (topY < 0 || topY + 1 != surfaceY)
-                    continue;
-
-                block = (bx, topY + 1, bz);
-                return true;
-            }
-
-            return false;
-        }
-
-        private static int GetTopSolidY(VoxelGrid grid, int x, int z, int gridHeight)
-        {
-            for (int y = gridHeight - 1; y >= 0; y--)
-            {
-                if (grid.IsSolid(x, y, z))
-                    return y;
-            }
-            return -1;
         }
 
         private void OnDisable()

@@ -14,7 +14,7 @@ namespace Voxel
         private bool _placementModeActive;
         private (int x, int y, int z)? _previewBlock;
         private bool _previewValid;
-        private GameObject _previewInstance;
+        private PlacementPreview _preview;
         private readonly HashSet<Transform> _hiddenTrees = new();
         private Button _houseButton;
         private float _rotationY;
@@ -96,7 +96,7 @@ namespace Voxel
             if (_houseButton != null)
                 _houseButton.RemoveFromClassList("placing");
             RestoreHiddenTrees();
-            DestroyPreview();
+            _preview?.Clear();
             _previewBlock = null;
         }
 
@@ -104,7 +104,7 @@ namespace Voxel
         {
             if (Grid == null || HousePrefab == null || WaterConfig == null)
             {
-                DestroyPreview();
+                _preview?.Clear();
                 _previewBlock = null;
                 return;
             }
@@ -112,13 +112,13 @@ namespace Voxel
             var cam = Camera.main;
             if (cam == null)
             {
-                DestroyPreview();
+                _preview?.Clear();
                 _previewBlock = null;
                 return;
             }
 
             int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
-            if (TryRaycastTopSurface(cam, Grid, WorldScale, waterLevelY, out var block, out bool valid))
+            if (PlacementUtility.TryRaycastTopSurface(cam, Grid, WorldScale, waterLevelY, out var block, out bool valid))
             {
                 if (!_previewBlock.HasValue || _previewBlock.Value != block || _previewValid != valid)
                 {
@@ -128,75 +128,16 @@ namespace Voxel
                     if (valid)
                         HideTreesAtBlock(block);
                 }
-                EnsurePreview(valid);
-                if (_previewInstance != null)
-                {
-                    var pos = WorldScale.BlockToWorld(block.bx + 0.5f, block.by, block.bz + 0.5f);
-                    _previewInstance.transform.position = pos;
-                    _previewInstance.transform.rotation = Quaternion.Euler(0f, _rotationY, 0f);
-                }
+
+                _preview ??= new PlacementPreview(HousePrefab, WorldScale, 2f, 1f);
+                _preview.SetSingle(block, _rotationY, valid);
             }
             else
             {
                 _previewBlock = null;
                 _previewValid = false;
                 RestoreHiddenTrees();
-                DestroyPreview();
-            }
-        }
-
-        private void EnsurePreview(bool valid)
-        {
-            if (_previewInstance != null)
-            {
-                UpdatePreviewMaterials(valid);
-                return;
-            }
-            if (HousePrefab == null) return;
-
-            _previewInstance = Instantiate(HousePrefab);
-            _previewInstance.name = "HousePreview";
-
-            var scale = WorldScale.ScaleVectorForBlockSizedPrefab(2f);
-            _previewInstance.transform.localScale = scale;
-
-            foreach (var mr in _previewInstance.GetComponentsInChildren<MeshRenderer>())
-            {
-                var mat = new Material(mr.sharedMaterial);
-                mr.sharedMaterial = mat;
-            }
-            UpdatePreviewMaterials(valid);
-
-            foreach (var col in _previewInstance.GetComponentsInChildren<Collider>())
-                col.enabled = false;
-        }
-
-        private void UpdatePreviewMaterials(bool valid)
-        {
-            if (_previewInstance == null) return;
-
-            Color tint = valid ? new Color(0.5f, 1f, 0.5f, 0.5f) : new Color(1f, 0.4f, 0.4f, 0.5f);
-
-            foreach (var mr in _previewInstance.GetComponentsInChildren<MeshRenderer>())
-            {
-                var mat = mr.sharedMaterial;
-                if (mat == null) continue;
-                if (mat.HasProperty("_BaseColor"))
-                    mat.SetColor("_BaseColor", tint);
-                else
-                    mat.color = tint;
-                mat.renderQueue = 3000;
-                if (mat.HasProperty("_Surface"))
-                    mat.SetFloat("_Surface", 1f);
-            }
-        }
-
-        private void DestroyPreview()
-        {
-            if (_previewInstance != null)
-            {
-                Destroy(_previewInstance);
-                _previewInstance = null;
+                _preview?.Clear();
             }
         }
 
@@ -258,56 +199,6 @@ namespace Voxel
                 _hiddenTrees.Remove(t);
                 Destroy(t.gameObject);
             }
-        }
-
-        private static bool TryRaycastTopSurface(Camera cam, VoxelGrid grid, WorldScale scale, int waterLevelY, out (int bx, int by, int bz) block, out bool valid)
-        {
-            block = default;
-            valid = false;
-
-            if (Mouse.current == null) return false;
-
-            Vector2 screenPos = Mouse.current.position.ReadValue();
-            Ray ray = cam.ScreenPointToRay(screenPos);
-
-            float blockScale = scale.BlockScale;
-            if (blockScale <= 0f) return false;
-
-            for (int surfaceY = grid.Height; surfaceY >= 1; surfaceY--)
-            {
-                float planeY = surfaceY * blockScale;
-                float dy = ray.direction.y;
-                if (Mathf.Abs(dy) < 0.0001f) continue;
-
-                float t = (planeY - ray.origin.y) / dy;
-                if (t <= 0f) continue;
-
-                Vector3 hitWorld = ray.origin + ray.direction * t;
-                var (bx, _, bz) = scale.WorldToBlock(hitWorld);
-
-                if (bx < 0 || bx >= grid.Width || bz < 0 || bz >= grid.Depth)
-                    continue;
-
-                int topY = GetTopSolidY(grid, bx, bz, grid.Height);
-                if (topY < 0 || topY + 1 != surfaceY)
-                    continue;
-
-                block = (bx, topY + 1, bz);
-                valid = topY >= waterLevelY;
-                return true;
-            }
-
-            return false;
-        }
-
-        private static int GetTopSolidY(VoxelGrid grid, int x, int z, int gridHeight)
-        {
-            for (int y = gridHeight - 1; y >= 0; y--)
-            {
-                if (grid.IsSolid(x, y, z))
-                    return y;
-            }
-            return -1;
         }
 
         private void OnDisable()
