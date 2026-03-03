@@ -190,6 +190,27 @@ namespace Voxel
             _centerOnNextFrame = true;
         }
 
+        public void RestorePosition(float posX, float posZ, float blocksVisible)
+        {
+            if (_camera == null || _worldScale.BlockScale <= 0f) return;
+
+            _blocksVisible = Mathf.Clamp(blocksVisible, minBlocksVisible, maxBlocksVisible);
+            _smoothedBlocksVisible = _blocksVisible;
+            _zoomVelocity = 0f;
+
+            float height = HeightForBlocks(_blocksVisible);
+            transform.position = new Vector3(posX, height, posZ);
+            ApplyRotation();
+        }
+
+        public void GetPositionAndZoom(out float posX, out float posZ, out float blocksVisible)
+        {
+            var p = transform.position;
+            posX = p.x;
+            posZ = p.z;
+            blocksVisible = _smoothedBlocksVisible;
+        }
+
         public void FrameWorld(VoxelGrid grid, WorldScale worldScale)
         {
             if (grid == null || _camera == null) return;

@@ -4,8 +4,6 @@ using Voxel.Core;
 
 namespace Voxel
 {
-    public enum CameraMode { TopDown, FreeFly }
-
     public enum TerrainGenerationMode { PerlinNoise, IslandPipeline }
 
     [DefaultExecutionOrder(-100)]
@@ -16,10 +14,8 @@ namespace Voxel
         [SerializeField] private IslandPipelineConfig islandPipelineConfig;
         [SerializeField] private WaterConfig waterConfig;
         [SerializeField] private WorldParameters worldParameters;
-        [SerializeField] private CameraMode cameraMode = CameraMode.TopDown;
         [SerializeField] private Camera mainCamera;
         [SerializeField] private TopDownCamera topDownCamera;
-        [SerializeField] private FreeFlyCamera freeFlyCamera;
 
         private VoxelGrid _grid;
         private VoxelGridRenderer _renderer;
@@ -53,7 +49,16 @@ namespace Voxel
                 : null;
             _renderer.Initialize(_grid, worldParameters, mountainMaterial);
 
-            SetupCamera();
+            SetupCamera(restoreCamera: true);
+        }
+
+        private void OnApplicationQuit()
+        {
+            if (topDownCamera != null)
+            {
+                topDownCamera.GetPositionAndZoom(out float x, out float z, out float blocks);
+                GameSettings.SaveCamera(x, z, blocks);
+            }
         }
 
         private VoxelGrid CreateNewWorld()
@@ -113,38 +118,21 @@ namespace Voxel
             return grid;
         }
 
-        private void SetupCamera()
+        private void SetupCamera(bool restoreCamera = false)
         {
             var cam = mainCamera != null ? mainCamera : Camera.main;
             if (cam == null || _grid == null) return;
 
             var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-
             var topDown = topDownCamera != null ? topDownCamera : cam.GetComponent<TopDownCamera>();
-            var freeFly = freeFlyCamera != null ? freeFlyCamera : cam.GetComponent<FreeFlyCamera>();
+            if (topDown == null)
+                topDown = cam.gameObject.AddComponent<TopDownCamera>();
 
-            if (cameraMode == CameraMode.TopDown)
-            {
-                if (topDown == null)
-                    topDown = cam.gameObject.AddComponent<TopDownCamera>();
-                topDown.enabled = true;
-                if (freeFly != null) freeFly.enabled = false;
-                topDown.Initialize(_grid, worldScale);
-                topDown.FrameWorld(_grid, worldScale);
-            }
-            else
-            {
-                if (freeFly != null) freeFly.enabled = true;
-                if (topDown != null) topDown.enabled = false;
-                float centerX = _grid.Width * 0.5f * worldScale.BlockScale;
-                float centerZ = _grid.Depth * 0.5f * worldScale.BlockScale;
-                float centerY = _grid.Height * 0.5f * worldScale.BlockScale;
-                float distance = Mathf.Max(_grid.Width, _grid.Depth) * 0.5f * worldScale.BlockScale;
-                cam.transform.position = new Vector3(centerX, centerY + distance, centerZ);
-                cam.transform.LookAt(new Vector3(centerX, centerY, centerZ));
-                cam.orthographic = false;
-                cam.farClipPlane = Mathf.Max(2000f, distance * 3f);
-            }
+            topDown.enabled = true;
+            topDown.Initialize(_grid, worldScale);
+            topDown.FrameWorld(_grid, worldScale);
+            if (restoreCamera && GameSettings.TryLoadCamera(out float savedX, out float savedZ, out float savedBlocksVisible))
+                topDown.RestorePosition(savedX, savedZ, savedBlocksVisible);
         }
 
         public void SaveWorld()
@@ -162,7 +150,7 @@ namespace Voxel
                 ? islandPipelineConfig.MountainStageConfig?.Material
                 : null;
             _renderer.Initialize(_grid, worldParameters, mountainMaterial);
-            SetupCamera();
+            SetupCamera(restoreCamera: false);
         }
 
         public VoxelGrid Grid => _grid;
@@ -172,26 +160,12 @@ namespace Voxel
         public PlacedObjectRegistry PlacedObjectRegistry => placedObjectRegistry;
         public IslandPipelineConfig IslandPipelineConfig => islandPipelineConfig;
 
-        public CameraMode CameraMode => cameraMode;
         public TopDownCamera TopDownCamera => topDownCamera;
-        public FreeFlyCamera FreeFlyCamera => freeFlyCamera;
 
         public void CenterCameraOnPosition(Vector3 worldPosition)
         {
-            var cam = mainCamera != null ? mainCamera : Camera.main;
-            if (cam == null) return;
-
-            var t = cam.transform;
-            if (cameraMode == CameraMode.TopDown && topDownCamera != null)
-            {
+            if (topDownCamera != null)
                 topDownCamera.CenterOnPosition(worldPosition);
-            }
-            else if (cameraMode == CameraMode.FreeFly && freeFlyCamera != null)
-            {
-                freeFlyCamera.CenterOnPosition(worldPosition);
-            }
-
-            t.position = new Vector3(worldPosition.x, t.position.y, worldPosition.z);
         }
 
         public Transform GetParentForEntry(PlacedObjectEntry entry)

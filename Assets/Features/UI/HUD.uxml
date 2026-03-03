@@ -7,6 +7,7 @@
         <ui:VisualElement name="CentralContainer">
             <ui:VisualElement name="Sidebar">
                 <ui:Button text="Generate" name="Generate" focusable="false"/>
+                <ui:Button text="Exit" name="Exit" focusable="false"/>
                 <ui:VisualElement name="PlacementButtons" />
                 <ui:VisualElement name="SelectionDetail" class="hidden">
                     <ui:Label name="SelectionName" text=""/>

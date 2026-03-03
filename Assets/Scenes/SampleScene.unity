@@ -131,7 +131,6 @@ GameObject:
   - component: {fileID: 330585545}
   - component: {fileID: 330585544}
   - component: {fileID: 330585547}
-  - component: {fileID: 330585550}
   - component: {fileID: 330585551}
   m_Layer: 0
   m_Name: Main Camera
@@ -258,24 +257,6 @@ MonoBehaviour:
     m_VarianceClampScale: 0.9
     m_ContrastAdaptiveSharpening: 0
   m_Version: 2
---- !u!114 &330585550
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 330585543}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: c3d4e5f6789012345678abcdef012345, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
-  moveSpeed: 200
-  sprintMultiplier: 3
-  lookSensitivity: 0.5
-  invertY: 0
-  lockCursor: 1
 --- !u!114 &330585551
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -283,7 +264,7 @@ MonoBehaviour:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 330585543}
-  m_Enabled: 0
+  m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: e51a89691435c43b48baa1c2898209db, type: 3}
   m_Name: 
@@ -527,10 +508,8 @@ MonoBehaviour:
   islandPipelineConfig: {fileID: 11400000, guid: d28146873abe24c4abdc63888e37a8ed, type: 2}
   waterConfig: {fileID: 11400000, guid: d37f56012c61445f99c39141c08d21a3, type: 2}
   worldParameters: {fileID: 11400000, guid: 6a2819191cca545ecb80d137a27e3f0a, type: 2}
-  cameraMode: 0
   mainCamera: {fileID: 330585545}
   topDownCamera: {fileID: 330585551}
-  freeFlyCamera: {fileID: 330585550}
   placedObjectRegistry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
 --- !u!4 &1088007618
 Transform:

@@ -1,6 +1,9 @@
 using UnityEngine;
 using UnityEngine.UIElements;
 using Voxel;
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 
 public class HUDController : MonoBehaviour
 {
@@ -24,6 +27,17 @@ public class HUDController : MonoBehaviour
             var generateButton = uiDocument.rootVisualElement.Q<Button>("Generate");
             if (generateButton != null && worldBootstrap != null)
                 generateButton.clicked += worldBootstrap.RegenerateWorld;
+
+            var exitButton = uiDocument.rootVisualElement.Q<Button>("Exit");
+            if (exitButton != null)
+                exitButton.clicked += () =>
+                {
+#if UNITY_EDITOR
+                    EditorApplication.ExitPlaymode();
+#else
+                    Application.Quit();
+#endif
+                };
 
             var placementContainer = uiDocument.rootVisualElement.Q<VisualElement>("PlacementButtons");
             var objectPlacementController = FindAnyObjectByType<ObjectPlacementController>();
