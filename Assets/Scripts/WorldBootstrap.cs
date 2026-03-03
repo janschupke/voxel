@@ -200,6 +200,7 @@ namespace Voxel
 
         public bool HasBlockingObjectAtBlock(int bx, int by, int bz)
         {
+            if (_roadOverlay.Contains(bx, by, bz)) return true;
             if (placedObjectRegistry == null) return false;
             var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
             foreach (var entry in placedObjectRegistry.Entries)
