@@ -288,20 +288,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e51a89691435c43b48baa1c2898209db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  orthographic: 0
   lookAngle: 20
   rotationYaw: 45
-  moveSpeed: 500
-  edgePanSpeed: 500
+  moveSpeed: 50
+  edgePanSpeed: 50
   edgePanMargin: 20
   panSensitivity: 0.15
-  zoomSpeed: 50
-  minOrthoSize: 1
-  maxOrthoSize: 20
-  minFov: 15
-  maxFov: 75
-  terrainClearance: 10
-  terrainSampleResolution: 8
+  zoomSpeed: 5
+  minBlocksVisible: 10
+  maxBlocksVisible: 400
+  fieldOfView: 50
+  inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
 --- !u!1 &410087039
 GameObject:
   m_ObjectHideFlags: 0

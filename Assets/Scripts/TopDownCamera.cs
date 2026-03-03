@@ -5,35 +5,38 @@ using Voxel.Core;
 namespace Voxel
 {
     /// <summary>
-    /// Top-down 3D camera for voxel terrain. WASD/arrow movement, right-mouse panning,
-    /// scroll zoom. Auto-adjusts camera height based on terrain in view.
+    /// Top-down 3D perspective camera for voxel terrain. WASD/arrow movement, right-mouse panning,
+    /// scroll zoom. Zoom by height (10–40 blocks visible). Auto-adjusts camera height from terrain.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public class TopDownCamera : MonoBehaviour
     {
-        [SerializeField] private bool orthographic = true;
         [Tooltip("0 = up, 90 = horizontal, 180 = top-down (looking down).")]
         [Range(0f, 180f)]
         [SerializeField] private float lookAngle = 180f;
         [Tooltip("Yaw rotation in degrees (0 = south, 90 = west).")]
         [SerializeField] private float rotationYaw = 0f;
-        [SerializeField] private float moveSpeed = 30f;
-        [SerializeField] private float edgePanSpeed = 25f;
+        [Tooltip("Blocks per second when using WASD/arrows.")]
+        [SerializeField] private float moveSpeed = 2f;
+        [Tooltip("Blocks per second when edge panning.")]
+        [SerializeField] private float edgePanSpeed = 1.5f;
         [SerializeField] private float edgePanMargin = 20f;
-        [SerializeField] private float panSensitivity = 0.15f;
-        [SerializeField] private float zoomSpeed = 10f;
-        [SerializeField] private float minOrthoSize = 20f;
-        [SerializeField] private float maxOrthoSize = 500f;
-        [SerializeField] private float minFov = 15f;
-        [SerializeField] private float maxFov = 75f;
-        [SerializeField] private float terrainClearance = 10f;
-        [SerializeField] private int terrainSampleResolution = 8;
+        [Tooltip("Blocks per pixel when right-drag panning.")]
+        [SerializeField] private float panSensitivity = 0.01f;
+        [Tooltip("Blocks per scroll notch (scales with zoom level).")]
+        [SerializeField] private float zoomSpeed = 2f;
+        [SerializeField] private float minBlocksVisible = 10f;
+        [SerializeField] private float maxBlocksVisible = 40f;
+        [SerializeField] private float fieldOfView = 50f;
+        [Tooltip("Input actions (e.g. InputSystem_Actions). Uses Player/Move. Required for keyboard/gamepad movement.")]
+        [SerializeField] private InputActionAsset inputActions;
 
         private Camera _camera;
         private VoxelGrid _grid;
         private float _blockScale;
-        private bool _isPanning;
+        private float _blocksVisible;
         private Vector2 _lastPanPosition;
+        private InputAction _moveAction;
 
         /// <summary>
         /// Call after world is loaded to provide grid data for bounds and terrain sampling.
@@ -42,14 +45,28 @@ namespace Voxel
         {
             _grid = grid;
             _blockScale = blockScale;
+            if (_blocksVisible < minBlocksVisible || _blocksVisible > maxBlocksVisible)
+                _blocksVisible = (minBlocksVisible + maxBlocksVisible) * 0.5f;
         }
 
         private void Awake()
         {
             _camera = GetComponent<Camera>();
-            _camera.orthographic = orthographic;
+            _camera.orthographic = false;
+            _camera.fieldOfView = fieldOfView;
+            if (inputActions != null)
+                _moveAction = inputActions.FindActionMap("Player")?.FindAction("Move");
         }
 
+        private void OnEnable()
+        {
+            inputActions?.Enable();
+        }
+
+        private void OnDisable()
+        {
+            inputActions?.Disable();
+        }
 
         private void LateUpdate()
         {
@@ -69,20 +86,17 @@ namespace Voxel
             transform.rotation = Quaternion.Euler(90f - lookAngle, rotationYaw, 0f);
         }
 
+        private float HeightForBlocks(float blocks)
+        {
+            if (_blockScale <= 0f) return 0f;
+            float halfFovRad = fieldOfView * 0.5f * Mathf.Deg2Rad;
+            return blocks * _blockScale / (2f * Mathf.Tan(halfFovRad));
+        }
+
         private void HandleMoveInput(float dt)
         {
-            Vector2 move = Vector2.zero;
-            if (Keyboard.current != null)
-            {
-                if (Keyboard.current.wKey.isPressed) move.y += 1f;
-                if (Keyboard.current.sKey.isPressed) move.y -= 1f;
-                if (Keyboard.current.aKey.isPressed) move.x -= 1f;
-                if (Keyboard.current.dKey.isPressed) move.x += 1f;
-                if (Keyboard.current.upArrowKey.isPressed) move.y += 1f;
-                if (Keyboard.current.downArrowKey.isPressed) move.y -= 1f;
-                if (Keyboard.current.leftArrowKey.isPressed) move.x -= 1f;
-                if (Keyboard.current.rightArrowKey.isPressed) move.x += 1f;
-            }
+            Vector2 moveFromKeys = _moveAction?.ReadValue<Vector2>() ?? Vector2.zero;
+            Vector2 move = moveFromKeys;
 
             if (Mouse.current != null)
             {
@@ -100,6 +114,14 @@ namespace Voxel
 
             if (move.sqrMagnitude > 1f) move.Normalize();
 
+            float scale = _blockScale > 0f ? _blockScale : 1f;
+            float targetSpeed = (move.sqrMagnitude > 0.01f)
+                ? (moveFromKeys.sqrMagnitude > 0.01f ? moveSpeed : edgePanSpeed) * scale
+                : 0f;
+
+            Vector2 velocity = move.sqrMagnitude > 0.01f ? move.normalized * targetSpeed : Vector2.zero;
+            if (velocity.sqrMagnitude < 0.01f) return;
+
             Vector3 right = transform.right;
             right.y = 0f;
             if (right.sqrMagnitude < 0.01f) right = Vector3.right;
@@ -110,21 +132,15 @@ namespace Voxel
             if (fwd.sqrMagnitude < 0.01f) fwd = Vector3.forward;
             fwd.Normalize();
 
-            Vector3 motion = right * move.x + fwd * move.y;
-            if (motion.sqrMagnitude > 0.01f)
-            {
-                motion.Normalize();
-                float speed = (Keyboard.current != null && (move.x != 0f || move.y != 0f)) ? moveSpeed : edgePanSpeed;
-                transform.position += motion * (speed * dt);
-            }
+            Vector3 motion = right * velocity.x + fwd * velocity.y;
+            transform.position += motion * dt;
         }
 
         private void HandlePanInput(float dt)
         {
             if (Mouse.current == null) return;
 
-            _isPanning = Mouse.current.rightButton.isPressed;
-            if (_isPanning)
+            if (Mouse.current.rightButton.isPressed)
             {
                 Vector2 pos = Mouse.current.position.ReadValue();
                 if (_lastPanPosition != default)
@@ -138,7 +154,8 @@ namespace Voxel
                     fwd.y = 0f;
                     if (fwd.sqrMagnitude < 0.01f) fwd = Vector3.forward;
                     fwd.Normalize();
-                    Vector3 pan = -right * delta.x * panSensitivity - fwd * delta.y * panSensitivity;
+                    float scale = _blockScale > 0f ? _blockScale : 1f;
+                    Vector3 pan = -right * delta.x * panSensitivity * scale - fwd * delta.y * panSensitivity * scale;
                     transform.position += pan;
                 }
                 _lastPanPosition = pos;
@@ -151,35 +168,33 @@ namespace Voxel
 
         private void HandleZoomInput(float dt)
         {
-            if (Mouse.current == null) return;
+            if (Mouse.current == null || _blockScale <= 0f) return;
 
             float scroll = Mouse.current.scroll.ReadValue().y;
             if (Mathf.Abs(scroll) < 0.01f) return;
 
-            float delta = -scroll * zoomSpeed * 0.01f;
-            if (_camera.orthographic)
-                _camera.orthographicSize = Mathf.Clamp(_camera.orthographicSize + delta, minOrthoSize, maxOrthoSize);
-            else
-                _camera.fieldOfView = Mathf.Clamp(_camera.fieldOfView + delta, minFov, maxFov);
+            // Normalize: some devices report 1 per notch, others 120
+            float notches = Mathf.Abs(scroll) >= 10f ? scroll / 120f : scroll;
+            float delta = -notches * zoomSpeed * (_blocksVisible / 25f);
+            // Ensure minimum step so scroll never feels dead
+            if (Mathf.Abs(delta) < 0.5f) delta = Mathf.Sign(-scroll) * 0.5f;
+            _blocksVisible = Mathf.Clamp(_blocksVisible + delta, minBlocksVisible, maxBlocksVisible);
         }
 
         /// <summary>
-        /// Samples terrain height in the visible area and raises the camera if needed
-        /// so terrain doesn't clip through the view.
+        /// Sets camera height from zoom level and terrain.
         /// </summary>
         private void AdjustHeightForTerrain()
         {
-            if (_grid == null) return;
+            if (_grid == null || _blockScale <= 0f) return;
 
             float maxTerrainY = GetMaxTerrainHeightInView();
-            float minCameraY = maxTerrainY + terrainClearance;
+            float zoomHeight = HeightForBlocks(_blocksVisible);
+            float targetY = maxTerrainY + zoomHeight;
 
             Vector3 pos = transform.position;
-            if (pos.y < minCameraY)
-            {
-                pos.y = minCameraY;
-                transform.position = pos;
-            }
+            pos.y = targetY;
+            transform.position = pos;
         }
 
         /// <summary>
@@ -187,18 +202,9 @@ namespace Voxel
         /// </summary>
         private float GetMaxTerrainHeightInView()
         {
-            float halfHeight, halfWidth;
-            if (_camera.orthographic)
-            {
-                halfHeight = _camera.orthographicSize;
-                halfWidth = halfHeight * _camera.aspect;
-            }
-            else
-            {
-                float dist = Vector3.Distance(transform.position, new Vector3(transform.position.x, 0f, transform.position.z));
-                halfHeight = dist * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
-                halfWidth = halfHeight * _camera.aspect;
-            }
+            float dist = Vector3.Distance(transform.position, new Vector3(transform.position.x, 0f, transform.position.z));
+            float halfHeight = dist * Mathf.Tan(_camera.fieldOfView * 0.5f * Mathf.Deg2Rad);
+            float halfWidth = halfHeight * _camera.aspect;
 
             Vector3 forward = transform.forward;
             forward.y = 0f;
@@ -214,7 +220,7 @@ namespace Voxel
             center.y = 0f;
 
             float maxY = 0f;
-            int n = Mathf.Max(2, terrainSampleResolution);
+            const int n = 8;
 
             for (int i = 0; i <= n; i++)
             {
@@ -257,19 +263,20 @@ namespace Voxel
             float size = Mathf.Max(grid.Width, grid.Depth) * 0.5f * blockScale;
             float worldHeight = grid.Height * blockScale;
 
-            _camera.orthographic = orthographic;
+            _camera.orthographic = false;
+            _camera.fieldOfView = fieldOfView;
             float farClip = Mathf.Max(2000f, size * 3f, worldHeight * 2f);
             _camera.farClipPlane = farClip;
 
+            _blocksVisible = (minBlocksVisible + maxBlocksVisible) * 0.5f;
+            float heightAboveGround = blockScale > 0f
+                ? _blocksVisible * blockScale / (2f * Mathf.Tan(fieldOfView * 0.5f * Mathf.Deg2Rad))
+                : size;
+
             Vector3 lookAt = new Vector3(centerX, worldHeight * 0.5f, centerZ);
             Vector3 forward = Quaternion.Euler(90f - lookAngle, rotationYaw, 0f) * Vector3.forward;
-            transform.position = lookAt - forward * size;
+            transform.position = lookAt - forward * heightAboveGround;
             ApplyRotation();
-
-            if (_camera.orthographic)
-                _camera.orthographicSize = Mathf.Clamp(size, minOrthoSize, maxOrthoSize);
-            else
-                _camera.fieldOfView = Mathf.Clamp(50f, minFov, maxFov);
         }
     }
 }
