@@ -20,7 +20,18 @@
 #Sidebar {
     flex-grow: 0;
     flex-shrink: 0;
-    /* width: 100px; */
+    flex-direction: column;
+}
+
+#SelectionDetail {
+    flex-direction: column;
+    padding-top: 10px;
+}
+
+#SelectionName {
+    color: white;
+    font-size: 10px;
+    padding-bottom: 5px;
 }
 
 #FPS {
@@ -49,4 +60,8 @@ Button:hover {
 
 Button.placing {
     background-color: rgba(0, 100, 0, 0.7);
+}
+
+.hidden {
+    display: none;
 }

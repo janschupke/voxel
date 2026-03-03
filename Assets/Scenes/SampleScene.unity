@@ -572,6 +572,7 @@ GameObject:
   - component: {fileID: 1314134876}
   - component: {fileID: 1314134875}
   - component: {fileID: 1314134878}
+  - component: {fileID: 1314134880}
   m_Layer: 5
   m_Name: HUD
   m_TagString: Untagged
@@ -643,6 +644,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.ObjectPlacementController
   worldBootstrap: {fileID: 1088007617}
+  registry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
+--- !u!114 &1314134880
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1314134874}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d53d6070c4a7344448ecfa7a7554c71c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Voxel.SelectionController
+  worldBootstrap: {fileID: 1088007617}
+  uiDocument: {fileID: 1314134876}
   registry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

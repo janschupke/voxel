@@ -41,6 +41,8 @@ namespace Voxel
         private float _zoomVelocity;
         private Vector2 _lastPanPosition;
         private InputAction _moveAction;
+        private bool _centerOnNextFrame;
+        private Vector3 _centerTarget;
 
         private float Scale => _worldScale.BlockScale > 0f ? _worldScale.BlockScale : 1f;
 
@@ -71,6 +73,16 @@ namespace Voxel
         private void LateUpdate()
         {
             if (_camera == null) return;
+            if (_centerOnNextFrame)
+            {
+                _centerOnNextFrame = false;
+                if (_worldScale.BlockScale > 0f)
+                {
+                    float height = HeightForBlocks(_smoothedBlocksVisible);
+                    transform.position = new Vector3(_centerTarget.x, height, _centerTarget.z);
+                    ApplyRotation();
+                }
+            }
             float dt = Time.deltaTime;
             HandleMoveInput(dt);
             HandlePanInput();
@@ -169,6 +181,13 @@ namespace Voxel
             Vector3 pos = transform.position;
             pos.y = HeightForBlocks(_smoothedBlocksVisible);
             transform.position = pos;
+        }
+
+        public void CenterOnPosition(Vector3 worldPosition)
+        {
+            if (_camera == null) return;
+            _centerTarget = worldPosition;
+            _centerOnNextFrame = true;
         }
 
         public void FrameWorld(VoxelGrid grid, WorldScale worldScale)

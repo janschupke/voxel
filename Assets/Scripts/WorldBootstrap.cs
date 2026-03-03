@@ -172,6 +172,28 @@ namespace Voxel
         public PlacedObjectRegistry PlacedObjectRegistry => placedObjectRegistry;
         public IslandPipelineConfig IslandPipelineConfig => islandPipelineConfig;
 
+        public CameraMode CameraMode => cameraMode;
+        public TopDownCamera TopDownCamera => topDownCamera;
+        public FreeFlyCamera FreeFlyCamera => freeFlyCamera;
+
+        public void CenterCameraOnPosition(Vector3 worldPosition)
+        {
+            var cam = mainCamera != null ? mainCamera : Camera.main;
+            if (cam == null) return;
+
+            var t = cam.transform;
+            if (cameraMode == CameraMode.TopDown && topDownCamera != null)
+            {
+                topDownCamera.CenterOnPosition(worldPosition);
+            }
+            else if (cameraMode == CameraMode.FreeFly && freeFlyCamera != null)
+            {
+                freeFlyCamera.CenterOnPosition(worldPosition);
+            }
+
+            t.position = new Vector3(worldPosition.x, t.position.y, worldPosition.z);
+        }
+
         public Transform GetParentForEntry(PlacedObjectEntry entry)
         {
             if (entry == null) return null;

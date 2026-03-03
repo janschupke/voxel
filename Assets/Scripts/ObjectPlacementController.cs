@@ -36,6 +36,8 @@ namespace Voxel
                 registry = worldBootstrap.PlacedObjectRegistry;
         }
 
+        public bool IsPlacementModeActive => _placementModeActive;
+
         public void RegisterButton(string entryName, Button button)
         {
             if (button != null && !string.IsNullOrEmpty(entryName))

@@ -26,5 +26,8 @@ namespace Voxel
 
         [Tooltip("Apply random Y rotation for variety (e.g. for trees)")]
         public bool RandomRotation;
+
+        [Tooltip("Can be clicked to select and show in SelectionDetail UI")]
+        public bool IsSelectable;
     }
 }

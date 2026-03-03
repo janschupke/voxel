@@ -61,6 +61,17 @@ namespace Voxel
             }
         }
 
+        public void CenterOnPosition(Vector3 worldPosition)
+        {
+            float distance = 20f;
+            Vector3 offset = new Vector3(0.5f, 0.7f, 0.5f).normalized * distance;
+            transform.position = worldPosition + offset;
+            transform.LookAt(worldPosition);
+            var euler = transform.eulerAngles;
+            _pitch = euler.x;
+            _yaw = euler.y;
+        }
+
         private void LateUpdate()
         {
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
