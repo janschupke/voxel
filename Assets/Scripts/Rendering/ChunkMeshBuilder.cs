@@ -180,9 +180,11 @@ namespace Voxel.Rendering
         /// Adds a single quad face to the band's vertex, normal, and triangle lists.
         /// Triangle winding is reversed so the front face (outside the block) is visible with Unity's CW culling.
         /// </summary>
+        /// <param name="yOffset">Optional Y offset in blocks (e.g. 0.5 to raise water surface).</param>
         private static void AddFaceToBand(
             int x, int y, int z, int face, float voxelScale,
-            List<Vector3> vertices, List<Vector3> normals, List<int> triangles)
+            List<Vector3> vertices, List<Vector3> normals, List<int> triangles,
+            float yOffset = 0f)
         {
             int baseIndex = vertices.Count;
             var faceVertIndices = CubeFaces[face];
@@ -192,7 +194,7 @@ namespace Voxel.Rendering
             {
                 vertices.Add(new Vector3(
                     (x + CubeVertices[vi].x) * voxelScale,
-                    (y + CubeVertices[vi].y) * voxelScale,
+                    (y + CubeVertices[vi].y + yOffset) * voxelScale,
                     (z + CubeVertices[vi].z) * voxelScale));
                 normals.Add(normal);
             }
@@ -282,14 +284,15 @@ namespace Voxel.Rendering
 
                         if (grid.IsSolid(wx, wy, wz))
                             continue;
-                        if (wy >= waterLevelY)
+                        if (wy > waterLevelY)
                             continue;
 
+                        const float waterSurfaceOffset = -0.5f;
                         if (surfaceOnly)
                         {
                             if (!IsWaterFaceVisible(grid, wx, wy, wz, 5, waterLevelY))
                                 continue;
-                            AddFaceToBand(x, y, z, 5, voxelScale, vertices, normals, triangles);
+                            AddFaceToBand(x, y, z, 5, voxelScale, vertices, normals, triangles, waterSurfaceOffset);
                         }
                         else
                         {
@@ -297,7 +300,7 @@ namespace Voxel.Rendering
                             {
                                 if (!IsWaterFaceVisible(grid, wx, wy, wz, face, waterLevelY))
                                     continue;
-                                AddFaceToBand(x, y, z, face, voxelScale, vertices, normals, triangles);
+                                AddFaceToBand(x, y, z, face, voxelScale, vertices, normals, triangles, waterSurfaceOffset);
                             }
                         }
                     }
@@ -328,7 +331,7 @@ namespace Voxel.Rendering
 
             if (grid.IsSolid(nx, ny, nz))
                 return true;
-            if (ny >= waterLevelY)
+            if (ny > waterLevelY)
                 return true;
             return false;
         }
