@@ -1,3 +1,5 @@
+using System;
+
 namespace Voxel.Core
 {
     public static class BlockType
@@ -45,6 +47,18 @@ namespace Voxel.Core
         public bool IsSolid(int x, int y, int z)
         {
             return GetBlock(x, y, z) != BlockType.Air;
+        }
+
+        public byte[] GetBlocksCopy()
+        {
+            return (byte[])_blocks.Clone();
+        }
+
+        public void LoadBlocks(byte[] blocks)
+        {
+            if (blocks == null || blocks.Length != _blocks.Length)
+                throw new ArgumentException($"Block array size must be {_blocks.Length}, got {blocks?.Length ?? 0}");
+            Array.Copy(blocks, _blocks, _blocks.Length);
         }
     }
 }

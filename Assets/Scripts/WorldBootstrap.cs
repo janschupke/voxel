@@ -14,25 +14,15 @@ namespace Voxel
 
         private void Start()
         {
-            int width = worldParameters != null ? worldParameters.Width : 1000;
-            int depth = worldParameters != null ? worldParameters.Depth : 1000;
-            int height = worldParameters != null ? worldParameters.Height : 50;
-            float heightScale = worldParameters != null ? worldParameters.HeightScale : 1f;
-            float heightOffset = worldParameters != null ? worldParameters.HeightOffset : 0f;
-            byte blockType = worldParameters != null ? worldParameters.BlockType : BlockType.Ground;
-
-            _grid = new VoxelGrid(width, depth, height);
-
-            int seed = noiseParameters != null ? noiseParameters.Seed : 12345;
-            float frequency = noiseParameters != null ? noiseParameters.Frequency : 0.04f;
-            int octaves = noiseParameters != null ? noiseParameters.Octaves : 5;
-            float lacunarity = noiseParameters != null ? noiseParameters.Lacunarity : 2f;
-            float persistence = noiseParameters != null ? noiseParameters.Persistence : 0.5f;
-
-            var fractalNoise = new FractalNoise(frequency, octaves, lacunarity, persistence, seed);
-
-            var terrainGen = new TerrainGenerator(_grid, fractalNoise, heightScale, heightOffset, blockType);
-            terrainGen.Generate();
+            if (WorldPersistenceService.WorldExists())
+            {
+                _grid = WorldPersistenceService.Load();
+            }
+            else
+            {
+                _grid = CreateNewWorld();
+                WorldPersistenceService.Save(_grid);
+            }
 
             _renderer = GetComponent<VoxelGridRenderer>();
             if (_renderer == null)
@@ -41,6 +31,30 @@ namespace Voxel
             _renderer.Initialize(_grid);
 
             SetupOverheadCamera();
+        }
+
+        private VoxelGrid CreateNewWorld()
+        {
+            int width = worldParameters != null ? worldParameters.Width : 1000;
+            int depth = worldParameters != null ? worldParameters.Depth : 1000;
+            int height = worldParameters != null ? worldParameters.Height : 50;
+            float heightScale = worldParameters != null ? worldParameters.HeightScale : 1f;
+            float heightOffset = worldParameters != null ? worldParameters.HeightOffset : 0f;
+            byte blockType = worldParameters != null ? worldParameters.BlockType : BlockType.Ground;
+
+            var grid = new VoxelGrid(width, depth, height);
+
+            int seed = noiseParameters != null ? noiseParameters.Seed : 12345;
+            float frequency = noiseParameters != null ? noiseParameters.Frequency : 0.04f;
+            int octaves = noiseParameters != null ? noiseParameters.Octaves : 5;
+            float lacunarity = noiseParameters != null ? noiseParameters.Lacunarity : 2f;
+            float persistence = noiseParameters != null ? noiseParameters.Persistence : 0.5f;
+
+            var fractalNoise = new FractalNoise(frequency, octaves, lacunarity, persistence, seed);
+            var terrainGen = new TerrainGenerator(grid, fractalNoise, heightScale, heightOffset, blockType);
+            terrainGen.Generate();
+
+            return grid;
         }
 
         private void SetupOverheadCamera()

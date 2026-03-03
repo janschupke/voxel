@@ -1,0 +1,16 @@
+#Overlay {
+    flex-grow: 1;
+    flex-direction: column-reverse;
+    align-items: center;
+}
+
+Button {
+    width: 100px;
+    background-color: rgba(0, 0, 0, 0.5);
+    color: white;
+    border-radius: 10px;
+}
+
+Button:hover {
+    background-color: rgba(0, 0, 0, 0.8);
+}
