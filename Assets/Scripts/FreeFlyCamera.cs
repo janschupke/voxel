@@ -61,7 +61,7 @@ namespace Voxel
             }
         }
 
-        private void Update()
+        private void LateUpdate()
         {
             if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
                 Cursor.lockState = CursorLockMode.None;

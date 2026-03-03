@@ -3,6 +3,7 @@ using Voxel.Core;
 
 namespace Voxel
 {
+    [DefaultExecutionOrder(-100)]
     public class WorldBootstrap : MonoBehaviour
     {
         [SerializeField] private NoiseParameters noiseParameters;
