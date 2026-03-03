@@ -31,6 +31,10 @@ namespace Voxel
             _chunkParent = new GameObject("VoxelWorld").transform;
             _chunkManager = new ChunkManager(_grid, _chunkParent, mat, blockScale, terrainMaterialConfig);
             _chunkManager.BuildAllChunks();
+
+            var debugger = GetComponent<Voxel.Debug.TerrainMaterialDebugger>();
+            if (debugger != null)
+                debugger.OnTerrainInitialized(_grid, _chunkManager, terrainMaterialConfig);
         }
 
         public void InvalidateChunkAt(int x, int y, int z)

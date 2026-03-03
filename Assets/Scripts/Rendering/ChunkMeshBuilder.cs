@@ -5,16 +5,27 @@ using Voxel.Core;
 
 namespace Voxel.Rendering
 {
+    /// <summary>
+    /// Builds chunk meshes from a voxel grid. Each chunk is split into separate meshes per
+    /// material band (height-based), so each band gets its own MeshRenderer for correct opaque rendering.
+    /// </summary>
     public static class ChunkMeshBuilder
     {
         public const int ChunkSize = 16;
 
+        /// <summary>
+        /// Unit-cube vertex positions. Indexed by CubeFaces to form quad vertices for each face.
+        /// </summary>
         private static readonly Vector3[] CubeVertices =
         {
             new(0, 0, 0), new(1, 0, 0), new(1, 1, 0), new(0, 1, 0),
             new(0, 0, 1), new(1, 0, 1), new(1, 1, 1), new(0, 1, 1)
         };
 
+        /// <summary>
+        /// For each of the 6 cube faces, the 4 vertex indices (into CubeVertices) that form the quad.
+        /// Order ensures correct winding for Unity's clockwise front-face culling.
+        /// </summary>
         private static readonly int[][] CubeFaces =
         {
             new[] { 0, 1, 2, 3 }, // -Z
@@ -25,25 +36,72 @@ namespace Voxel.Rendering
             new[] { 3, 2, 6, 7 }  // +Y
         };
 
+        /// <summary>
+        /// Outward-facing normal for each cube face. Matches CubeFaces index.
+        /// </summary>
         private static readonly Vector3[] FaceNormals =
         {
             new(0, 0, -1), new(0, 0, 1), new(-1, 0, 0), new(1, 0, 0), new(0, -1, 0), new(0, 1, 0)
         };
 
-        public static Mesh Build(VoxelGrid grid, int chunkX, int chunkY, int chunkZ, float voxelScale = 1f,
+        /// <summary>
+        /// Builds separate meshes per material band to avoid multi-submesh transparency issues with URP.
+        /// Returns one mesh per band; when terrainConfig is null, returns a single mesh.
+        /// </summary>
+        /// <param name="grid">The voxel grid to sample.</param>
+        /// <param name="chunkX">Chunk index in X.</param>
+        /// <param name="chunkY">Chunk index in Y.</param>
+        /// <param name="chunkZ">Chunk index in Z.</param>
+        /// <param name="voxelScale">Scale factor for vertex positions (e.g. 8 for 8 units per voxel).</param>
+        /// <param name="terrainConfig">Optional height-based material config. Null = single band.</param>
+        public static Mesh[] Build(VoxelGrid grid, int chunkX, int chunkY, int chunkZ, float voxelScale = 1f,
             TerrainMaterialConfig terrainConfig = null)
         {
-            int ox = chunkX * ChunkSize;
-            int oy = chunkY * ChunkSize;
-            int oz = chunkZ * ChunkSize;
-
+            var (ox, oy, oz) = GetChunkOrigin(chunkX, chunkY, chunkZ);
             int bandCount = terrainConfig != null ? terrainConfig.BandCount : 1;
-            var vertices = new List<Vector3>();
-            var normals = new List<Vector3>();
-            var trianglesPerBand = new List<int>[bandCount];
-            for (int i = 0; i < bandCount; i++)
-                trianglesPerBand[i] = new List<int>();
 
+            var verticesPerBand = CreateBandBuffers<Vector3>(bandCount);
+            var normalsPerBand = CreateBandBuffers<Vector3>(bandCount);
+            var trianglesPerBand = CreateBandBuffers<int>(bandCount);
+
+            CollectVisibleFaces(grid, ox, oy, oz, bandCount, terrainConfig, voxelScale,
+                verticesPerBand, normalsPerBand, trianglesPerBand);
+
+            return CreateMeshesFromBands(verticesPerBand, normalsPerBand, trianglesPerBand, bandCount);
+        }
+
+        /// <summary>
+        /// Returns the world-space origin of the chunk (min corner in voxel coordinates).
+        /// </summary>
+        private static (int ox, int oy, int oz) GetChunkOrigin(int chunkX, int chunkY, int chunkZ)
+        {
+            return (
+                chunkX * ChunkSize,
+                chunkY * ChunkSize,
+                chunkZ * ChunkSize
+            );
+        }
+
+        /// <summary>
+        /// Creates one list per band for storing mesh data. Used for vertices, normals, and triangles.
+        /// </summary>
+        private static List<T>[] CreateBandBuffers<T>(int bandCount)
+        {
+            var buffers = new List<T>[bandCount];
+            for (int i = 0; i < bandCount; i++)
+                buffers[i] = new List<T>();
+            return buffers;
+        }
+
+        /// <summary>
+        /// Iterates over all blocks in the chunk and adds visible faces to the appropriate band buffers.
+        /// Faces are only added when the adjacent block is air (greedy meshing / face culling).
+        /// </summary>
+        private static void CollectVisibleFaces(
+            VoxelGrid grid, int ox, int oy, int oz, int bandCount,
+            TerrainMaterialConfig terrainConfig, float voxelScale,
+            List<Vector3>[] verticesPerBand, List<Vector3>[] normalsPerBand, List<int>[] trianglesPerBand)
+        {
             for (int x = 0; x < ChunkSize; x++)
             {
                 for (int y = 0; y < ChunkSize; y++)
@@ -57,46 +115,108 @@ namespace Voxel.Rendering
                         if (!grid.IsSolid(wx, wy, wz))
                             continue;
 
-                        float normalizedY = (oy + y) / (float)grid.Height;
-                        int bandIndex = terrainConfig != null ? terrainConfig.GetMaterialIndex(normalizedY) : 0;
-                        if (bandIndex >= bandCount) bandIndex = bandCount - 1;
+                        int bandIndex = GetBandIndex(wy, grid.Height, bandCount, terrainConfig);
 
-                        for (int f = 0; f < 6; f++)
+                        for (int face = 0; face < 6; face++)
                         {
-                            if (!IsFaceVisible(grid, wx, wy, wz, f))
+                            if (!IsFaceVisible(grid, wx, wy, wz, face))
                                 continue;
 
-                            int baseIndex = vertices.Count;
-                            foreach (int vi in CubeFaces[f])
-                            {
-                                vertices.Add(new Vector3(
-                                    (x + CubeVertices[vi].x) * voxelScale,
-                                    (y + CubeVertices[vi].y) * voxelScale,
-                                    (z + CubeVertices[vi].z) * voxelScale));
-                                normals.Add(FaceNormals[f]);
-                            }
-                            var triangles = trianglesPerBand[bandIndex];
-                            triangles.Add(baseIndex);
-                            triangles.Add(baseIndex + 1);
-                            triangles.Add(baseIndex + 2);
-                            triangles.Add(baseIndex);
-                            triangles.Add(baseIndex + 2);
-                            triangles.Add(baseIndex + 3);
+                            AddFaceToBand(
+                                x, y, z, face, voxelScale,
+                                verticesPerBand[bandIndex],
+                                normalsPerBand[bandIndex],
+                                trianglesPerBand[bandIndex]);
                         }
                     }
                 }
             }
+        }
 
+        /// <summary>
+        /// Returns the material band index for a block at the given world Y.
+        /// Uses normalized height (0–1) so band thresholds work across different grid sizes.
+        /// </summary>
+        private static int GetBandIndex(int worldY, int gridHeight, int bandCount, TerrainMaterialConfig terrainConfig)
+        {
+            if (terrainConfig == null) return 0;
+
+            float normalizedY = gridHeight > 0
+                ? Mathf.Clamp01((worldY + 0.5f) / gridHeight)
+                : 0f;
+            int index = terrainConfig.GetMaterialIndex(normalizedY);
+            return index >= bandCount ? bandCount - 1 : index;
+        }
+
+        /// <summary>
+        /// Adds a single quad face to the band's vertex, normal, and triangle lists.
+        /// Triangle winding is reversed so the front face (outside the block) is visible with Unity's CW culling.
+        /// </summary>
+        private static void AddFaceToBand(
+            int x, int y, int z, int face, float voxelScale,
+            List<Vector3> vertices, List<Vector3> normals, List<int> triangles)
+        {
+            int baseIndex = vertices.Count;
+            var faceVertIndices = CubeFaces[face];
+            var normal = FaceNormals[face];
+
+            foreach (int vi in faceVertIndices)
+            {
+                vertices.Add(new Vector3(
+                    (x + CubeVertices[vi].x) * voxelScale,
+                    (y + CubeVertices[vi].y) * voxelScale,
+                    (z + CubeVertices[vi].z) * voxelScale));
+                normals.Add(normal);
+            }
+
+            // Two triangles: (0,2,1) and (0,3,2). Reversed winding for correct front-face culling.
+            triangles.Add(baseIndex);
+            triangles.Add(baseIndex + 2);
+            triangles.Add(baseIndex + 1);
+            triangles.Add(baseIndex);
+            triangles.Add(baseIndex + 3);
+            triangles.Add(baseIndex + 2);
+        }
+
+        /// <summary>
+        /// Builds one Unity Mesh per band from the collected vertices, normals, and triangles.
+        /// Returns null for bands with no geometry (e.g. no snow in a low-elevation chunk).
+        /// </summary>
+        private static Mesh[] CreateMeshesFromBands(
+            List<Vector3>[] verticesPerBand, List<Vector3>[] normalsPerBand, List<int>[] trianglesPerBand,
+            int bandCount)
+        {
+            var meshes = new Mesh[bandCount];
+            for (int i = 0; i < bandCount; i++)
+            {
+                if (trianglesPerBand[i].Count == 0)
+                {
+                    meshes[i] = null;
+                    continue;
+                }
+                meshes[i] = CreateMesh(verticesPerBand[i], normalsPerBand[i], trianglesPerBand[i]);
+            }
+            return meshes;
+        }
+
+        /// <summary>
+        /// Creates a Unity Mesh from vertex, normal, and triangle data.
+        /// </summary>
+        private static Mesh CreateMesh(List<Vector3> vertices, List<Vector3> normals, List<int> triangles)
+        {
             var mesh = new Mesh();
             mesh.SetVertices(vertices);
             mesh.SetNormals(normals);
-            mesh.subMeshCount = bandCount;
-            for (int i = 0; i < bandCount; i++)
-                mesh.SetTriangles(trianglesPerBand[i], i);
+            mesh.SetTriangles(triangles, 0);
             mesh.RecalculateBounds();
             return mesh;
         }
 
+        /// <summary>
+        /// Returns true if the face should be rendered. A face is visible only when the adjacent
+        /// block is air (or out of bounds), so we don't draw interior faces between solid blocks.
+        /// </summary>
+        /// <param name="face">0=-Z, 1=+Z, 2=-X, 3=+X, 4=-Y, 5=+Y</param>
         private static bool IsFaceVisible(VoxelGrid grid, int x, int y, int z, int face)
         {
             return face switch

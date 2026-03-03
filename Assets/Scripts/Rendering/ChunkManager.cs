@@ -38,6 +38,14 @@ namespace Voxel.Rendering
             _terrainConfig = terrainConfig;
             _voxelScale = voxelScale;
             _materials = ResolveMaterials(material, terrainConfig);
+
+#if UNITY_EDITOR
+            if (terrainConfig != null && _materials != null)
+            {
+                for (int i = 0; i < _materials.Length; i++)
+                    UnityEngine.Debug.Log($"[ChunkManager] Material {i}: {_materials[i].name} (shader: {_materials[i].shader?.name})");
+            }
+#endif
         }
 
         private static Material[] ResolveMaterials(Material fallbackMaterial, TerrainMaterialConfig config)
@@ -46,14 +54,14 @@ namespace Voxel.Rendering
                 return new[] { fallbackMaterial };
 
             var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-            var baseShader = shader != null ? shader : Shader.Find("Sprites/Default");
+            if (shader == null) shader = Shader.Find("Sprites/Default");
 
             return config.Bands.Select((band, i) =>
             {
                 if (band.material != null)
                     return band.material;
-                var mat = new Material(baseShader);
-                mat.SetColor("_BaseColor", i < DefaultBandColors.Length ? DefaultBandColors[i] : Color.gray);
+                var mat = new Material(shader);
+                mat.color = i < DefaultBandColors.Length ? DefaultBandColors[i] : Color.gray;
                 return mat;
             }).ToArray();
         }
@@ -126,8 +134,25 @@ namespace Voxel.Rendering
                 _chunks[key] = renderer;
             }
 
-            var mesh = ChunkMeshBuilder.Build(_grid, cx, cy, cz, _voxelScale, _terrainConfig);
-            renderer.SetMesh(mesh);
+            var meshes = ChunkMeshBuilder.Build(_grid, cx, cy, cz, _voxelScale, _terrainConfig);
+            renderer.SetMeshes(meshes);
+
+#if UNITY_EDITOR
+            if (cx == 0 && cy == 0 && cz == 0 && meshes != null && meshes.Length > 0)
+            {
+                var counts = new System.Text.StringBuilder();
+                int totalVerts = 0;
+                for (int i = 0; i < meshes.Length; i++)
+                {
+                    if (meshes[i] != null)
+                    {
+                        totalVerts += meshes[i].vertexCount;
+                        counts.Append($"band{i}={meshes[i].GetIndexCount(0)} ");
+                    }
+                }
+                UnityEngine.Debug.Log($"[ChunkManager] Chunk (0,0,0): {totalVerts} verts total, {counts}(triangles per band)");
+            }
+#endif
         }
     }
 }
