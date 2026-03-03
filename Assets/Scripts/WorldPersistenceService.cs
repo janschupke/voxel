@@ -16,6 +16,12 @@ namespace Voxel
             return File.Exists(WorldPath);
         }
 
+        public static void DeleteWorld()
+        {
+            if (File.Exists(WorldPath))
+                File.Delete(WorldPath);
+        }
+
         public static void Save(VoxelGrid grid)
         {
             var dir = Path.GetDirectoryName(WorldPath);

@@ -1,16 +1,25 @@
 using UnityEngine;
+using UnityEngine.UIElements;
+using Voxel;
 
 public class HUDController : MonoBehaviour
 {
-    // Start is called once before the first execution of Update after the MonoBehaviour is created
-    void Start()
-    {
-        
-    }
+    [SerializeField] private UIDocument uiDocument;
 
-    // Update is called once per frame
-    void Update()
+    private void Start()
     {
-        
+        if (uiDocument == null)
+            uiDocument = GetComponent<UIDocument>();
+
+        if (uiDocument?.rootVisualElement != null)
+        {
+            var generateButton = uiDocument.rootVisualElement.Q<Button>("Generate");
+            if (generateButton != null)
+            {
+                var worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
+                if (worldBootstrap != null)
+                    generateButton.clicked += worldBootstrap.RegenerateWorld;
+            }
+        }
     }
 }

@@ -10,9 +10,13 @@ namespace Voxel
 
         private ChunkManager _chunkManager;
         private VoxelGrid _grid;
+        private Transform _chunkParent;
 
         public void Initialize(VoxelGrid grid)
         {
+            if (_chunkParent != null)
+                Destroy(_chunkParent.gameObject);
+
             _grid = grid;
 
             Material mat = chunkMaterial;
@@ -22,8 +26,8 @@ namespace Voxel
                 mat = shader != null ? new Material(shader) : new Material(Shader.Find("Sprites/Default"));
             }
 
-            var chunkParent = new GameObject("VoxelWorld").transform;
-            _chunkManager = new ChunkManager(grid, chunkParent, mat);
+            _chunkParent = new GameObject("VoxelWorld").transform;
+            _chunkManager = new ChunkManager(_grid, _chunkParent, mat);
             _chunkManager.BuildAllChunks();
         }
 

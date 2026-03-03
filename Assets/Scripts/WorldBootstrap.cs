@@ -73,6 +73,15 @@ namespace Voxel
             cam.orthographicSize = Mathf.Max(_grid.Width, _grid.Depth) * 0.5f;
         }
 
+        public void RegenerateWorld()
+        {
+            WorldPersistenceService.DeleteWorld();
+            _grid = CreateNewWorld();
+            WorldPersistenceService.Save(_grid);
+            _renderer.Initialize(_grid);
+            SetupOverheadCamera();
+        }
+
         public VoxelGrid Grid => _grid;
         public VoxelGridRenderer Renderer => _renderer;
     }
