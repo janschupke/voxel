@@ -56,6 +56,9 @@ namespace Voxel
             }
         }
 
+        public Transform SelectedObject => _selectedObject;
+        public string SelectedEntryName => _selectedEntryName;
+
         public void ClearSelection()
         {
             if (_selectedObject != null)

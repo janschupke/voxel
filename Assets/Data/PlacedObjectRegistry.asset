@@ -13,28 +13,6 @@ MonoBehaviour:
   m_Name: PlacedObjectRegistry
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.PlacedObjectRegistry
   entries:
-  - Name: House
-    Prefab: {fileID: 3532374132240110004, guid: e4869eb4234ab4317b9c3f5a9b040066, type: 3}
-    CanReplaceTrees: 1
-    ArealPlacementEnabled: 0
-    PrefabHeightInUnits: 2
-    ScaleMultiplier: 1
-    RandomRotation: 0
-    IsSelectable: 1
-  - Name: Tree
-    Prefab: {fileID: 4056082060252207166, guid: 46ec642aae69b4fc6ae81977426efd4c, type: 3}
-    CanReplaceTrees: 0
-    IsBlocking: 0
-    ArealPlacementEnabled: 1
-    PrefabHeightInUnits: 2
-    ScaleMultiplier: 1.5
-    RandomRotation: 1
-    IsSelectable: 0
-  - Name: Warehouse
-    Prefab: {fileID: 3532374132240110004, guid: f5c36034406144ab28b22eb3dea335fa, type: 3}
-    CanReplaceTrees: 1
-    ArealPlacementEnabled: 0
-    PrefabHeightInUnits: 2
-    ScaleMultiplier: 1
-    RandomRotation: 0
-    IsSelectable: 1
+  - {fileID: 11400000, guid: d6427477f8a241ea8448d709bb3c582d, type: 2}
+  - {fileID: 11400000, guid: 7623eb91073a452491b3599fac818efc, type: 2}
+  - {fileID: 11400000, guid: 79ad657297f24a6b80a8c1b700b29868, type: 2}

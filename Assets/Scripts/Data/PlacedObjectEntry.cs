@@ -1,10 +1,9 @@
-using System;
 using UnityEngine;
 
 namespace Voxel
 {
-    [Serializable]
-    public class PlacedObjectEntry
+    [CreateAssetMenu(fileName = "PlacedObject", menuName = "Voxel/Placed Object Entry")]
+    public class PlacedObjectEntry : ScriptableObject
     {
         [Tooltip("UI label (e.g. House, Tree)")]
         public string Name;
@@ -32,5 +31,12 @@ namespace Voxel
 
         [Tooltip("Can be clicked to select and show in SelectionDetail UI")]
         public bool IsSelectable;
+
+        [Header("Operational Range")]
+        [Tooltip("Range in blocks. 0 = no range. When set, shows outline on terrain when selected.")]
+        [Min(0f)]
+        public float OperationalRangeInBlocks;
+
+        public bool HasOperationalRange => OperationalRangeInBlocks > 0.001f;
     }
 }

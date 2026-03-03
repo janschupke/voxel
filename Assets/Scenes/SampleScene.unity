@@ -552,6 +552,7 @@ GameObject:
   - component: {fileID: 1314134875}
   - component: {fileID: 1314134878}
   - component: {fileID: 1314134880}
+  - component: {fileID: 1314134882}
   m_Layer: 5
   m_Name: HUD
   m_TagString: Untagged
@@ -644,6 +645,23 @@ MonoBehaviour:
   selectedOutlineColor: {r: 0.4, g: 0.7, b: 1, a: 1}
   hoverOutlineWidth: 1
   selectedOutlineWidth: 1
+--- !u!114 &1314134882
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1314134874}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d2f4076ff86d4ebe8be722b363fa4b94, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Voxel.SelectionRangeOverlay
+  worldBootstrap: {fileID: 1088007617}
+  selectionController: {fileID: 1314134880}
+  registry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
+  rangeColor: {r: 0.2, g: 0.8, b: 0.3, a: 0.4}
+  lineWidth: 0.05
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
