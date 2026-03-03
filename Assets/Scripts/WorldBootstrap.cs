@@ -26,8 +26,7 @@ namespace Voxel
         private Transform _treesParent;
         private Transform _housesParent;
 
-        [SerializeField] private GameObject housePrefab;
-        [SerializeField] private GameObject treePrefab;
+        [SerializeField] private PlacedObjectRegistry placedObjectRegistry;
 
         private void Start()
         {
@@ -170,9 +169,16 @@ namespace Voxel
         public VoxelGridRenderer Renderer => _renderer;
         public Transform TreesParent => _treesParent;
         public Transform HousesParent => _housesParent;
-        public GameObject HousePrefab => housePrefab;
-        public GameObject TreePrefab => treePrefab ?? islandPipelineConfig?.TreeScatterConfig?.TreePrefab;
+        public PlacedObjectRegistry PlacedObjectRegistry => placedObjectRegistry;
         public IslandPipelineConfig IslandPipelineConfig => islandPipelineConfig;
+
+        public Transform GetParentForEntry(PlacedObjectEntry entry)
+        {
+            if (entry == null) return null;
+            if (entry.Name == "House") return _housesParent;
+            if (entry.Name == "Tree") return _treesParent;
+            return null;
+        }
         public WaterConfig WaterConfig => waterConfig;
         public WorldParameters WorldParameters => worldParameters;
 
@@ -254,7 +260,9 @@ namespace Voxel
 
         private void LoadHouses(IReadOnlyList<HousePlacementData> houses)
         {
-            if (housePrefab == null) return;
+            var entry = placedObjectRegistry != null ? placedObjectRegistry.GetByName("House") : null;
+            var prefab = entry?.Prefab;
+            if (prefab == null) return;
 
             EnsureHousesParent();
             if (_housesParent.childCount > 0)
@@ -266,19 +274,22 @@ namespace Voxel
             if (houses == null || houses.Count == 0) return;
 
             var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-            var scale = worldScale.ScaleVectorForBlockSizedPrefab(2f);
+            float prefabHeight = entry.PrefabHeightInUnits > 0 ? entry.PrefabHeightInUnits : 2f;
+            float scaleMult = entry.ScaleMultiplier > 0 ? entry.ScaleMultiplier : 1f;
+            var scale = worldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
 
             foreach (var h in houses)
             {
-                var instance = Object.Instantiate(housePrefab, h.ToWorldPosition(worldScale), h.ToRotation(), _housesParent);
-                instance.name = housePrefab.name;
+                var instance = Object.Instantiate(prefab, h.ToWorldPosition(worldScale), h.ToRotation(), _housesParent);
+                instance.name = prefab.name;
                 instance.transform.localScale = scale;
             }
         }
 
         private void LoadTrees(IReadOnlyList<TreePlacementData> trees)
         {
-            var prefab = TreePrefab;
+            var entry = placedObjectRegistry != null ? placedObjectRegistry.GetByName("Tree") : null;
+            var prefab = entry?.Prefab ?? islandPipelineConfig?.TreeScatterConfig?.TreePrefab;
             var treeConfig = islandPipelineConfig?.TreeScatterConfig;
 
             if (prefab == null && (treeConfig == null || treeConfig.TreePrefab == null))
@@ -298,15 +309,14 @@ namespace Voxel
             }
 
             var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-            float prefabHeight = treeConfig != null ? treeConfig.PrefabHeightInUnits : 2f;
-            float scaleMult = treeConfig != null ? treeConfig.ScaleMultiplier : 1f;
+            float prefabHeight = entry != null ? entry.PrefabHeightInUnits : (treeConfig != null ? treeConfig.PrefabHeightInUnits : 2f);
+            float scaleMult = entry != null ? entry.ScaleMultiplier : (treeConfig != null ? treeConfig.ScaleMultiplier : 1f);
             var scale = worldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
 
-            var loadPrefab = prefab ?? treeConfig?.TreePrefab;
             foreach (var t in trees)
             {
-                var instance = Object.Instantiate(loadPrefab, t.ToWorldPosition(worldScale), t.ToRotation(), _treesParent);
-                instance.name = loadPrefab.name;
+                var instance = Object.Instantiate(prefab, t.ToWorldPosition(worldScale), t.ToRotation(), _treesParent);
+                instance.name = prefab.name;
                 instance.transform.localScale = scale;
             }
         }

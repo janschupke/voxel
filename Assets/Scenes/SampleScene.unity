@@ -531,8 +531,7 @@ MonoBehaviour:
   mainCamera: {fileID: 330585545}
   topDownCamera: {fileID: 330585551}
   freeFlyCamera: {fileID: 330585550}
-  housePrefab: {fileID: 3532374132240110004, guid: e4869eb4234ab4317b9c3f5a9b040066, type: 3}
-  treePrefab: {fileID: 4056082060252207166, guid: 46ec642aae69b4fc6ae81977426efd4c, type: 3}
+  placedObjectRegistry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
 --- !u!4 &1088007618
 Transform:
   m_ObjectHideFlags: 0
@@ -573,7 +572,6 @@ GameObject:
   - component: {fileID: 1314134876}
   - component: {fileID: 1314134875}
   - component: {fileID: 1314134878}
-  - component: {fileID: 1314134879}
   m_Layer: 5
   m_Name: HUD
   m_TagString: Untagged
@@ -643,23 +641,9 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: b2c3d4e5f6789012345678abcdef02ab, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Voxel.HousePlacementController
+  m_EditorClassIdentifier: Assembly-CSharp::Voxel.ObjectPlacementController
   worldBootstrap: {fileID: 1088007617}
-  uiDocument: {fileID: 1314134876}
---- !u!114 &1314134879
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 1314134874}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 6c6474f8201b34751bb7acee1928f1c8, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: Assembly-CSharp::Voxel.TreePlacementController
-  worldBootstrap: {fileID: 1088007617}
-  uiDocument: {fileID: 1314134876}
+  registry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

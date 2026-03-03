@@ -5,6 +5,7 @@ using Voxel;
 public class HUDController : MonoBehaviour
 {
     [SerializeField] private UIDocument uiDocument;
+    [SerializeField] private PlacedObjectRegistry placedObjectRegistry;
 
     private Label _fpsLabel;
     private float _fpsAccumulator;
@@ -19,28 +20,34 @@ public class HUDController : MonoBehaviour
         {
             _fpsLabel = uiDocument.rootVisualElement.Q<Label>("FPS");
 
+            var worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
             var generateButton = uiDocument.rootVisualElement.Q<Button>("Generate");
-            if (generateButton != null)
-            {
-                var worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
-                if (worldBootstrap != null)
-                    generateButton.clicked += worldBootstrap.RegenerateWorld;
-            }
+            if (generateButton != null && worldBootstrap != null)
+                generateButton.clicked += worldBootstrap.RegenerateWorld;
 
-            var houseButton = uiDocument.rootVisualElement.Q<Button>("House");
-            if (houseButton != null)
-            {
-                var housePlacementController = FindAnyObjectByType<HousePlacementController>();
-                if (housePlacementController != null)
-                    houseButton.clicked += housePlacementController.TogglePlacementMode;
-            }
+            var placementContainer = uiDocument.rootVisualElement.Q<VisualElement>("PlacementButtons");
+            var objectPlacementController = FindAnyObjectByType<ObjectPlacementController>();
 
-            var treeButton = uiDocument.rootVisualElement.Q<Button>("Tree");
-            if (treeButton != null)
+            if (placementContainer != null && objectPlacementController != null)
             {
-                var treePlacementController = FindAnyObjectByType<TreePlacementController>();
-                if (treePlacementController != null)
-                    treeButton.clicked += treePlacementController.TogglePlacementMode;
+                var registry = placedObjectRegistry != null ? placedObjectRegistry : worldBootstrap?.PlacedObjectRegistry;
+                if (registry != null && registry.Entries != null)
+                {
+                    foreach (var entry in registry.Entries)
+                    {
+                        if (entry == null || string.IsNullOrEmpty(entry.Name)) continue;
+
+                        var button = new Button { text = entry.Name, focusable = false };
+                        button.name = entry.Name;
+                        if (entry.Prefab == null)
+                            button.SetEnabled(false);
+                        placementContainer.Add(button);
+
+                        objectPlacementController.RegisterButton(entry.Name, button);
+                        var entryName = entry.Name;
+                        button.clicked += () => objectPlacementController.TogglePlacementMode(entryName);
+                    }
+                }
             }
         }
     }
