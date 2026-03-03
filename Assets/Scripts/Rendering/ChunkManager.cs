@@ -21,6 +21,8 @@ namespace Voxel.Rendering
         private readonly TerrainMaterialConfig _terrainConfig;
         private readonly WaterConfig _waterConfig;
         private readonly Material _mountainMaterial;
+        private readonly RoadOverlay _roadOverlay;
+        private readonly RoadConfig _roadConfig;
         private readonly Dictionary<(int, int, int), ChunkRenderer> _chunks = new();
         private readonly HashSet<(int, int, int)> _dirtyChunks = new();
         private readonly Queue<(int, int, int)> _dirtyQueue = new();
@@ -33,19 +35,22 @@ namespace Voxel.Rendering
         private readonly WorldScale _worldScale;
 
         public ChunkManager(VoxelGrid grid, Transform parent, Material material, WorldScale worldScale = default,
-            TerrainMaterialConfig terrainConfig = null, WaterConfig waterConfig = null, Material mountainMaterial = null)
+            TerrainMaterialConfig terrainConfig = null, WaterConfig waterConfig = null, Material mountainMaterial = null,
+            RoadOverlay roadOverlay = null, RoadConfig roadConfig = null)
         {
             _grid = grid;
             _parent = parent;
             _terrainConfig = terrainConfig;
             _waterConfig = waterConfig;
             _mountainMaterial = mountainMaterial;
+            _roadOverlay = roadOverlay;
+            _roadConfig = roadConfig;
             _worldScale = worldScale.BlockScale > 0f ? worldScale : new WorldScale(1f);
-            _materials = ResolveMaterials(material, terrainConfig, waterConfig, mountainMaterial, _worldScale.BlockScale);
+            _materials = ResolveMaterials(material, terrainConfig, waterConfig, mountainMaterial, roadConfig, _worldScale.BlockScale);
         }
 
         private static Material[] ResolveMaterials(Material fallbackMaterial, TerrainMaterialConfig config,
-            WaterConfig waterConfig, Material mountainMaterial, float blockScale = 1f)
+            WaterConfig waterConfig, Material mountainMaterial, RoadConfig roadConfig, float blockScale = 1f)
         {
             var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
             if (shader == null) shader = Shader.Find("Sprites/Default");
@@ -84,6 +89,11 @@ namespace Voxel.Rendering
                 }
                 ApplyWaterConfigToMaterial(waterMat, waterConfig, blockScale);
                 list.Add(waterMat);
+            }
+
+            if (roadConfig != null && roadConfig.RoadMaterial != null)
+            {
+                list.Add(roadConfig.RoadMaterial);
             }
 
             return list.ToArray();
@@ -173,7 +183,7 @@ namespace Voxel.Rendering
                 _chunks[key] = renderer;
             }
 
-            var meshes = ChunkMeshBuilder.Build(_grid, cx, cy, cz, _worldScale.BlockScale, _terrainConfig, _waterConfig, _mountainMaterial);
+            var meshes = ChunkMeshBuilder.Build(_grid, cx, cy, cz, _worldScale.BlockScale, _terrainConfig, _waterConfig, _mountainMaterial, _roadOverlay, _roadConfig);
             renderer.SetMeshes(meshes);
         }
     }

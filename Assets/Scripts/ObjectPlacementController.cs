@@ -46,7 +46,8 @@ namespace Voxel
         public void TogglePlacementMode(string entryName)
         {
             var entry = registry != null ? registry.GetByName(entryName) : null;
-            if (entry == null || entry.Prefab == null)
+            if (entry == null) return;
+            if (!entry.IsSurfaceOverlay && entry.Prefab == null)
             {
                 if (_buttonsByType.TryGetValue(entryName, out var btn) && btn != null)
                     btn.SetEnabled(false);
@@ -138,7 +139,8 @@ namespace Voxel
 
         private void UpdatePreview()
         {
-            if (Grid == null || _activeEntry?.Prefab == null || WaterConfig == null)
+            if (Grid == null || WaterConfig == null) return;
+            if (_activeEntry != null && !_activeEntry.IsSurfaceOverlay && _activeEntry.Prefab == null)
             {
                 _preview?.Clear();
                 _previewBlock = null;
@@ -157,6 +159,7 @@ namespace Voxel
             bool isBlockValid(int x, int y, int z) =>
                 !worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
 
+            if (_activeEntry.Prefab == null) { _preview?.Clear(); _previewBlock = null; return; }
             float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
             float scaleMult = _activeEntry.ScaleMultiplier > 0 ? _activeEntry.ScaleMultiplier : 1f;
             _preview ??= new PlacementPreview(_activeEntry.Prefab, WorldScale, prefabHeight, scaleMult);
@@ -245,6 +248,14 @@ namespace Voxel
 
         private void PlaceSingle((int x, int y, int z) block)
         {
+            if (_activeEntry.IsSurfaceOverlay)
+            {
+                worldBootstrap.AddRoadAt(block.x, block.y, block.z);
+                worldBootstrap.SaveWorld();
+                worldBootstrap.Renderer?.InvalidateChunkAt(block.x, block.y - 1, block.z);
+                return;
+            }
+
             var parent = worldBootstrap.GetParentForEntry(_activeEntry);
             if (parent == null || _activeEntry?.Prefab == null) return;
 
@@ -266,17 +277,43 @@ namespace Voxel
 
         private void PlaceInArea((int x, int z) start, (int x, int z) end)
         {
+            int minX = Mathf.Min(start.x, end.x);
+            int maxX = Mathf.Max(start.x, end.x);
+            int minZ = Mathf.Min(start.z, end.z);
+            int maxZ = Mathf.Max(start.z, end.z);
+            int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
+
+            if (_activeEntry.IsSurfaceOverlay)
+            {
+                int roadPlaced = 0;
+                for (int x = minX; x <= maxX; x++)
+                {
+                    for (int z = minZ; z <= maxZ; z++)
+                    {
+                        if (x < 0 || x >= Grid.Width || z < 0 || z >= Grid.Depth) continue;
+
+                        int topY = PlacementUtility.GetTopSolidY(Grid, x, z, Grid.Height);
+                        if (topY < 0 || topY < waterLevelY) continue;
+
+                        int surfaceY = topY + 1;
+                        if (worldBootstrap.HasBlockingObjectAtBlock(x, surfaceY, z)) continue;
+
+                        worldBootstrap.AddRoadAt(x, surfaceY, z);
+                        worldBootstrap.Renderer?.InvalidateChunkAt(x, topY, z);
+                        roadPlaced++;
+                    }
+                }
+
+                if (roadPlaced > 0)
+                    worldBootstrap.SaveWorld();
+                return;
+            }
+
             var parent = worldBootstrap.GetParentForEntry(_activeEntry);
             if (parent == null || _activeEntry?.Prefab == null) return;
 
             worldBootstrap?.GetOrCreateParentForEntry(_activeEntry.Name);
 
-            int minX = Mathf.Min(start.x, end.x);
-            int maxX = Mathf.Max(start.x, end.x);
-            int minZ = Mathf.Min(start.z, end.z);
-            int maxZ = Mathf.Max(start.z, end.z);
-
-            int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
             float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
             float scaleMult = _activeEntry.ScaleMultiplier > 0 ? _activeEntry.ScaleMultiplier : 1f;
             var scale = WorldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;

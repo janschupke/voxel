@@ -17,6 +17,9 @@ namespace Voxel
         [Tooltip("Blocks placement of other objects at the same block (e.g. buildings). False for vegetation like trees.")]
         public bool IsBlocking = true;
 
+        [Tooltip("When true, no 3D prefab is instantiated; placement adds to a data structure (e.g. RoadOverlay) instead.")]
+        public bool IsSurfaceOverlay;
+
         [Tooltip("Enable drag-to-place area selection instead of single-click")]
         public bool ArealPlacementEnabled;
 

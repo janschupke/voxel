@@ -57,8 +57,11 @@ namespace Voxel.Rendering
         /// <param name="terrainConfig">Optional height-based material config. Null = single band.</param>
         /// <param name="waterConfig">Optional water config. When enabled, adds water mesh for air below water level.</param>
         /// <param name="mountainMaterial">Optional material for Stone blocks (mountain stage). When set, Stone blocks use this instead of height bands.</param>
+        /// <param name="roadOverlay">Optional road overlay. When set with roadConfig, adds road mesh on top faces.</param>
+        /// <param name="roadConfig">Optional road config for material and block tints.</param>
         public static Mesh[] Build(VoxelGrid grid, int chunkX, int chunkY, int chunkZ, float voxelScale = 1f,
-            TerrainMaterialConfig terrainConfig = null, WaterConfig waterConfig = null, Material mountainMaterial = null)
+            TerrainMaterialConfig terrainConfig = null, WaterConfig waterConfig = null, Material mountainMaterial = null,
+            RoadOverlay roadOverlay = null, RoadConfig roadConfig = null)
         {
             var (ox, oy, oz) = GetChunkOrigin(chunkX, chunkY, chunkZ);
             int terrainBandCount = terrainConfig != null ? terrainConfig.BandCount : 1;
@@ -87,6 +90,25 @@ namespace Voxel.Rendering
                 for (int i = 0; i < meshes.Length; i++)
                     combined[i] = meshes[i];
                 combined[meshes.Length] = waterMesh;
+                meshes = combined;
+            }
+
+            if (roadOverlay != null && roadConfig != null && roadConfig.RoadMaterial != null)
+            {
+                var roadVertices = new List<Vector3>();
+                var roadNormals = new List<Vector3>();
+                var roadUVs = new List<Vector2>();
+                var roadColors = new List<Color>();
+                var roadTriangles = new List<int>();
+                CollectRoadFaces(grid, roadOverlay, roadConfig, ox, oy, oz, voxelScale,
+                    roadVertices, roadNormals, roadUVs, roadColors, roadTriangles);
+                Mesh roadMesh = roadTriangles.Count > 0
+                    ? CreateMeshWithUVsAndColors(roadVertices, roadNormals, roadUVs, roadColors, roadTriangles)
+                    : null;
+                var combined = new Mesh[meshes.Length + 1];
+                for (int i = 0; i < meshes.Length; i++)
+                    combined[i] = meshes[i];
+                combined[meshes.Length] = roadMesh;
                 meshes = combined;
             }
 
@@ -240,6 +262,85 @@ namespace Voxel.Rendering
             mesh.SetTriangles(triangles, 0);
             mesh.RecalculateBounds();
             return mesh;
+        }
+
+        /// <summary>
+        /// Creates a Unity Mesh with UVs and vertex colors (for road overlay).
+        /// </summary>
+        private static Mesh CreateMeshWithUVsAndColors(
+            List<Vector3> vertices, List<Vector3> normals, List<Vector2> uvs, List<Color> colors, List<int> triangles)
+        {
+            var mesh = new Mesh();
+            mesh.SetVertices(vertices);
+            mesh.SetNormals(normals);
+            mesh.SetUVs(0, uvs);
+            mesh.SetColors(colors);
+            mesh.SetTriangles(triangles, 0);
+            mesh.RecalculateBounds();
+            return mesh;
+        }
+
+        /// <summary>
+        /// Collects road overlay quads for top faces of solid blocks where a road exists.
+        /// Road at (wx, wy+1, wz) means road on top face of block (wx, wy, wz).
+        /// </summary>
+        private static void CollectRoadFaces(
+            VoxelGrid grid, RoadOverlay roadOverlay, RoadConfig roadConfig,
+            int ox, int oy, int oz, float voxelScale,
+            List<Vector3> vertices, List<Vector3> normals, List<Vector2> uvs, List<Color> colors, List<int> triangles)
+        {
+            const float roadYOffset = 0.01f;
+            const float uvScale = 0.25f;
+            Color tintGround = roadConfig.TintForGround;
+            Color tintStone = roadConfig.TintForStone;
+
+            for (int x = 0; x < ChunkSize; x++)
+            {
+                for (int y = 0; y < ChunkSize; y++)
+                {
+                    for (int z = 0; z < ChunkSize; z++)
+                    {
+                        int wx = ox + x;
+                        int wy = oy + y;
+                        int wz = oz + z;
+
+                        if (!grid.IsSolid(wx, wy, wz))
+                            continue;
+                        if (!IsFaceVisible(grid, wx, wy, wz, 5))
+                            continue;
+
+                        int surfaceY = wy + 1;
+                        if (!roadOverlay.Contains(wx, surfaceY, wz))
+                            continue;
+
+                        byte blockType = grid.GetBlock(wx, wy, wz);
+                        Color tint = blockType == BlockType.Stone ? tintStone : tintGround;
+
+                        int baseIndex = vertices.Count;
+                        var faceVertIndices = CubeFaces[5];
+                        var normal = FaceNormals[5];
+
+                        foreach (int vi in faceVertIndices)
+                        {
+                            var cv = CubeVertices[vi];
+                            vertices.Add(new Vector3(
+                                (x + cv.x) * voxelScale,
+                                (y + cv.y + roadYOffset) * voxelScale,
+                                (z + cv.z) * voxelScale));
+                            normals.Add(normal);
+                            uvs.Add(new Vector2((wx + cv.x) * uvScale, (wz + cv.z) * uvScale));
+                            colors.Add(tint);
+                        }
+
+                        triangles.Add(baseIndex);
+                        triangles.Add(baseIndex + 2);
+                        triangles.Add(baseIndex + 1);
+                        triangles.Add(baseIndex);
+                        triangles.Add(baseIndex + 3);
+                        triangles.Add(baseIndex + 2);
+                    }
+                }
+            }
         }
 
         /// <summary>
