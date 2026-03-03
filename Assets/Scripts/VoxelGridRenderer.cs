@@ -12,12 +12,13 @@ namespace Voxel
         private VoxelGrid _grid;
         private Transform _chunkParent;
 
-        public void Initialize(VoxelGrid grid)
+        public void Initialize(VoxelGrid grid, WorldParameters worldParameters = null)
         {
             if (_chunkParent != null)
                 Destroy(_chunkParent.gameObject);
 
             _grid = grid;
+            float blockScale = worldParameters != null ? worldParameters.BlockScale : 1f;
 
             Material mat = chunkMaterial;
             if (mat == null)
@@ -27,7 +28,7 @@ namespace Voxel
             }
 
             _chunkParent = new GameObject("VoxelWorld").transform;
-            _chunkManager = new ChunkManager(_grid, _chunkParent, mat);
+            _chunkManager = new ChunkManager(_grid, _chunkParent, mat, blockScale);
             _chunkManager.BuildAllChunks();
         }
 

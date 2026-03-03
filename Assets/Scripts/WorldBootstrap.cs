@@ -28,7 +28,7 @@ namespace Voxel
             if (_renderer == null)
                 _renderer = gameObject.AddComponent<VoxelGridRenderer>();
 
-            _renderer.Initialize(_grid);
+            _renderer.Initialize(_grid, worldParameters);
 
             SetupOverheadCamera();
         }
@@ -62,15 +62,16 @@ namespace Voxel
             var cam = Camera.main;
             if (cam == null || _grid == null) return;
 
-            float centerX = _grid.Width * 0.5f;
-            float centerZ = _grid.Depth * 0.5f;
-            float centerY = _grid.Height * 0.5f;
-            float distance = Mathf.Max(_grid.Width, _grid.Depth) * 0.5f;
+            float scale = worldParameters != null ? worldParameters.BlockScale : 1f;
+            float centerX = _grid.Width * 0.5f * scale;
+            float centerZ = _grid.Depth * 0.5f * scale;
+            float centerY = _grid.Height * 0.5f * scale;
+            float distance = Mathf.Max(_grid.Width, _grid.Depth) * 0.5f * scale;
 
             cam.transform.position = new Vector3(centerX, centerY + distance, centerZ);
             cam.transform.LookAt(new Vector3(centerX, centerY, centerZ));
             cam.orthographic = true;
-            cam.orthographicSize = Mathf.Max(_grid.Width, _grid.Depth) * 0.5f;
+            cam.orthographicSize = Mathf.Max(_grid.Width, _grid.Depth) * 0.5f * scale;
         }
 
         public void RegenerateWorld()
@@ -78,7 +79,7 @@ namespace Voxel
             WorldPersistenceService.DeleteWorld();
             _grid = CreateNewWorld();
             WorldPersistenceService.Save(_grid);
-            _renderer.Initialize(_grid);
+            _renderer.Initialize(_grid, worldParameters);
             SetupOverheadCamera();
         }
 

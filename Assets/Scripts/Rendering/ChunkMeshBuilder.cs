@@ -29,7 +29,7 @@ namespace Voxel.Rendering
             new(0, 0, -1), new(0, 0, 1), new(-1, 0, 0), new(1, 0, 0), new(0, -1, 0), new(0, 1, 0)
         };
 
-        public static Mesh Build(VoxelGrid grid, int chunkX, int chunkY, int chunkZ)
+        public static Mesh Build(VoxelGrid grid, int chunkX, int chunkY, int chunkZ, float voxelScale = 1f)
         {
             int ox = chunkX * ChunkSize;
             int oy = chunkY * ChunkSize;
@@ -60,7 +60,10 @@ namespace Voxel.Rendering
                             int baseIndex = vertices.Count;
                             foreach (int vi in CubeFaces[f])
                             {
-                                vertices.Add(new Vector3(x + CubeVertices[vi].x, y + CubeVertices[vi].y, z + CubeVertices[vi].z));
+                                vertices.Add(new Vector3(
+                                    (x + CubeVertices[vi].x) * voxelScale,
+                                    (y + CubeVertices[vi].y) * voxelScale,
+                                    (z + CubeVertices[vi].z) * voxelScale));
                                 normals.Add(FaceNormals[f]);
                             }
                             triangles.Add(baseIndex);

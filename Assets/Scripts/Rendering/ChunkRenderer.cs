@@ -26,13 +26,10 @@ namespace Voxel.Rendering
             _meshFilter.sharedMesh = mesh;
         }
 
-        public void SetPosition(int chunkX, int chunkY, int chunkZ)
+        public void SetPosition(int chunkX, int chunkY, int chunkZ, float voxelScale = 1f)
         {
-            transform.position = new Vector3(
-                chunkX * ChunkMeshBuilder.ChunkSize,
-                chunkY * ChunkMeshBuilder.ChunkSize,
-                chunkZ * ChunkMeshBuilder.ChunkSize
-            );
+            float s = ChunkMeshBuilder.ChunkSize * voxelScale;
+            transform.position = new Vector3(chunkX * s, chunkY * s, chunkZ * s);
         }
     }
 }

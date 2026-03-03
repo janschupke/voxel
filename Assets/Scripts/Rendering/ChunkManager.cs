@@ -18,11 +18,14 @@ namespace Voxel.Rendering
         public int ChunkCountY => (_grid.Height + ChunkMeshBuilder.ChunkSize - 1) / ChunkMeshBuilder.ChunkSize;
         public int ChunkCountZ => (_grid.Depth + ChunkMeshBuilder.ChunkSize - 1) / ChunkMeshBuilder.ChunkSize;
 
-        public ChunkManager(VoxelGrid grid, Transform parent, Material material)
+        private readonly float _voxelScale;
+
+        public ChunkManager(VoxelGrid grid, Transform parent, Material material, float voxelScale = 1f)
         {
             _grid = grid;
             _parent = parent;
             _material = material;
+            _voxelScale = voxelScale;
         }
 
         public void BuildAllChunks()
@@ -89,11 +92,11 @@ namespace Voxel.Rendering
                 go.transform.SetParent(_parent);
                 renderer = go.AddComponent<ChunkRenderer>();
                 renderer.Initialize(_material);
-                renderer.SetPosition(cx, cy, cz);
+                renderer.SetPosition(cx, cy, cz, _voxelScale);
                 _chunks[key] = renderer;
             }
 
-            var mesh = ChunkMeshBuilder.Build(_grid, cx, cy, cz);
+            var mesh = ChunkMeshBuilder.Build(_grid, cx, cy, cz, _voxelScale);
             renderer.SetMesh(mesh);
         }
     }
