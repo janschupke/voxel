@@ -8,8 +8,8 @@ namespace Voxel
         [SerializeField] [Tooltip("Toggle water rendering")]
         private bool enabled = true;
 
-        [SerializeField] [Range(0f, 1f)] [Tooltip("Normalized height (0-1) threshold; air below this gets water")]
-        private float waterLevel = 0.3f;
+        [SerializeField] [Min(0)] [Tooltip("Absolute Y height in voxels; air below this gets water")]
+        private int waterLevelY = 15;
 
         [SerializeField] [Tooltip("Water material (transparent/semi-transparent)")]
         private Material material;
@@ -33,7 +33,7 @@ namespace Voxel
         private bool refractionEnabled = true;
 
         public bool Enabled => enabled;
-        public float WaterLevel => waterLevel;
+        public int WaterLevelY => waterLevelY;
         public Material Material => material;
         public bool SurfaceOnly => surfaceOnly;
         public float WaveAmplitude => waveAmplitude;
@@ -43,11 +43,11 @@ namespace Voxel
         public bool RefractionEnabled => refractionEnabled;
 
         /// <summary>
-        /// Returns the absolute Y threshold in voxel coordinates.
+        /// Returns the water level Y, clamped to valid grid bounds.
         /// </summary>
         public int GetWaterLevelY(int gridHeight)
         {
-            return Mathf.Clamp((int)(waterLevel * gridHeight), 0, gridHeight - 1);
+            return Mathf.Clamp(waterLevelY, 0, gridHeight - 1);
         }
     }
 }
