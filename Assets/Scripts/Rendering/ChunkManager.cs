@@ -40,14 +40,6 @@ namespace Voxel.Rendering
             _waterConfig = waterConfig;
             _voxelScale = voxelScale;
             _materials = ResolveMaterials(material, terrainConfig, waterConfig, voxelScale);
-
-#if UNITY_EDITOR
-            if (terrainConfig != null && _materials != null)
-            {
-                for (int i = 0; i < _materials.Length; i++)
-                    UnityEngine.Debug.Log($"[ChunkManager] Material {i}: {_materials[i].name} (shader: {_materials[i].shader?.name})");
-            }
-#endif
         }
 
         private static Material[] ResolveMaterials(Material fallbackMaterial, TerrainMaterialConfig config,
@@ -178,23 +170,6 @@ namespace Voxel.Rendering
 
             var meshes = ChunkMeshBuilder.Build(_grid, cx, cy, cz, _voxelScale, _terrainConfig, _waterConfig);
             renderer.SetMeshes(meshes);
-
-#if UNITY_EDITOR
-            if (cx == 0 && cy == 0 && cz == 0 && meshes != null && meshes.Length > 0)
-            {
-                var counts = new System.Text.StringBuilder();
-                int totalVerts = 0;
-                for (int i = 0; i < meshes.Length; i++)
-                {
-                    if (meshes[i] != null)
-                    {
-                        totalVerts += meshes[i].vertexCount;
-                        counts.Append($"band{i}={meshes[i].GetIndexCount(0)} ");
-                    }
-                }
-                UnityEngine.Debug.Log($"[ChunkManager] Chunk (0,0,0): {totalVerts} verts total, {counts}(triangles per band)");
-            }
-#endif
         }
     }
 }
