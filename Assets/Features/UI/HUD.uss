@@ -1,27 +1,50 @@
 #Overlay {
     flex-grow: 1;
-    flex-direction: column-reverse;
-    align-items: center;
-    position: relative;
+    /* flex-direction: column-reverse; */
+    /* align-items: center; */
+    /* position: relative; */
+}
+
+#TopPanel {
+    flex-grow: 0;
+    flex-shrink: 0;
+    min-height: 15px;
+    height: 15px;
+}
+
+#CentralContainer {
+    flex-grow: 1;
+    flex-direction: row-reverse;
+}
+
+#Sidebar {
+    flex-grow: 0;
+    flex-shrink: 0;
+    /* width: 100px; */
 }
 
 #FPS {
-    position: absolute;
+    /* flex-grow: 0;
+    flex-shrink: 0; */
+    /* position: absolute;
     top: 10px;
-    left: 10px;
+    left: 10px; */
     color: white;
-    font-size: 14px;
+    font-size: 10px;
+    padding-left: 2px;
 }
 
 Button {
-    width: 100px;
-    background-color: rgba(0, 0, 0, 0.5);
+    width: 70px;
+    background-color: rgba(0, 0, 0, 0.7);
     color: white;
     border-radius: 10px;
+    padding: 5px;
+    font-size: 10px;
 }
 
 Button:hover {
-    background-color: rgba(0, 0, 0, 0.8);
+    background-color: rgba(0, 0, 0, 0.9);
 }
 
 Button.placing {

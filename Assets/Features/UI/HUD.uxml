@@ -1,9 +1,15 @@
 <ui:UXML xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:ui="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" noNamespaceSchemaLocation="../../../UIElementsSchema/UIElements.xsd" editor-extension-mode="False">
     <Style src="project://database/Assets/Features/UI/HUD.uss?fileID=7433441132597879392&amp;guid=28c5a05174d724b5c9295d85bff91c41&amp;type=3#HUD"/>
     <ui:VisualElement name="Overlay">
-        <ui:Label name="FPS" text="0 FPS"/>
-        <ui:Button text="Generate" name="Generate" focusable="false"/>
-        <ui:Button text="House" name="House" focusable="false"/>
-        <ui:Button text="Tree" name="Tree" focusable="false"/>
+        <ui:VisualElement name="TopPanel">
+            <ui:Label name="FPS" text="0 FPS"/>
+        </ui:VisualElement>
+        <ui:VisualElement name="CentralContainer">
+            <ui:VisualElement name="Sidebar">
+                <ui:Button text="Generate" name="Generate" focusable="false"/>
+                <ui:Button text="House" name="House" focusable="false"/>
+                <ui:Button text="Tree" name="Tree" focusable="false"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
