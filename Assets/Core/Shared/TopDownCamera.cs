@@ -6,7 +6,7 @@ namespace Voxel
 {
     /// <summary>
     /// Top-down 3D perspective camera for voxel terrain. WASD/arrow movement, right-mouse panning,
-    /// scroll zoom. Zoom by height (10–40 blocks visible) with smoothing. Fixed height above y=0.
+    /// scroll zoom towards/away from mouse cursor. Zoom by height (10–40 blocks visible) with smoothing.
     /// </summary>
     [RequireComponent(typeof(Camera))]
     public class TopDownCamera : MonoBehaviour
@@ -60,6 +60,8 @@ namespace Voxel
         private Vector3 _orbitPivot;
         private float _orbitRadius;
         private bool _isOrbiting;
+        private Vector3? _zoomAnchorWorldPoint;
+        private Vector2 _zoomAnchorViewportPoint;
 
         private float Scale => _worldScale.BlockScale > 0f ? _worldScale.BlockScale : 1f;
 
@@ -203,6 +205,7 @@ namespace Voxel
             if (move.sqrMagnitude > 1f) move.Normalize();
             if (move.sqrMagnitude < 0.01f) return;
 
+            _zoomAnchorWorldPoint = null;
             float speed = (moveFromKeys.sqrMagnitude > 0.01f ? moveSpeed : edgePanSpeed) * Scale;
             GetHorizontalAxes(out Vector3 right, out Vector3 forward);
             transform.position += (right * move.x + forward * move.y) * (speed * dt);
@@ -220,6 +223,7 @@ namespace Voxel
             Vector2 pos = Mouse.current.position.ReadValue();
             if (_lastPanPosition != default)
             {
+                _zoomAnchorWorldPoint = null;
                 Vector2 delta = pos - _lastPanPosition;
                 GetHorizontalAxes(out Vector3 right, out Vector3 forward);
                 Vector3 pan = -right * delta.x * panSensitivity * Scale - forward * delta.y * panSensitivity * Scale;
@@ -239,10 +243,33 @@ namespace Voxel
             float scroll = Mouse.current.scroll.ReadValue().y;
             if (Mathf.Abs(scroll) < 0.01f) return;
 
+            if (TryGetWorldPointUnderMouse(out Vector3 worldPoint))
+            {
+                _zoomAnchorWorldPoint = worldPoint;
+                Vector2 mp = Mouse.current.position.ReadValue();
+                _zoomAnchorViewportPoint = new Vector2(mp.x / Screen.width, mp.y / Screen.height);
+            }
+
             float notches = Mathf.Abs(scroll) >= 10f ? scroll / 120f : scroll;
             float delta = -notches * zoomSpeed * (_blocksVisible / 25f);
             if (Mathf.Abs(delta) < 0.5f) delta = Mathf.Sign(-scroll) * 0.5f;
             _blocksVisible = Mathf.Clamp(_blocksVisible + delta, minBlocksVisible, maxBlocksVisible);
+        }
+
+        /// <summary>Raycasts from camera through mouse to ground plane (y=0). Returns true if hit.</summary>
+        private bool TryGetWorldPointUnderMouse(out Vector3 worldPoint)
+        {
+            worldPoint = default;
+            if (_camera == null || Mouse.current == null) return false;
+
+            Ray ray = _camera.ScreenPointToRay(Mouse.current.position.ReadValue());
+            if (ray.direction.y >= -0.0001f) return false;
+
+            float t = -ray.origin.y / ray.direction.y;
+            if (t <= 0f) return false;
+
+            worldPoint = ray.origin + ray.direction * t;
+            return true;
         }
 
         private void SmoothZoom(float dt)
@@ -272,6 +299,25 @@ namespace Voxel
         {
             if (_worldScale.BlockScale <= 0f) return;
             Vector3 pos = transform.position;
+
+            if (_zoomAnchorWorldPoint.HasValue && Mathf.Abs(_smoothedBlocksVisible - _blocksVisible) > 0.01f)
+            {
+                Vector3 anchor = _zoomAnchorWorldPoint.Value;
+                float height = HeightForBlocks(_smoothedBlocksVisible);
+                Ray ray = _camera.ViewportPointToRay(new Vector3(_zoomAnchorViewportPoint.x, _zoomAnchorViewportPoint.y, 0f));
+                if (ray.direction.y < -0.0001f)
+                {
+                    float t = (anchor.y - height) / ray.direction.y;
+                    Vector3 desiredPos = anchor - ray.direction * t;
+                    pos.x = desiredPos.x;
+                    pos.z = desiredPos.z;
+                }
+            }
+            else if (_zoomAnchorWorldPoint.HasValue)
+            {
+                _zoomAnchorWorldPoint = null;
+            }
+
             pos.y = HeightForBlocks(_smoothedBlocksVisible);
             transform.position = pos;
         }
