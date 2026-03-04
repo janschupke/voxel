@@ -62,6 +62,20 @@ namespace Voxel
             return _parentsByEntryName.TryGetValue(entryName ?? "", out var p) ? p : null;
         }
 
+        /// <summary>Returns the entry name for a placed object transform (e.g. building instance).</summary>
+        public string GetEntryNameForTransform(Transform child)
+        {
+            if (child == null) return null;
+            var parent = child.parent;
+            if (parent == null) return null;
+            foreach (var kv in _parentsByEntryName)
+            {
+                if (kv.Value == parent)
+                    return kv.Key;
+            }
+            return null;
+        }
+
         public void AddRoadAt(int x, int y, int z) => _roadOverlay.Add(x, y, z);
         public void RemoveRoadAt(int x, int y, int z) => _roadOverlay.Remove(x, y, z);
         public bool HasRoadAt(int x, int y, int z) => _roadOverlay.Contains(x, y, z);

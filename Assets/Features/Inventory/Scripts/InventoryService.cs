@@ -48,6 +48,19 @@ namespace Voxel
             return GetTotalCount() + additional <= _maxCapacity;
         }
 
+        /// <summary>Removes up to amount of item. Returns actual count removed.</summary>
+        public int RemoveItem(Item item, int amount)
+        {
+            if (amount <= 0) return 0;
+            int current = GetCount(item);
+            if (current <= 0) return 0;
+            int toRemove = amount < current ? amount : current;
+            _items[item] = current - toRemove;
+            if (_items[item] <= 0)
+                _items.Remove(item);
+            return toRemove;
+        }
+
         public IEnumerable<(Item Item, int Count)> GetAllItems()
         {
             foreach (var kv in _items)

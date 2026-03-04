@@ -33,6 +33,7 @@ namespace Voxel
         private float _workTimer;
         private float _blockedTimer;
         private float _fullCheckTimer;
+        private float _idleCheckCooldown;
 
         public void Initialize(WorldBootstrap bootstrap, ActorDefinition definition, Transform homeBuilding, float rangeBlocks, OperationalRangeType rangeType = OperationalRangeType.Square)
         {
@@ -99,6 +100,10 @@ namespace Voxel
 
         private void UpdateIdle()
         {
+            _idleCheckCooldown -= Time.deltaTime;
+            if (_idleCheckCooldown > 0f) return;
+
+            _idleCheckCooldown = 0.5f;
             var (target, hadCandidates) = TryGetReachableTarget();
             if (target.HasValue)
             {
@@ -138,8 +143,18 @@ namespace Voxel
         {
             if (_path == null || _pathIndex >= _path.Count)
             {
-                _state = ActorState.WorkingOutside;
-                _workTimer = Definition.WorkDurationOutside;
+                if (SkipWorkOutside)
+                {
+                    OnArrivedAtTarget();
+                    _path = BuildPathTo(transform.position, HomeBuilding.position);
+                    _pathIndex = 0;
+                    _state = ActorState.Returning;
+                }
+                else
+                {
+                    _state = ActorState.WorkingOutside;
+                    _workTimer = Definition.WorkDurationOutside;
+                }
                 return;
             }
 
@@ -235,6 +250,17 @@ namespace Voxel
         {
             return false;
         }
+
+        /// <summary>
+        /// When true, skip WorkingOutside and go straight to Returning when arriving at target.
+        /// Override in subclasses that pick up instantly (e.g. CarrierActorBehavior).
+        /// </summary>
+        protected virtual bool SkipWorkOutside => false;
+
+        /// <summary>
+        /// Called when arriving at target if SkipWorkOutside is true. Override to pick up items, etc.
+        /// </summary>
+        protected virtual void OnArrivedAtTarget() { }
 
         /// <summary>
         /// Try to get a reachable target. Returns (target, hadCandidates).

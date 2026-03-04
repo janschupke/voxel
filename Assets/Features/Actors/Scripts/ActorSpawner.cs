@@ -90,13 +90,25 @@ namespace Voxel
             if (actorsParent != null)
                 actorGo.transform.SetParent(actorsParent);
 
-            var behavior = actorGo.GetComponent<ActorBehavior>();
-            if (behavior == null)
-                behavior = actorGo.AddComponent<WoodchuckActorBehavior>();
+            var behavior = GetOrAddBehavior(actorGo, actorDef);
 
             behavior.Initialize(worldBootstrap, actorDef, building, entry.OperationalRangeCells, entry.OperationalRangeType);
             GameDebugLogger.Log($"[ActorSpawner] Spawned {actorDef.Name} for building at {building.position}");
             return true;
+        }
+
+        private static ActorBehavior GetOrAddBehavior(GameObject actorGo, ActorDefinition actorDef)
+        {
+            var existing = actorGo.GetComponent<ActorBehavior>();
+            var neededType = actorDef.Name == "Carrier" ? typeof(CarrierActorBehavior) : typeof(WoodchuckActorBehavior);
+            if (existing != null && existing.GetType() == neededType)
+                return existing;
+            if (existing != null)
+            {
+                existing.enabled = false;
+                Object.Destroy(existing);
+            }
+            return (ActorBehavior)actorGo.AddComponent(neededType);
         }
 
         private bool HasActorForBuilding(Transform building)

@@ -154,6 +154,9 @@ namespace Voxel
         public Transform GetParentByEntryName(string entryName) =>
             _placedObjectManager.GetParentByEntryName(entryName);
 
+        public string GetEntryNameForTransform(Transform child) =>
+            _placedObjectManager.GetEntryNameForTransform(child);
+
         public WaterConfig WaterConfig => waterConfig;
         public WorldParameters WorldParameters => worldParameters;
     }
