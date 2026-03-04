@@ -491,7 +491,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.VoxelGridRenderer
   chunkMaterial: {fileID: 0}
   terrainMaterialConfig: {fileID: 11400000, guid: c7d8e9f0a1234567890abcdef0123456, type: 2}
-  waterConfig: {fileID: 11400000, guid: d37f56012c61445f99c39141c08d21a3, type: 2}
+  waterConfig: {fileID: 11400000, guid: 58124c420b7334c3ea8e797ee87b73d4, type: 2}
 --- !u!114 &1088007617
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -507,7 +507,7 @@ MonoBehaviour:
   terrainMode: 1
   noiseParameters: {fileID: 11400000, guid: 0f76d85e069f44d68a26a31f22524a84, type: 2}
   islandPipelineConfig: {fileID: 11400000, guid: d28146873abe24c4abdc63888e37a8ed, type: 2}
-  waterConfig: {fileID: 11400000, guid: d37f56012c61445f99c39141c08d21a3, type: 2}
+  waterConfig: {fileID: 11400000, guid: 58124c420b7334c3ea8e797ee87b73d4, type: 2}
   worldParameters: {fileID: 11400000, guid: 6a2819191cca545ecb80d137a27e3f0a, type: 2}
   mainCamera: {fileID: 330585545}
   topDownCamera: {fileID: 330585551}
