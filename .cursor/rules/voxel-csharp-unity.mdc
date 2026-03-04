@@ -1,0 +1,35 @@
+---
+description: Unity 6.3 and C# best practices for voxel project
+globs: "**/*.cs"
+alwaysApply: false
+---
+
+# Unity 6.3 & C# Best Practices
+
+## Unity Object Lifecycle
+
+- Use `Object.Destroy` at runtime (never `DestroyImmediate` outside Editor).
+- Avoid strong references to large assets in static fields (prevents scene unloading).
+- For actual C# null checks on Unity objects, use `ReferenceEquals` or cast to `object`; for "is destroyed" checks use `obj == null`.
+
+## Performance (Hot Paths)
+
+- **No LINQ** in `Update`, `FixedUpdate`, or other per-frame code.
+- **Cache** `GetComponent` results in `Awake`; avoid repeated calls in `Update`.
+- **Reuse** lists and collections; avoid per-frame allocations.
+- Prefer non-allocating APIs (e.g. `GetComponent` overloads, `Physics.OverlapSphereNonAlloc`).
+
+## Update Loop
+
+- Minimize active `Update` functions; consider a centralized update manager.
+- Keep `Update` logic lightweight; delegate heavy work to Jobs or async.
+
+## Async & Threading
+
+- Use Unity's `Awaitable` for async work, not `Task` (avoids main-thread deadlocks).
+- Never call `Transform`, `GameObject`, or asset APIs from background threads.
+
+## Compilation
+
+- Guard Editor-only code with `#if UNITY_EDITOR`.
+- Use Assembly Definitions to isolate Editor, platform-specific, and runtime code.

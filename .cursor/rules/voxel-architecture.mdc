@@ -1,0 +1,72 @@
+---
+description: Core architecture and project structure for 3D top-down voxel project
+alwaysApply: true
+---
+
+# Voxel Project Architecture
+
+## Project Structure
+
+Use a **feature-based structure** with two main roots:
+
+```
+Assets/
+├── Core/           # Shared domain logic, infrastructure, cross-cutting concerns
+│   ├── Grid/       # Voxel grid, coordinates, spatial data
+│   ├── Terrain/    # Terrain pipeline, height buffers, noise
+│   ├── Pathfinding/
+│   └── Data/       # Shared data types, registries, definitions
+│
+└── Features/       # Feature modules, co-located by capability
+    ├── UI/         # HUD, panels, UI controllers + .uxml/.uss
+    ├── Actors/     # Actor behaviors, spawning, pathing
+    ├── Placement/  # Object placement, preview, validation
+    └── ...
+```
+
+**Co-locate** related files: scripts, UXML, USS, and feature-specific data in the same feature folder.
+
+## Separate Business Logic from Unity Code
+
+- **Domain layer**: Pure C# classes with no `UnityEngine` dependencies. Game rules, calculations, state machines.
+- **Unity layer**: MonoBehaviours, ScriptableObjects, and components that **wire** domain logic to Unity APIs.
+- **Rule**: Domain types live in `Core/` or feature folders; they must not reference `MonoBehaviour`, `GameObject`, `Transform`, or `UnityEngine.Object`.
+
+```csharp
+// ❌ BAD: Business logic mixed with Unity
+public class BuildingInventory : MonoBehaviour
+{
+    void Update()
+    {
+        var count = GetComponent<ItemRegistry>().GetDefinition(item).MaxStack; // Unity in hot path
+    }
+}
+
+// ✅ GOOD: Domain logic separate, Unity only wires it
+// Core/Inventory/InventoryService.cs - no UnityEngine
+public class InventoryService
+{
+    public int GetMaxStack(Item item, IItemRegistry registry) => registry.GetDefinition(item)?.MaxStack ?? 0;
+}
+// Features/Inventory/InventoryController.cs - MonoBehaviour wires UI to InventoryService
+```
+
+## Production-Grade Patterns
+
+- **Dependency injection**: Prefer constructor injection for domain services; use `[SerializeField]` or service locator only for Unity-bound wiring.
+- **Interfaces for Unity types**: Define `IItemRegistry`, `IPlacedObjectRegistry` etc. so domain code depends on abstractions, not ScriptableObjects.
+- **Single responsibility**: Controllers handle input/Unity lifecycle; services handle business logic; data types are immutable where possible.
+
+## Documentation & References
+
+- **Use current documentation**: When referencing Unity, C#, or third-party APIs, fetch and cite up-to-date docs (e.g. Unity 6.3 Manual).
+- **Verify freshness**: Run `date` in CLI to establish current context before assuming doc or version info is current.
+- Prefer official sources; avoid outdated blog posts or deprecated API patterns.
+
+## Planning & Refactoring
+
+When planning modifications to existing code:
+
+- **Assess first**: Check for bloat (unused code, oversized classes, duplicated logic) and mixed concerns (Unity + domain in one class, multiple responsibilities).
+- **Consider structured refactor**: If issues exist, plan a refactor before adding features—extract domain logic, split responsibilities, consolidate duplicates.
+- **Incremental over big-bang**: Prefer small, testable refactor steps; avoid rewriting large files in one pass.
