@@ -18,10 +18,12 @@ MonoBehaviour:
   IsBlocking: 1
   IsSurfaceOverlay: 0
   PlacementMode: 0
+  LinePlacementExtendThroughExisting: 0
   PrefabHeightInUnits: 2
   ScaleMultiplier: 1
   RandomRotation: 0
   IsSelectable: 1
   OperationalRangeInBlocks: 4
+  OperationalRangeType: 1
   AssignedActor: {fileID: 11400000, guid: 91859f1e98c7423c818068e74532c75c, type: 2}
   InventoryCapacity: 3

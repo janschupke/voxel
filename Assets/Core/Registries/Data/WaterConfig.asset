@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: WaterConfig
   m_EditorClassIdentifier: 
   enabled: 1
-  waterLevelY: 15
+  waterLevelY: 10
   material: {fileID: 0}
   surfaceOnly: 1
   waveAmplitude: 0.05
