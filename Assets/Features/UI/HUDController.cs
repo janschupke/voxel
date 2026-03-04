@@ -2,18 +2,24 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 using Voxel;
+using Voxel.Debug;
 #if UNITY_EDITOR
 using UnityEditor;
 #endif
 
 public class HUDController : MonoBehaviour
 {
+    private const float LogDisplayDurationMs = 5000f;
+    private const float LogFadeDurationMs = 2000f;
+
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private PlacedObjectRegistry placedObjectRegistry;
 
     private Label _fpsLabel;
     private float _fpsAccumulator;
     private int _fpsFrameCount;
+    private VisualElement _messageLog;
+    private DebugLogService _debugLogService;
 
     private void Start()
     {
@@ -64,7 +70,60 @@ public class HUDController : MonoBehaviour
                     }
                 }
             }
+
+            _messageLog = uiDocument.rootVisualElement.Q<VisualElement>("MessageLog");
+            _debugLogService = GetComponent<DebugLogService>();
+            if (_debugLogService == null)
+                _debugLogService = FindAnyObjectByType<DebugLogService>();
+            if (_debugLogService == null)
+                _debugLogService = gameObject.AddComponent<DebugLogService>();
+            if (_messageLog != null && _debugLogService != null)
+            {
+                _debugLogService.LogReceived += OnLogReceived;
+            }
         }
+    }
+
+    private void OnDestroy()
+    {
+        if (_debugLogService != null)
+            _debugLogService.LogReceived -= OnLogReceived;
+    }
+
+    private void OnLogReceived(LogEntry entry)
+    {
+        if (_messageLog == null) return;
+
+        var label = new Label(entry.Message)
+        {
+            enableRichText = false
+        };
+        label.style.whiteSpace = WhiteSpace.Normal;
+        label.AddToClassList("log-entry");
+        switch (entry.Type)
+        {
+            case LogType.Warning:
+                label.AddToClassList("log-warning");
+                break;
+            case LogType.Error:
+            case LogType.Exception:
+                label.AddToClassList("log-error");
+                break;
+        }
+
+        _messageLog.Add(label);
+
+        label.schedule.Execute(() => label.AddToClassList("log-entry-fade")).StartingIn((long)LogDisplayDurationMs);
+
+        void OnFadeComplete(TransitionEndEvent evt)
+        {
+            if (evt.target == label)
+            {
+                label.UnregisterCallback<TransitionEndEvent>(OnFadeComplete);
+                label.RemoveFromHierarchy();
+            }
+        }
+        label.RegisterCallback<TransitionEndEvent>(OnFadeComplete);
     }
 
     private void Update()

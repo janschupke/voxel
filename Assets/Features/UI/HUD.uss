@@ -28,12 +28,14 @@
 #MessageLog {
     flex-grow: 0;
     flex-shrink: 0;
+    flex-direction: column;
+    justify-content: flex-end;
     /* background-color: rgba(0, 0, 0, 0.7); */
     width: 300px;
     height: 200px;
-    overflow-y: auto;
+    overflow: hidden;
     padding: 10px;
-    font-size: 10px;
+    font-size: 8px;
     /* color: white; */
     /* border-radius: 10px; */
     /* border: 1px solid rgba(255, 255, 255, 0.7); */
@@ -83,4 +85,27 @@ Button.placing {
 
 .hidden {
     display: none;
+}
+
+.log-entry {
+    font-size: 10px;
+    color: rgba(255, 255, 255, 0.9);
+    padding: 2px 0;
+    white-space: normal;
+    -unity-text-align: upper-left;
+    transition-property: opacity;
+    transition-duration: 2s;
+    transition-timing-function: ease-in-out;
+}
+
+.log-entry-fade {
+    opacity: 0;
+}
+
+.log-warning {
+    color: rgba(255, 220, 100, 0.95);
+}
+
+.log-error {
+    color: rgba(255, 120, 120, 0.95);
 }
