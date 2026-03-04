@@ -20,8 +20,10 @@ namespace Voxel
 
         private VisualElement _selectionDetail;
         private VisualElement _inventorySection;
+        private VisualElement _debugSection;
         private Label _selectionName;
         private Button _locateButton;
+        private Button _clearInventoryButton;
         private Transform _selectedObject;
         private string _selectedEntryName;
         private Transform _hoveredObject;
@@ -51,16 +53,27 @@ namespace Voxel
                 _selectionName = uiDocument.rootVisualElement.Q<Label>("SelectionName");
                 _inventorySection = uiDocument.rootVisualElement.Q<VisualElement>("InventorySection");
                 _locateButton = uiDocument.rootVisualElement.Q<Button>("Locate");
+                _debugSection = uiDocument.rootVisualElement.Q<VisualElement>("DebugSection");
+                _clearInventoryButton = uiDocument.rootVisualElement.Q<Button>("ClearInventory");
 
                 if (_locateButton != null)
                     _locateButton.clicked += OnLocateClicked;
+                if (_clearInventoryButton != null)
+                    _clearInventoryButton.clicked += OnClearInventoryClicked;
 
+                UpdateDebugControlsVisibility();
                 HideSelectionDetail();
             }
         }
 
         public Transform SelectedObject => _selectedObject;
         public string SelectedEntryName => _selectedEntryName;
+
+        public void RefreshSelectionDisplay()
+        {
+            _inventoryRefreshTimer = 0f;
+            RefreshInventoryDisplay();
+        }
 
         public void ClearSelection()
         {
@@ -174,6 +187,7 @@ namespace Voxel
                 _selectionName.text = name;
             _inventoryRefreshTimer = 0f;
             RefreshInventoryDisplay();
+            UpdateClearInventoryButtonVisibility();
         }
 
         private void RefreshInventoryDisplay()
@@ -222,6 +236,36 @@ namespace Voxel
         {
             if (_selectedObject == null || worldBootstrap == null) return;
             worldBootstrap.CenterCameraOnPosition(_selectedObject.position);
+        }
+
+        private void OnClearInventoryClicked()
+        {
+            if (_cachedInventory == null) return;
+            _cachedInventory.ClearInventory();
+            _inventoryRefreshTimer = 0f;
+            RefreshInventoryDisplay();
+        }
+
+        private void UpdateClearInventoryButtonVisibility()
+        {
+            if (_clearInventoryButton == null) return;
+            bool show = worldBootstrap != null && worldBootstrap.ShowDebugControls && _cachedInventory != null;
+            _clearInventoryButton.style.display = show ? DisplayStyle.Flex : DisplayStyle.None;
+        }
+
+        private void UpdateDebugControlsVisibility()
+        {
+            bool show = worldBootstrap != null && worldBootstrap.ShowDebugControls;
+            var root = uiDocument?.rootVisualElement;
+            if (root == null) return;
+            foreach (var el in root.Query(className: "debug-only").ToList())
+            {
+                if (show)
+                    el.RemoveFromClassList("hidden");
+                else
+                    el.AddToClassList("hidden");
+            }
+            UpdateClearInventoryButtonVisibility();
         }
     }
 }

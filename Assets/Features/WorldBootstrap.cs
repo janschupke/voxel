@@ -21,6 +21,10 @@ namespace Voxel
         [SerializeField] private RoadConfig roadConfig;
         [SerializeField] private ActorSpawner actorSpawner;
 
+        [Header("Debug")]
+        [Tooltip("When false, hides debug controls (Clear Inventory, Clear All Inventories) in the sidebar.")]
+        [SerializeField] private bool showDebugControls = true;
+
         private VoxelGrid _grid;
         private VoxelGridRenderer _renderer;
         private PlacedObjectManager _placedObjectManager;
@@ -159,5 +163,6 @@ namespace Voxel
 
         public WaterConfig WaterConfig => waterConfig;
         public WorldParameters WorldParameters => worldParameters;
+        public bool ShowDebugControls => showDebugControls;
     }
 }

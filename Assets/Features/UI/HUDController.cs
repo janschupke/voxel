@@ -37,6 +37,8 @@ public class HUDController : MonoBehaviour
             _placementController = FindAnyObjectByType<ObjectPlacementController>();
             _selectionController = FindAnyObjectByType<SelectionController>();
 
+            SetupDebugControls(uiDocument.rootVisualElement, worldBootstrap);
+
             var generateButton = uiDocument.rootVisualElement.Q<Button>("Generate");
             if (generateButton != null && worldBootstrap != null)
                 generateButton.clicked += worldBootstrap.RegenerateWorld;
@@ -98,6 +100,51 @@ public class HUDController : MonoBehaviour
                 _debugLogService.LogReceived += OnLogReceived;
             }
         }
+    }
+
+    private void SetupDebugControls(VisualElement root, WorldBootstrap worldBootstrap)
+    {
+        if (root == null) return;
+
+        var clearAllButton = root.Q<Button>("ClearAllInventories");
+        if (clearAllButton != null && worldBootstrap != null)
+        {
+            clearAllButton.clicked += () => ClearAllInventories(worldBootstrap);
+        }
+
+        UpdateDebugControlsVisibility(root, worldBootstrap);
+    }
+
+    private void UpdateDebugControlsVisibility(VisualElement root, WorldBootstrap worldBootstrap)
+    {
+        if (root == null) return;
+        bool show = worldBootstrap != null && worldBootstrap.ShowDebugControls;
+        foreach (var el in root.Query(className: "debug-only").ToList())
+        {
+            if (show)
+                el.RemoveFromClassList("hidden");
+            else
+                el.AddToClassList("hidden");
+        }
+    }
+
+    private void ClearAllInventories(WorldBootstrap worldBootstrap)
+    {
+        if (worldBootstrap?.PlacedObjectRegistry == null) return;
+        var registry = worldBootstrap.PlacedObjectRegistry;
+        foreach (var entry in registry.Entries)
+        {
+            if (entry == null || entry.InventoryCapacity <= 0) continue;
+            var parent = worldBootstrap.GetParentByEntryName(entry.Name);
+            if (parent == null) continue;
+            for (int i = 0; i < parent.childCount; i++)
+            {
+                var inv = parent.GetChild(i).GetComponent<BuildingInventory>();
+                if (inv != null)
+                    inv.ClearInventory();
+            }
+        }
+        _selectionController?.RefreshSelectionDisplay();
     }
 
     private void UpdateDebugButtonText()

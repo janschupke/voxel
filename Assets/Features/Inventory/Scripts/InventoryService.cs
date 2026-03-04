@@ -48,6 +48,11 @@ namespace Voxel
             return GetTotalCount() + additional <= _maxCapacity;
         }
 
+        public void Clear()
+        {
+            _items.Clear();
+        }
+
         /// <summary>Removes up to amount of item. Returns actual count removed.</summary>
         public int RemoveItem(Item item, int amount)
         {

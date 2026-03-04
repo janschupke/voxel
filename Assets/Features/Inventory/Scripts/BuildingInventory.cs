@@ -28,6 +28,11 @@ namespace Voxel
                 WorldObjectEventBus.Raise(new WorldObjectEvent(transform, WorldObjectEventTypes.UnitProduced, (item, added)));
         }
 
+        public void ClearInventory()
+        {
+            _service.Clear();
+        }
+
         public int RemoveItem(Item item, int amount)
         {
             return _service.RemoveItem(item, amount);

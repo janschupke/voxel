@@ -10,12 +10,17 @@
                     <ui:Button text="Generate" name="Generate" focusable="false"/>
                     <ui:Button text="Exit" name="Exit" focusable="false"/>
                     <ui:Button text="Debug On" name="Debug" focusable="false"/>
+                    <ui:Button text="Clear All Inventories" name="ClearAllInventories" class="debug-only" focusable="false"/>
                 </ui:VisualElement>
                 <ui:VisualElement name="PlacementButtons"/>
                 <ui:VisualElement name="SelectionDetail" class="hidden">
                     <ui:Label name="SelectionName" text=""/>
                     <ui:VisualElement name="InventorySection"/>
                     <ui:Button text="Locate" name="Locate" focusable="false"/>
+                    <ui:VisualElement name="DebugSection" class="debug-only">
+                        <ui:Label text="Debug" name="DebugSectionLabel"/>
+                        <ui:Button text="Clear Inventory" name="ClearInventory" focusable="false"/>
+                    </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
             <ui:VisualElement name="MessageLog"/>
