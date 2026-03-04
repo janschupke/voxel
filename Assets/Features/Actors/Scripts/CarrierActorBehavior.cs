@@ -12,8 +12,8 @@ namespace Voxel
     /// </summary>
     public class CarrierActorBehavior : ActorBehavior
     {
-        private BuildingInventory _cachedInventory;
-        private BuildingInventory _cachedSourceInventory;
+        private IBuildingInventory _cachedInventory;
+        private IBuildingInventory _cachedSourceInventory;
         private Transform _sourceBuilding;
         private Item? _carriedItem;
 
@@ -24,7 +24,7 @@ namespace Voxel
             _carriedItem = item;
         }
 
-        private BuildingInventory GetHomeInventory()
+        private IBuildingInventory GetHomeInventory()
         {
             if (_cachedInventory == null && HomeBuilding != null)
                 _cachedInventory = HomeBuilding.GetComponent<BuildingInventory>();

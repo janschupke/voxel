@@ -37,7 +37,7 @@ namespace Voxel
         private SelectionOutlineRenderer _outlineRenderer;
         private SelectionRaycaster _raycaster;
         private float _inventoryRefreshTimer;
-        private BuildingInventory _cachedInventory;
+        private IBuildingInventory _cachedInventory;
         private Camera _cachedCamera;
 
         private void Start()
@@ -189,7 +189,7 @@ namespace Voxel
         {
             _selectedObject = obj;
             _selectedEntryName = entryName;
-            _cachedInventory = obj != null ? obj.GetComponent<BuildingInventory>() : null;
+            _cachedInventory = obj != null ? obj.GetComponent<BuildingInventory>() as IBuildingInventory : null;
             ShowSelectionDetail(entryName);
         }
 
@@ -210,7 +210,7 @@ namespace Voxel
 
             _inventorySection.Clear();
             var inventory = _cachedInventory;
-            var itemRegistry = worldBootstrap?.ItemRegistry;
+            IItemRegistry itemRegistry = worldBootstrap?.ItemRegistry;
             if (inventory != null && itemRegistry != null)
             {
                 var capacityLabel = new Label($"{inventory.GetTotalCount()}/{inventory.MaxCapacity}");

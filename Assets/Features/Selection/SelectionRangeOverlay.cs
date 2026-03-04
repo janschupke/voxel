@@ -17,6 +17,9 @@ namespace Voxel
         private LineRenderer _lineRenderer;
         private readonly List<Vector3> _positionsBuffer = new List<Vector3>(256);
         private Vector3[] _positionsArray;
+        private Vector3 _lastCachedCenter;
+        private int _lastCachedRangeCells = -1;
+        private OperationalRangeType _lastCachedRangeType;
 
         private void Start()
         {
@@ -45,10 +48,20 @@ namespace Voxel
             if (selected == null || entry == null || !entry.HasOperationalRange)
             {
                 HideOverlay();
+                _lastCachedRangeCells = -1;
                 return;
             }
 
-            ShowOverlay(selected.position, entry.OperationalRangeCells, entry.OperationalRangeType);
+            var center = selected.position;
+            var rangeCells = entry.OperationalRangeCells;
+            var rangeType = entry.OperationalRangeType;
+            if (center != _lastCachedCenter || rangeCells != _lastCachedRangeCells || rangeType != _lastCachedRangeType)
+            {
+                _lastCachedCenter = center;
+                _lastCachedRangeCells = rangeCells;
+                _lastCachedRangeType = rangeType;
+                ShowOverlay(center, rangeCells, rangeType);
+            }
         }
 
         private static readonly List<(int x, int z)> _verticesBuffer = new List<(int x, int z)>(256);

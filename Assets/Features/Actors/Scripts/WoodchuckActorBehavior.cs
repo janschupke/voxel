@@ -11,9 +11,9 @@ namespace Voxel
     /// </summary>
     public class WoodchuckActorBehavior : ActorBehavior
     {
-        private BuildingInventory _cachedInventory;
+        private IBuildingInventory _cachedInventory;
 
-        private BuildingInventory GetHomeInventory()
+        private IBuildingInventory GetHomeInventory()
         {
             if (_cachedInventory == null && HomeBuilding != null)
                 _cachedInventory = HomeBuilding.GetComponent<BuildingInventory>();

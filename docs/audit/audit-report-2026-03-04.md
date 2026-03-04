@@ -179,6 +179,12 @@ The following audit items have been implemented:
 - **FloatingTextService:** Uses `IItemRegistry` via `_itemRegistry`.
 - **HUDController, SelectionController:** `[SerializeField]` for WorldBootstrap, controllers, DebugLogService with FindAnyObjectByType fallback.
 
+**Additional (follow-up):**
+- **ChunkManager:** Replaced `config.Bands.Select(...).ToArray()` with explicit loop; removed `using System.Linq`.
+- **CarrierActorBehavior, WoodchuckActorBehavior:** Use `IBuildingInventory` for `_cachedInventory` and `_cachedSourceInventory`.
+- **SelectionController:** Use `IBuildingInventory` for `_cachedInventory`; use `IItemRegistry` for `RefreshInventoryDisplay`.
+- **SelectionRangeOverlay:** Cache last center/range params; skip `ShowOverlay` when selection unchanged.
+
 ---
 
 ## References

@@ -1,5 +1,4 @@
 using System.Collections.Generic;
-using System.Linq;
 using UnityEngine;
 using Voxel;
 using Voxel.Pure;
@@ -60,14 +59,20 @@ namespace Voxel.Rendering
                 terrainMaterials = new[] { fallbackMaterial };
             else
             {
-                terrainMaterials = config.Bands.Select((band, i) =>
+                var bands = config.Bands;
+                terrainMaterials = new Material[bands.Count];
+                for (int i = 0; i < bands.Count; i++)
                 {
+                    var band = bands[i];
                     if (band.material != null)
-                        return band.material;
-                    var mat = new Material(shader);
-                    mat.color = i < DefaultBandColors.Length ? DefaultBandColors[i] : Color.gray;
-                    return mat;
-                }).ToArray();
+                        terrainMaterials[i] = band.material;
+                    else
+                    {
+                        var mat = new Material(shader);
+                        mat.color = i < DefaultBandColors.Length ? DefaultBandColors[i] : Color.gray;
+                        terrainMaterials[i] = mat;
+                    }
+                }
             }
 
             var list = new List<Material>(terrainMaterials);
