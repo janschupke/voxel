@@ -8,7 +8,7 @@ namespace Voxel
     /// <summary>Utilities for UI Toolkit panel interaction (e.g. blocking world clicks when over UI).</summary>
     public static class UIPanelUtils
     {
-        /// <summary>Returns true if the pointer is over TopPanel or Sidebar, blocking world interaction.</summary>
+        /// <summary>Returns true if the pointer is over TopPanel, Sidebar, or a visible overlay panel (Inventory, Hotkeys), blocking world interaction.</summary>
         public static bool IsPointerOverBlockingUI(UIDocument doc)
         {
             if (doc == null || doc.rootVisualElement?.panel == null) return false;
@@ -23,10 +23,13 @@ namespace Voxel
             var topPanel = doc.rootVisualElement.Q("TopPanel");
             var sidebar = doc.rootVisualElement.Q("Sidebar");
             var inventoryPanel = doc.rootVisualElement.Q("InventoryPanel");
+            var hotkeysPanel = doc.rootVisualElement.Q("HotkeysPanel");
             return (topPanel != null && (picked == topPanel || topPanel.Contains(picked))) ||
                    (sidebar != null && (picked == sidebar || sidebar.Contains(picked))) ||
                    (inventoryPanel != null && !inventoryPanel.ClassListContains("hidden") &&
-                    (picked == inventoryPanel || inventoryPanel.Contains(picked)));
+                    (picked == inventoryPanel || inventoryPanel.Contains(picked))) ||
+                   (hotkeysPanel != null && !hotkeysPanel.ClassListContains("hidden") &&
+                    (picked == hotkeysPanel || hotkeysPanel.Contains(picked)));
         }
 
         /// <summary>Shows or hides elements with class "debug-only" based on show flag.</summary>

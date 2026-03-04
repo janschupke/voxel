@@ -35,11 +35,15 @@ public class HUDController : MonoBehaviour
     private VisualElement _inventoryPanel;
     private ScrollView _inventoryPanelList;
     private Func<bool> _escapeHandlerInventory;
+    private Func<bool> _hotkeyHandlerI;
+    private Func<bool> _hotkeyHandlerF2;
 
     private void Start()
     {
-        if (GetComponent<EscapeHandler>() == null)
-            gameObject.AddComponent<EscapeHandler>();
+        if (GetComponent<HotkeyManager>() == null)
+            gameObject.AddComponent<HotkeyManager>();
+        if (GetComponent<HotkeysPanelController>() == null)
+            gameObject.AddComponent<HotkeysPanelController>();
 
         if (uiDocument == null)
             uiDocument = GetComponent<UIDocument>();
@@ -136,7 +140,13 @@ public class HUDController : MonoBehaviour
                 storage.StorageChanged += OnStorageChanged;
 
             _escapeHandlerInventory = TryCloseInventoryPanel;
-            EscapeHandler.Instance?.Register(EscapeHandler.PriorityUiOverlay, _escapeHandlerInventory);
+            HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Close inventory", null, _escapeHandlerInventory, HotkeyManager.PriorityUiOverlay);
+
+            _hotkeyHandlerI = () => { ToggleInventoryPanel(); return true; };
+            HotkeyManager.Instance?.Register(Key.I, "I", "Toggle inventory panel", null, _hotkeyHandlerI);
+
+            _hotkeyHandlerF2 = () => { GameDebugLogger.SetEnabled(!GameDebugLogger.IsEnabled); UpdateDebugButtonText(); return true; };
+            HotkeyManager.Instance?.Register(Key.F2, "F2", "Toggle debug logger", null, _hotkeyHandlerF2);
         }
     }
 
@@ -269,7 +279,11 @@ public class HUDController : MonoBehaviour
         if (storage != null)
             storage.StorageChanged -= OnStorageChanged;
         if (_escapeHandlerInventory != null)
-            EscapeHandler.Instance?.Unregister(_escapeHandlerInventory);
+            HotkeyManager.Instance?.Unregister(_escapeHandlerInventory);
+        if (_hotkeyHandlerI != null)
+            HotkeyManager.Instance?.Unregister(_hotkeyHandlerI);
+        if (_hotkeyHandlerF2 != null)
+            HotkeyManager.Instance?.Unregister(_hotkeyHandlerF2);
         if (_removalController != null)
             _removalController.RemovalModeChanged -= UpdateRemoveButtonState;
     }
@@ -312,17 +326,6 @@ public class HUDController : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current != null && Keyboard.current.f2Key.wasPressedThisFrame)
-        {
-            GameDebugLogger.SetEnabled(!GameDebugLogger.IsEnabled);
-            UpdateDebugButtonText();
-        }
-
-        if (Keyboard.current != null && Keyboard.current.iKey.wasPressedThisFrame)
-        {
-            ToggleInventoryPanel();
-        }
-
         if (_fpsLabel == null) return;
 
         _fpsAccumulator += Time.unscaledDeltaTime;

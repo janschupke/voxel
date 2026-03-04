@@ -42,7 +42,7 @@ namespace Voxel
             _preview = worldBootstrap != null ? new RemovalPreview(worldBootstrap) : null;
 
             _escapeHandler = TryCancelRemovalMode;
-            EscapeHandler.Instance?.Register(EscapeHandler.PriorityModeCancel, _escapeHandler);
+            HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Cancel removal mode", "When removing", _escapeHandler, HotkeyManager.PriorityModeCancel);
         }
 
         private bool TryCancelRemovalMode()
@@ -185,7 +185,7 @@ namespace Voxel
         private void OnDestroy()
         {
             if (_escapeHandler != null)
-                EscapeHandler.Instance?.Unregister(_escapeHandler);
+                HotkeyManager.Instance?.Unregister(_escapeHandler);
         }
     }
 }

@@ -12,6 +12,7 @@
                     <ui:Button text="Exit" name="Exit" focusable="false"/>
                     <ui:Button text="Debug On" name="Debug" focusable="false"/>
                     <ui:Button text="Inventory" name="Inventory" focusable="false"/>
+                    <ui:Button text="Hotkeys" name="Hotkeys" focusable="false"/>
                     <ui:Button text="Clear All Inventories" name="ClearAllInventories" class="debug-only" focusable="false"/>
                 </ui:VisualElement>
                 <ui:VisualElement name="PlacementButtons"/>
@@ -31,6 +32,12 @@
             <ui:VisualElement name="InventoryPanelContent">
                 <ui:Label name="InventoryPanelTitle" text="Storage"/>
                 <ui:ScrollView name="InventoryPanelList"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
+        <ui:VisualElement name="HotkeysPanel" class="hidden">
+            <ui:VisualElement name="HotkeysPanelContent">
+                <ui:Label name="HotkeysPanelTitle" text="Hotkeys"/>
+                <ui:ScrollView name="HotkeysPanelList"/>
             </ui:VisualElement>
         </ui:VisualElement>
     </ui:VisualElement>

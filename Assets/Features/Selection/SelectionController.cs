@@ -73,7 +73,7 @@ namespace Voxel
             }
 
             _escapeHandler = TryClearSelection;
-            EscapeHandler.Instance?.Register(EscapeHandler.PriorityDeselect, _escapeHandler);
+            HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Deselect", null, _escapeHandler, HotkeyManager.PriorityDeselect);
         }
 
         private bool TryClearSelection()
@@ -299,7 +299,7 @@ namespace Voxel
         private void OnDestroy()
         {
             if (_escapeHandler != null)
-                EscapeHandler.Instance?.Unregister(_escapeHandler);
+                HotkeyManager.Instance?.Unregister(_escapeHandler);
         }
     }
 }

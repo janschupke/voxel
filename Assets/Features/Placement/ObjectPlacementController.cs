@@ -29,6 +29,7 @@ namespace Voxel
         private PlacementPreviewUpdater _previewUpdater;
         private Camera _cachedCamera;
         private Func<bool> _escapeHandler;
+        private Func<bool> _rotateHandler;
 
         private VoxelGrid Grid => worldBootstrap?.Grid;
         private WaterConfig WaterConfig => worldBootstrap?.WaterConfig;
@@ -48,7 +49,17 @@ namespace Voxel
             _previewUpdater = worldBootstrap != null && _cachedCamera != null ? new PlacementPreviewUpdater(worldBootstrap, _cachedCamera) : null;
 
             _escapeHandler = TryCancelPlacementMode;
-            EscapeHandler.Instance?.Register(EscapeHandler.PriorityModeCancel, _escapeHandler);
+            HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Cancel placement mode", "When placing", _escapeHandler, HotkeyManager.PriorityModeCancel);
+
+            _rotateHandler = TryRotatePreview;
+            HotkeyManager.Instance?.Register(Key.R, "R", "Rotate preview 90°", "When placing", _rotateHandler);
+        }
+
+        private bool TryRotatePreview()
+        {
+            if (!_placementModeActive) return false;
+            _rotationY = (_rotationY + 90f) % 360f;
+            return true;
         }
 
         private bool TryCancelPlacementMode()
@@ -153,9 +164,6 @@ namespace Voxel
             }
             else
             {
-                if (Keyboard.current != null && Keyboard.current.rKey.wasPressedThisFrame)
-                    _rotationY = (_rotationY + 90f) % 360f;
-
                 if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
                 {
                     if (_previewBlock.HasValue && _previewValid && _executor != null)
@@ -251,7 +259,9 @@ namespace Voxel
         private void OnDestroy()
         {
             if (_escapeHandler != null)
-                EscapeHandler.Instance?.Unregister(_escapeHandler);
+                HotkeyManager.Instance?.Unregister(_escapeHandler);
+            if (_rotateHandler != null)
+                HotkeyManager.Instance?.Unregister(_rotateHandler);
         }
     }
 }
