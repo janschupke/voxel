@@ -28,21 +28,21 @@
                     </ui:VisualElement>
                 </ui:VisualElement>
             </ui:VisualElement>
-            <ui:VisualElement name="MessageLog"/>
+            <ui:VisualElement name="MessageLog" class="blocks-zoom"/>
         </ui:VisualElement>
-        <ui:VisualElement name="InventoryPanel" class="hidden">
+        <ui:VisualElement name="InventoryPanel" class="hidden blocks-zoom">
             <ui:VisualElement name="InventoryPanelContent">
                 <ui:Label name="InventoryPanelTitle" text="Storage"/>
                 <ui:ScrollView name="InventoryPanelList"/>
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:VisualElement name="HotkeysPanel" class="hidden">
+        <ui:VisualElement name="HotkeysPanel" class="hidden blocks-zoom">
             <ui:VisualElement name="HotkeysPanelContent">
                 <ui:Label name="HotkeysPanelTitle" text="Hotkeys"/>
                 <ui:ScrollView name="HotkeysPanelList"/>
             </ui:VisualElement>
         </ui:VisualElement>
-        <ui:VisualElement name="LogPanel" class="hidden">
+        <ui:VisualElement name="LogPanel" class="hidden blocks-zoom">
             <ui:VisualElement name="LogPanelContent">
                 <ui:Label name="LogPanelTitle" text="Log (L to close)"/>
                 <ui:ScrollView name="LogPanelList"/>

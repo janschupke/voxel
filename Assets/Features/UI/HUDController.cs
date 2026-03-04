@@ -48,6 +48,8 @@ public class HUDController : MonoBehaviour
     {
         if (GetComponent<HotkeyManager>() == null)
             gameObject.AddComponent<HotkeyManager>();
+        if (GetComponent<PanelManager>() == null)
+            gameObject.AddComponent<PanelManager>();
         if (GetComponent<HotkeysPanelController>() == null)
             gameObject.AddComponent<HotkeysPanelController>();
 
@@ -141,6 +143,12 @@ public class HUDController : MonoBehaviour
             _messageLog = uiDocument.rootVisualElement.Q<VisualElement>("MessageLog");
             _logPanel = uiDocument.rootVisualElement.Q<VisualElement>("LogPanel");
             _logPanelList = uiDocument.rootVisualElement.Q<ScrollView>("LogPanelList");
+
+            if (PanelManager.Instance != null && _inventoryPanel != null)
+                PanelManager.Instance.RegisterPanel(PanelManager.PanelInventory, _inventoryPanel, RefreshInventoryPanel, null);
+            if (PanelManager.Instance != null && _logPanel != null)
+                PanelManager.Instance.RegisterPanel(PanelManager.PanelLog, _logPanel, RefreshLogPanel, null);
+
             _debugLogService = debugLogService ?? GetComponent<DebugLogService>();
             if (_debugLogService == null)
                 _debugLogService = FindAnyObjectByType<DebugLogService>();
@@ -173,38 +181,34 @@ public class HUDController : MonoBehaviour
 
             _hotkeyHandlerE = () => { (worldBootstrap?.TopDownCamera ?? FindAnyObjectByType<TopDownCamera>())?.RotateYawBy(90f); return true; };
             HotkeyManager.Instance?.Register(Key.E, "E", "Rotate camera right 90°", null, _hotkeyHandlerE);
+
+            var zoomBlockerComp = GetComponent<ZoomBlockerComponent>();
+            if (zoomBlockerComp == null)
+                zoomBlockerComp = gameObject.AddComponent<ZoomBlockerComponent>();
+            var cam = worldBootstrap?.TopDownCamera ?? FindAnyObjectByType<TopDownCamera>();
+            cam?.SetZoomBlocker(zoomBlockerComp);
         }
     }
 
     private bool TryCloseInventoryPanel()
     {
-        if (_inventoryPanel == null || _inventoryPanel.ClassListContains("hidden"))
+        if (PanelManager.Instance == null || !PanelManager.Instance.IsPanelOpen(PanelManager.PanelInventory))
             return false;
-        _inventoryPanel.AddToClassList("hidden");
+        PanelManager.Instance.ClosePanel(PanelManager.PanelInventory);
         return true;
     }
 
     private bool TryCloseLogPanel()
     {
-        if (_logPanel == null || _logPanel.ClassListContains("hidden"))
+        if (PanelManager.Instance == null || !PanelManager.Instance.IsPanelOpen(PanelManager.PanelLog))
             return false;
-        _logPanel.AddToClassList("hidden");
+        PanelManager.Instance.ClosePanel(PanelManager.PanelLog);
         return true;
     }
 
     private void ToggleLogPanel()
     {
-        if (_logPanel == null) return;
-        bool isHidden = _logPanel.ClassListContains("hidden");
-        if (isHidden)
-        {
-            _logPanel.RemoveFromClassList("hidden");
-            RefreshLogPanel();
-        }
-        else
-        {
-            _logPanel.AddToClassList("hidden");
-        }
+        PanelManager.Instance?.TogglePanel(PanelManager.PanelLog);
     }
 
     private void RefreshLogPanel()
@@ -244,7 +248,7 @@ public class HUDController : MonoBehaviour
 
     private void OnStorageChanged()
     {
-        if (_inventoryPanel != null && !_inventoryPanel.ClassListContains("hidden"))
+        if (PanelManager.Instance != null && PanelManager.Instance.IsPanelOpen(PanelManager.PanelInventory))
             RefreshInventoryPanel();
     }
 
@@ -306,17 +310,7 @@ public class HUDController : MonoBehaviour
 
     private void ToggleInventoryPanel()
     {
-        if (_inventoryPanel == null) return;
-        bool isHidden = _inventoryPanel.ClassListContains("hidden");
-        if (isHidden)
-        {
-            _inventoryPanel.RemoveFromClassList("hidden");
-            RefreshInventoryPanel();
-        }
-        else
-        {
-            _inventoryPanel.AddToClassList("hidden");
-        }
+        PanelManager.Instance?.TogglePanel(PanelManager.PanelInventory);
     }
 
     private void RefreshInventoryPanel()
@@ -382,7 +376,7 @@ public class HUDController : MonoBehaviour
 
     private void OnLogReceived(LogEntry entry)
     {
-        if (_logPanel != null && !_logPanel.ClassListContains("hidden"))
+        if (PanelManager.Instance != null && PanelManager.Instance.IsPanelOpen(PanelManager.PanelLog))
         {
             AddLogEntryToPanel(entry);
             ScrollLogPanelToBottom();

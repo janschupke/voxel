@@ -33,6 +33,9 @@ namespace Voxel
             if (hotkeysButton != null)
                 hotkeysButton.clicked += ToggleHotkeysPanel;
 
+            if (PanelManager.Instance != null && _hotkeysPanel != null)
+                PanelManager.Instance.RegisterPanel(PanelManager.PanelHotkeys, _hotkeysPanel, RefreshBindings, null);
+
             if (HotkeyManager.Instance != null)
             {
                 _escapeHandler = TryCloseHotkeysPanel;
@@ -48,19 +51,20 @@ namespace Voxel
 
         private bool TryCloseHotkeysPanel()
         {
-            if (_hotkeysPanel == null || _hotkeysPanel.ClassListContains("hidden"))
+            if (PanelManager.Instance == null || !PanelManager.Instance.IsPanelOpen(PanelManager.PanelHotkeys))
                 return false;
-            _hotkeysPanel.AddToClassList("hidden");
+            PanelManager.Instance.ClosePanel(PanelManager.PanelHotkeys);
             return true;
         }
 
         private bool TryOpenHotkeysPanel()
         {
-            if (_hotkeysPanel == null || !_hotkeysPanel.ClassListContains("hidden"))
-                return false;
-            _hotkeysPanel.RemoveFromClassList("hidden");
-            RefreshBindings();
-            return true;
+            if (PanelManager.Instance == null || _hotkeysPanel == null || !PanelManager.Instance.IsPanelOpen(PanelManager.PanelHotkeys))
+            {
+                PanelManager.Instance?.OpenPanel(PanelManager.PanelHotkeys);
+                return true;
+            }
+            return false;
         }
 
         private void OnDestroy()
@@ -81,17 +85,7 @@ namespace Voxel
 
         private void ToggleHotkeysPanel()
         {
-            if (_hotkeysPanel == null) return;
-            bool isHidden = _hotkeysPanel.ClassListContains("hidden");
-            if (isHidden)
-            {
-                _hotkeysPanel.RemoveFromClassList("hidden");
-                RefreshBindings();
-            }
-            else
-            {
-                _hotkeysPanel.AddToClassList("hidden");
-            }
+            PanelManager.Instance?.TogglePanel(PanelManager.PanelHotkeys);
         }
 
         private void RefreshBindings()

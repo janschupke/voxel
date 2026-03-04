@@ -36,8 +36,11 @@ namespace Voxel
         [SerializeField] private float locateTranslateDuration = 0.5f;
         [Tooltip("Input actions (e.g. InputSystem_Actions). Uses Player/Move. Required for keyboard/gamepad movement.")]
         [SerializeField] private InputActionAsset inputActions;
+        [Tooltip("Optional. When set, scroll over UI with class 'blocks-zoom' (e.g. MessageLog, overlay panels) will not zoom. Assign ZoomBlockerComponent from HUD GameObject.")]
+        [SerializeField] private MonoBehaviour zoomBlocker;
 
         private Camera _camera;
+        private IZoomBlocker _zoomBlocker;
         private VoxelGrid _grid;
         private WorldScale _worldScale;
         private float _blocksVisible;
@@ -81,6 +84,13 @@ namespace Voxel
             _smoothedRotationYaw = rotationYaw;
             if (inputActions != null)
                 _moveAction = inputActions.FindActionMap("Player")?.FindAction("Move");
+        }
+
+        /// <summary>Set zoom blocker at runtime (e.g. from HUD). Call when ZoomBlockerComponent is available.</summary>
+        public void SetZoomBlocker(MonoBehaviour blocker)
+        {
+            zoomBlocker = blocker;
+            _zoomBlocker = blocker as IZoomBlocker;
         }
 
         /// <summary>Rotate camera yaw by delta degrees (e.g. -90 for Q, +90 for E). Orbits around center of visible plane. Smoothed over rotationYawSmoothTime.</summary>
@@ -221,6 +231,11 @@ namespace Voxel
         private void HandleZoomInput()
         {
             if (Mouse.current == null || _worldScale.BlockScale <= 0f) return;
+
+            _zoomBlocker ??= zoomBlocker as IZoomBlocker;
+            if (_zoomBlocker != null && _zoomBlocker.ShouldBlockZoom())
+                return;
+
             float scroll = Mouse.current.scroll.ReadValue().y;
             if (Mathf.Abs(scroll) < 0.01f) return;
 
