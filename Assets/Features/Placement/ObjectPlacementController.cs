@@ -3,10 +3,12 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
 using Voxel.Pure;
-using Voxel.Pathfinding;
 
 namespace Voxel
 {
+    /// <summary>
+    /// Controller for placement mode: state, input binding, preview, delegates to PlacementExecutor.
+    /// </summary>
     public class ObjectPlacementController : MonoBehaviour
     {
         [SerializeField] private WorldBootstrap worldBootstrap;
@@ -22,11 +24,11 @@ namespace Voxel
         private readonly HashSet<Transform> _hiddenTrees = new();
         private float _rotationY;
         private readonly Dictionary<string, Button> _buttonsByType = new();
+        private PlacementExecutor _executor;
 
         private VoxelGrid Grid => worldBootstrap?.Grid;
         private WaterConfig WaterConfig => worldBootstrap?.WaterConfig;
         private WorldParameters WorldParameters => worldBootstrap?.WorldParameters;
-
         private WorldScale WorldScale => new WorldScale(WorldParameters != null ? WorldParameters.BlockScale : 1f);
 
         private void Start()
@@ -37,6 +39,7 @@ namespace Voxel
                 registry = worldBootstrap.PlacedObjectRegistry;
             if (uiDocument == null)
                 uiDocument = FindAnyObjectByType<UIDocument>();
+            _executor = worldBootstrap != null ? new PlacementExecutor(worldBootstrap) : null;
         }
 
         public bool IsPlacementModeActive => _placementModeActive;
@@ -119,10 +122,13 @@ namespace Voxel
                             var endBlock = GetBlockUnderMouse();
                             if (endBlock.HasValue)
                             {
-                                if (_activeEntry.PlacementMode == PlacementMode.Line)
-                                    PlaceInLine(_dragStartBlock.Value, endBlock.Value);
-                                else
-                                    PlaceInArea(_dragStartBlock.Value, endBlock.Value);
+                                if (_executor != null)
+                                {
+                                    if (_activeEntry.PlacementMode == PlacementMode.Line)
+                                        _executor.PlaceInLine(_dragStartBlock.Value, endBlock.Value, _activeEntry);
+                                    else
+                                        _executor.PlaceInArea(_dragStartBlock.Value, endBlock.Value, _activeEntry);
+                                }
                             }
                             _dragStartBlock = null;
                         }
@@ -136,8 +142,8 @@ namespace Voxel
 
                 if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
                 {
-                    if (_previewBlock.HasValue && _previewValid)
-                        PlaceSingle(_previewBlock.Value);
+                    if (_previewBlock.HasValue && _previewValid && _executor != null)
+                        _executor.PlaceSingle(_previewBlock.Value, _activeEntry, _rotationY);
                     return;
                 }
             }
@@ -174,7 +180,7 @@ namespace Voxel
             }
 
             int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
-            var isBlockValid = GetBlockValidatorForPlacement();
+            var isBlockValid = PlacementValidator.GetBlockValidatorForPlacement(worldBootstrap, _activeEntry);
 
             if (_activeEntry.Prefab == null) { _preview?.Clear(); _preview = null; _previewBlock = null; return; }
             float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
@@ -194,7 +200,7 @@ namespace Voxel
                     {
                         if (_activeEntry.PlacementMode == PlacementMode.Line)
                         {
-                            var skipPreview = ShouldSkipPreviewOnExistingRoads()
+                            var skipPreview = PlacementValidator.ShouldSkipPreviewOnExistingRoads(_activeEntry)
                                 ? (System.Func<int, int, int, bool>)((x, y, z) => worldBootstrap.HasRoadAt(x, y, z))
                                 : null;
                             _preview.SetLine(_dragStartBlock.Value, endBlock.Value, Grid, waterLevelY, isBlockValid, skipPreview);
@@ -272,223 +278,6 @@ namespace Voxel
                     t.gameObject.SetActive(true);
             }
             _hiddenTrees.Clear();
-        }
-
-        private void PlaceSingle((int x, int y, int z) block)
-        {
-            if (_activeEntry.IsSurfaceOverlay)
-            {
-                worldBootstrap.AddRoadAt(block.x, block.y, block.z);
-                worldBootstrap.SaveWorld();
-                worldBootstrap.Renderer?.InvalidateChunkAt(block.x, block.y - 1, block.z);
-                return;
-            }
-
-            var parent = worldBootstrap.GetParentForEntry(_activeEntry);
-            if (parent == null || _activeEntry?.Prefab == null) return;
-
-            if (_activeEntry.CanReplaceTrees)
-                RemoveTreesAtBlock(block);
-
-            var pos = WorldScale.BlockToWorld(block.x + 0.5f, block.y, block.z + 0.5f);
-            var rotation = Quaternion.Euler(0f, _rotationY, 0f);
-            float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
-            float scaleMult = _activeEntry.ScaleMultiplier > 0 ? _activeEntry.ScaleMultiplier : 1f;
-            var scale = WorldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
-
-            var instance = Instantiate(_activeEntry.Prefab, pos, rotation, parent);
-            instance.name = _activeEntry.Prefab.name;
-            instance.transform.localScale = scale;
-            TryAddBuildingInventory(instance, _activeEntry);
-
-            worldBootstrap.SaveWorld();
-            worldBootstrap.SpawnActorsForBuildings();
-        }
-
-        private void TryAddBuildingInventory(GameObject instance, PlacedObjectEntry entry)
-        {
-            if (entry == null || entry.InventoryCapacity <= 0) return;
-            var inv = instance.GetComponent<BuildingInventory>();
-            if (inv == null) inv = instance.AddComponent<BuildingInventory>();
-            inv.Initialize(entry.Name, entry.InventoryCapacity);
-        }
-
-        private System.Func<int, int, int, bool> GetBlockValidatorForPlacement()
-        {
-            if (_activeEntry != null && _activeEntry.PlacementMode == PlacementMode.Line &&
-                _activeEntry.IsSurfaceOverlay && _activeEntry.LinePlacementExtendThroughExisting)
-                return PlacementValidator.CreateBlockValidatorForRoadExtend(worldBootstrap);
-            return PlacementValidator.CreateBlockValidator(worldBootstrap);
-        }
-
-        private bool ShouldSkipPreviewOnExistingRoads() =>
-            _activeEntry != null && _activeEntry.PlacementMode == PlacementMode.Line &&
-            _activeEntry.IsSurfaceOverlay && _activeEntry.LinePlacementExtendThroughExisting;
-
-        private void PlaceInLine((int x, int z) start, (int x, int z) end)
-        {
-            int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
-            var isBlockValid = GetBlockValidatorForPlacement();
-
-            var graph = new SurfacePathGraph(Grid, waterLevelY, isBlockValid);
-            var path = PathBuilder.BuildPath(graph, new GridNode(start.x, start.z), new GridNode(end.x, end.z));
-            if (path == null || path.Count == 0) return;
-
-            if (_activeEntry.IsSurfaceOverlay)
-            {
-                bool skipExisting = ShouldSkipPreviewOnExistingRoads();
-                int roadPlaced = 0;
-                foreach (var node in path)
-                {
-                    int topY = PlacementUtility.GetTopSolidY(Grid, node.X, node.Z, Grid.Height);
-                    if (topY < 0 || topY < waterLevelY) continue;
-
-                    int surfaceY = topY + 1;
-                    if (skipExisting && worldBootstrap.HasRoadAt(node.X, surfaceY, node.Z)) continue;
-                    if (worldBootstrap.HasBlockingObjectAtBlock(node.X, surfaceY, node.Z)) continue;
-
-                    if (_activeEntry.CanReplaceTrees)
-                        RemoveTreesAtBlock((node.X, surfaceY, node.Z));
-
-                    worldBootstrap.AddRoadAt(node.X, surfaceY, node.Z);
-                    worldBootstrap.Renderer?.InvalidateChunkAt(node.X, topY, node.Z);
-                    roadPlaced++;
-                }
-                if (roadPlaced > 0)
-                    worldBootstrap.SaveWorld();
-                return;
-            }
-
-            var parent = worldBootstrap.GetParentForEntry(_activeEntry);
-            if (parent == null || _activeEntry?.Prefab == null) return;
-
-            worldBootstrap?.GetOrCreateParentForEntry(_activeEntry.Name);
-            float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
-            float scaleMult = _activeEntry.ScaleMultiplier > 0 ? _activeEntry.ScaleMultiplier : 1f;
-            var scale = WorldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
-
-            int placed = 0;
-            foreach (var node in path)
-            {
-                int topY = PlacementUtility.GetTopSolidY(Grid, node.X, node.Z, Grid.Height);
-                if (topY < 0 || topY < waterLevelY) continue;
-
-                int surfaceY = topY + 1;
-                if (worldBootstrap.HasBlockingObjectAtBlock(node.X, surfaceY, node.Z)) continue;
-
-                if (_activeEntry.CanReplaceTrees)
-                    RemoveTreesAtBlock((node.X, surfaceY, node.Z));
-
-                var pos = WorldScale.BlockToWorld(node.X + 0.5f, surfaceY, node.Z + 0.5f);
-                var rotation = _activeEntry.RandomRotation
-                    ? Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)
-                    : Quaternion.identity;
-                var instance = Instantiate(_activeEntry.Prefab, pos, rotation, parent);
-                instance.name = _activeEntry.Prefab.name;
-                instance.transform.localScale = scale;
-                TryAddBuildingInventory(instance, _activeEntry);
-                placed++;
-            }
-            if (placed > 0)
-            {
-                worldBootstrap.SaveWorld();
-                worldBootstrap.SpawnActorsForBuildings();
-            }
-        }
-
-        private void PlaceInArea((int x, int z) start, (int x, int z) end)
-        {
-            int minX = Mathf.Min(start.x, end.x);
-            int maxX = Mathf.Max(start.x, end.x);
-            int minZ = Mathf.Min(start.z, end.z);
-            int maxZ = Mathf.Max(start.z, end.z);
-            int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
-
-            if (_activeEntry.IsSurfaceOverlay)
-            {
-                int roadPlaced = 0;
-                for (int x = minX; x <= maxX; x++)
-                {
-                    for (int z = minZ; z <= maxZ; z++)
-                    {
-                        if (x < 0 || x >= Grid.Width || z < 0 || z >= Grid.Depth) continue;
-
-                        int topY = PlacementUtility.GetTopSolidY(Grid, x, z, Grid.Height);
-                        if (topY < 0 || topY < waterLevelY) continue;
-
-                        int surfaceY = topY + 1;
-                        if (worldBootstrap.HasBlockingObjectAtBlock(x, surfaceY, z)) continue;
-
-                        worldBootstrap.AddRoadAt(x, surfaceY, z);
-                        worldBootstrap.Renderer?.InvalidateChunkAt(x, topY, z);
-                        roadPlaced++;
-                    }
-                }
-
-                if (roadPlaced > 0)
-                    worldBootstrap.SaveWorld();
-                return;
-            }
-
-            var parent = worldBootstrap.GetParentForEntry(_activeEntry);
-            if (parent == null || _activeEntry?.Prefab == null) return;
-
-            worldBootstrap?.GetOrCreateParentForEntry(_activeEntry.Name);
-
-            float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
-            float scaleMult = _activeEntry.ScaleMultiplier > 0 ? _activeEntry.ScaleMultiplier : 1f;
-            var scale = WorldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
-
-            int placed = 0;
-            for (int x = minX; x <= maxX; x++)
-            {
-                for (int z = minZ; z <= maxZ; z++)
-                {
-                    if (x < 0 || x >= Grid.Width || z < 0 || z >= Grid.Depth) continue;
-
-                    int topY = PlacementUtility.GetTopSolidY(Grid, x, z, Grid.Height);
-                    if (topY < 0 || topY < waterLevelY) continue;
-
-                    int surfaceY = topY + 1;
-                    if (worldBootstrap.HasBlockingObjectAtBlock(x, surfaceY, z)) continue;
-
-                    var pos = WorldScale.BlockToWorld(x + 0.5f, surfaceY, z + 0.5f);
-                    var rotation = _activeEntry.RandomRotation
-                        ? Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)
-                        : Quaternion.identity;
-                    var instance = Instantiate(_activeEntry.Prefab, pos, rotation, parent);
-                    instance.name = _activeEntry.Prefab.name;
-                    instance.transform.localScale = scale;
-                    TryAddBuildingInventory(instance, _activeEntry);
-                    placed++;
-                }
-            }
-
-            if (placed > 0)
-            {
-                worldBootstrap.SaveWorld();
-                worldBootstrap.SpawnActorsForBuildings();
-            }
-        }
-
-        private void RemoveTreesAtBlock((int x, int y, int z) block)
-        {
-            var parent = worldBootstrap?.GetParentByEntryName("Tree");
-            if (parent == null) return;
-
-            var toDestroy = new List<Transform>();
-            for (int i = 0; i < parent.childCount; i++)
-            {
-                var child = parent.GetChild(i);
-                var (bx, by, bz) = WorldScale.WorldToBlock(child.position);
-                if (bx == block.x && by == block.y && bz == block.z)
-                    toDestroy.Add(child);
-            }
-            foreach (var t in toDestroy)
-            {
-                _hiddenTrees.Remove(t);
-                Destroy(t.gameObject);
-            }
         }
 
         private void OnDisable()

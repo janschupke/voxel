@@ -33,5 +33,24 @@ namespace Voxel
             return (x, y, z) => worldBootstrap != null &&
                 (!worldBootstrap.HasBlockingObjectAtBlock(x, y, z) || worldBootstrap.HasRoadAt(x, y, z));
         }
+
+        /// <summary>
+        /// Returns the block validator for placement based on entry type (e.g. road extend-through).
+        /// </summary>
+        public static System.Func<int, int, int, bool> GetBlockValidatorForPlacement(
+            WorldBootstrap worldBootstrap, PlacedObjectEntry entry)
+        {
+            if (entry != null && entry.PlacementMode == PlacementMode.Line &&
+                entry.IsSurfaceOverlay && entry.LinePlacementExtendThroughExisting)
+                return CreateBlockValidatorForRoadExtend(worldBootstrap);
+            return CreateBlockValidator(worldBootstrap);
+        }
+
+        /// <summary>
+        /// When true, preview and placement should skip blocks that already have roads (extend-through mode).
+        /// </summary>
+        public static bool ShouldSkipPreviewOnExistingRoads(PlacedObjectEntry entry) =>
+            entry != null && entry.PlacementMode == PlacementMode.Line &&
+            entry.IsSurfaceOverlay && entry.LinePlacementExtendThroughExisting;
     }
 }
