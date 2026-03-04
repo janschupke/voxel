@@ -8,12 +8,13 @@
             <ui:VisualElement name="Sidebar">
                 <ui:Button text="Generate" name="Generate" focusable="false"/>
                 <ui:Button text="Exit" name="Exit" focusable="false"/>
-                <ui:VisualElement name="PlacementButtons" />
+                <ui:VisualElement name="PlacementButtons"/>
                 <ui:VisualElement name="SelectionDetail" class="hidden">
                     <ui:Label name="SelectionName" text=""/>
                     <ui:Button text="Locate" name="Locate" focusable="false"/>
                 </ui:VisualElement>
             </ui:VisualElement>
+            <ui:VisualElement name="MessageLog"/>
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>
