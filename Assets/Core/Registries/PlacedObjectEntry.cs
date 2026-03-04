@@ -1,4 +1,5 @@
 using UnityEngine;
+using Voxel.Pure;
 
 namespace Voxel
 {
@@ -43,11 +44,16 @@ namespace Voxel
         public bool IsSelectable;
 
         [Header("Operational Range")]
-        [Tooltip("Range in blocks. 0 = no range. When set, shows outline on terrain when selected.")]
+        [Tooltip("Range in grid cells. 0 = no range. When set, shows outline on terrain when selected.")]
         [Min(0f)]
         public float OperationalRangeInBlocks;
+        [Tooltip("Square = Chebyshev (axis-aligned). GridCircle = Euclidean (cell centers).")]
+        public OperationalRangeType OperationalRangeType = OperationalRangeType.Square;
 
         public bool HasOperationalRange => OperationalRangeInBlocks > 0.001f;
+
+        /// <summary>Range as integer cell count for use with OperationalRange utility.</summary>
+        public int OperationalRangeCells => OperationalRangeInBlocks > 0.001f ? (int)(OperationalRangeInBlocks + 0.5f) : 0;
 
         [Header("Actor")]
         [Tooltip("When set, an actor of this type operates within the building's operational range.")]

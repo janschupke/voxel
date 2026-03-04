@@ -4,7 +4,7 @@ using Voxel.Pure;
 
 namespace Voxel
 {
-    /// <summary>Displays operational range as an outline on the terrain when a building with range is selected.</summary>
+    /// <summary>Displays operational range as a grid-aligned outline on the terrain when a building with range is selected.</summary>
     public class SelectionRangeOverlay : MonoBehaviour
     {
         [SerializeField] private WorldBootstrap worldBootstrap;
@@ -15,8 +15,7 @@ namespace Voxel
 
         private GameObject _overlayRoot;
         private LineRenderer _lineRenderer;
-        private const int CircleSegments = 64;
-        private readonly List<Vector3> _positionsBuffer = new List<Vector3>(CircleSegments + 2);
+        private readonly List<Vector3> _positionsBuffer = new List<Vector3>(256);
         private Vector3[] _positionsArray;
 
         private void Start()
@@ -49,45 +48,38 @@ namespace Voxel
                 return;
             }
 
-            ShowOverlay(selected.position, entry.OperationalRangeInBlocks);
+            ShowOverlay(selected.position, entry.OperationalRangeCells, entry.OperationalRangeType);
         }
 
-        private void ShowOverlay(Vector3 centerWorld, float radiusBlocks)
+        private static readonly List<(int x, int z)> _verticesBuffer = new List<(int x, int z)>(256);
+
+        private void ShowOverlay(Vector3 centerWorld, int rangeCells, OperationalRangeType rangeType)
         {
             var grid = worldBootstrap.Grid;
             var worldParams = worldBootstrap.WorldParameters;
-            if (grid == null || worldParams == null) return;
+            if (grid == null || worldParams == null || rangeCells < 0) return;
 
             var worldScale = new WorldScale(worldParams.BlockScale);
             var (cx, _, cz) = worldScale.WorldToBlock(centerWorld);
 
-            EnsureOverlay();
-
-            _positionsBuffer.Clear();
-            for (int i = 0; i <= CircleSegments; i++)
-            {
-                float angle = (float)i / CircleSegments * 2f * Mathf.PI;
-                float bx = cx + radiusBlocks * Mathf.Cos(angle);
-                float bz = cz + radiusBlocks * Mathf.Sin(angle);
-
-                int ix = Mathf.FloorToInt(bx);
-                int iz = Mathf.FloorToInt(bz);
-
-                if (ix < 0 || ix >= grid.Width || iz < 0 || iz >= grid.Depth)
-                    continue;
-
-                int topY = PlacementUtility.GetTopSolidY(grid, ix, iz, grid.Height);
-                if (topY < 0) continue;
-
-                int surfaceY = topY + 1;
-                var worldPos = worldScale.BlockToWorld(bx, surfaceY, bz);
-                _positionsBuffer.Add(worldPos);
-            }
-
-            if (_positionsBuffer.Count < 2)
+            OperationalRange.GetOutlineVertices(cx, cz, rangeCells, rangeType, grid.Width, grid.Depth, _verticesBuffer);
+            if (_verticesBuffer.Count < 2)
             {
                 HideOverlay();
                 return;
+            }
+
+            EnsureOverlay();
+
+            _positionsBuffer.Clear();
+            for (int i = 0; i < _verticesBuffer.Count; i++)
+            {
+                var (x, z) = _verticesBuffer[i];
+                int bx = Mathf.Clamp(x, 0, grid.Width - 1);
+                int bz = Mathf.Clamp(z, 0, grid.Depth - 1);
+                int topY = PlacementUtility.GetTopSolidY(grid, bx, bz, grid.Height);
+                int surfaceY = topY >= 0 ? topY + 1 : 0;
+                _positionsBuffer.Add(worldScale.BlockToWorld(x, surfaceY, z));
             }
 
             if (_positionsArray == null || _positionsArray.Length < _positionsBuffer.Count)

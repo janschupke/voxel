@@ -1,5 +1,6 @@
 using UnityEngine;
 using Voxel.Debug;
+using Voxel.Pure;
 
 namespace Voxel
 {
@@ -93,7 +94,7 @@ namespace Voxel
             if (behavior == null)
                 behavior = actorGo.AddComponent<WoodchuckActorBehavior>();
 
-            behavior.Initialize(worldBootstrap, actorDef, building, entry.OperationalRangeInBlocks);
+            behavior.Initialize(worldBootstrap, actorDef, building, entry.OperationalRangeCells, entry.OperationalRangeType);
             GameDebugLogger.Log($"[ActorSpawner] Spawned {actorDef.Name} for building at {building.position}");
             return true;
         }

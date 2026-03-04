@@ -19,6 +19,9 @@ namespace Voxel
         protected Transform HomeBuilding { get; private set; }
         public Transform HomeBuildingTransform => HomeBuilding;
         protected float RangeBlocks { get; private set; }
+        /// <summary>Range as integer cell count for OperationalRange.IsCellInRange.</summary>
+        protected int RangeCells => RangeBlocks > 0.001f ? (int)(RangeBlocks + 0.5f) : 0;
+        protected OperationalRangeType RangeType { get; private set; }
         protected WorldScale WorldScale { get; private set; }
 
         private ActorState _state = ActorState.Idle;
@@ -31,12 +34,13 @@ namespace Voxel
         private float _blockedTimer;
         private float _fullCheckTimer;
 
-        public void Initialize(WorldBootstrap bootstrap, ActorDefinition definition, Transform homeBuilding, float rangeBlocks)
+        public void Initialize(WorldBootstrap bootstrap, ActorDefinition definition, Transform homeBuilding, float rangeBlocks, OperationalRangeType rangeType = OperationalRangeType.Square)
         {
             worldBootstrap = bootstrap;
             Definition = definition;
             HomeBuilding = homeBuilding;
             RangeBlocks = rangeBlocks;
+            RangeType = rangeType;
             WorldScale = new WorldScale(bootstrap.WorldParameters != null ? bootstrap.WorldParameters.BlockScale : 1f);
             transform.position = homeBuilding.position;
             _cachedRenderers = null;

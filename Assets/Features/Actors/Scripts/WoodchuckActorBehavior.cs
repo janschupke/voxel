@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Voxel.Debug;
 using Voxel.Pathfinding;
+using Voxel.Pure;
 
 namespace Voxel
 {
@@ -32,20 +33,17 @@ namespace Voxel
             var (hx, hy, hz) = worldScale.WorldToBlock(HomeBuilding.position);
 
             var candidates = new List<Vector3>();
-            float rangeSq = RangeBlocks * RangeBlocks;
             for (int i = 0; i < treeParent.childCount; i++)
             {
                 var tree = treeParent.GetChild(i);
                 var (tx, ty, tz) = worldScale.WorldToBlock(tree.position);
-                float dx = tx - hx;
-                float dz = tz - hz;
-                if (dx * dx + dz * dz <= rangeSq)
+                if (OperationalRange.IsCellInRange(hx, hz, tx, tz, RangeCells, RangeType))
                     candidates.Add(tree.position);
             }
 
             if (candidates.Count == 0)
             {
-                GameDebugLogger.Log($"[Woodchuck] {gameObject.name} TryGetTarget: {treeParent.childCount} trees total, 0 in range (home=({hx},{hz}) range={RangeBlocks})");
+                GameDebugLogger.Log($"[Woodchuck] {gameObject.name} TryGetTarget: {treeParent.childCount} trees total, 0 in range (home=({hx},{hz}) range={RangeCells} cells)");
                 return (null, false);
             }
 
