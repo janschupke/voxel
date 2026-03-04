@@ -16,6 +16,8 @@ namespace Voxel
         private GameObject _overlayRoot;
         private LineRenderer _lineRenderer;
         private const int CircleSegments = 64;
+        private readonly List<Vector3> _positionsBuffer = new List<Vector3>(CircleSegments + 2);
+        private Vector3[] _positionsArray;
 
         private void Start()
         {
@@ -61,7 +63,7 @@ namespace Voxel
 
             EnsureOverlay();
 
-            var positions = new List<Vector3>();
+            _positionsBuffer.Clear();
             for (int i = 0; i <= CircleSegments; i++)
             {
                 float angle = (float)i / CircleSegments * 2f * Mathf.PI;
@@ -79,17 +81,21 @@ namespace Voxel
 
                 int surfaceY = topY + 1;
                 var worldPos = worldScale.BlockToWorld(bx, surfaceY, bz);
-                positions.Add(worldPos);
+                _positionsBuffer.Add(worldPos);
             }
 
-            if (positions.Count < 2)
+            if (_positionsBuffer.Count < 2)
             {
                 HideOverlay();
                 return;
             }
 
-            _lineRenderer.positionCount = positions.Count;
-            _lineRenderer.SetPositions(positions.ToArray());
+            if (_positionsArray == null || _positionsArray.Length < _positionsBuffer.Count)
+                _positionsArray = new Vector3[_positionsBuffer.Count];
+            _positionsBuffer.CopyTo(_positionsArray);
+
+            _lineRenderer.positionCount = _positionsBuffer.Count;
+            _lineRenderer.SetPositions(_positionsArray);
             _overlayRoot.SetActive(true);
         }
 

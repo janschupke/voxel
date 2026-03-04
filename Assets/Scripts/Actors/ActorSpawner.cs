@@ -1,4 +1,5 @@
 using UnityEngine;
+using Voxel.Debug;
 
 namespace Voxel
 {
@@ -16,16 +17,16 @@ namespace Voxel
             if (worldBootstrap == null)
                 worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
 
-            UnityEngine.Debug.Log("[ActorSpawner] Start - worldBootstrap=" + (worldBootstrap != null) + ", registry=" + (worldBootstrap?.PlacedObjectRegistry != null));
+            GameDebugLogger.Log("[ActorSpawner] Start - worldBootstrap=" + (worldBootstrap != null) + ", registry=" + (worldBootstrap?.PlacedObjectRegistry != null));
 
             if (worldBootstrap == null)
             {
-                UnityEngine.Debug.LogWarning("[ActorSpawner] WorldBootstrap not found, skipping actor spawn.");
+                GameDebugLogger.LogWarning("[ActorSpawner] WorldBootstrap not found, skipping actor spawn.");
                 return;
             }
             if (worldBootstrap.PlacedObjectRegistry == null)
             {
-                UnityEngine.Debug.LogWarning("[ActorSpawner] PlacedObjectRegistry is null, skipping actor spawn.");
+                GameDebugLogger.LogWarning("[ActorSpawner] PlacedObjectRegistry is null, skipping actor spawn.");
                 return;
             }
 
@@ -46,19 +47,19 @@ namespace Voxel
                 entriesWithActor++;
                 if (entry.AssignedActor.Prefab == null)
                 {
-                    UnityEngine.Debug.LogWarning($"[ActorSpawner] Entry '{entry.Name}' has AssignedActor '{entry.AssignedActor.Name}' but Prefab is null.");
+                    GameDebugLogger.LogWarning($"[ActorSpawner] Entry '{entry.Name}' has AssignedActor '{entry.AssignedActor.Name}' but Prefab is null.");
                     continue;
                 }
                 if (!entry.HasOperationalRange)
                 {
-                    UnityEngine.Debug.Log($"[ActorSpawner] Entry '{entry.Name}' has no operational range, skipping.");
+                    GameDebugLogger.Log($"[ActorSpawner] Entry '{entry.Name}' has no operational range, skipping.");
                     continue;
                 }
 
                 var parent = worldBootstrap.GetParentByEntryName(entry.Name);
                 if (parent == null)
                 {
-                    UnityEngine.Debug.Log($"[ActorSpawner] No parent for entry '{entry.Name}' (no buildings placed yet).");
+                    GameDebugLogger.Log($"[ActorSpawner] No parent for entry '{entry.Name}' (no buildings placed yet).");
                     continue;
                 }
 
@@ -70,7 +71,7 @@ namespace Voxel
                 }
             }
 
-            UnityEngine.Debug.Log($"[ActorSpawner] Entries with AssignedActor: {entriesWithActor}, spawned: {totalSpawned}");
+            GameDebugLogger.Log($"[ActorSpawner] Entries with AssignedActor: {entriesWithActor}, spawned: {totalSpawned}");
         }
 
         private bool SpawnActorForBuilding(PlacedObjectEntry entry, Transform building)
@@ -93,7 +94,7 @@ namespace Voxel
                 behavior = actorGo.AddComponent<WoodchuckActorBehavior>();
 
             behavior.Initialize(worldBootstrap, actorDef, building, entry.OperationalRangeInBlocks);
-            UnityEngine.Debug.Log($"[ActorSpawner] Spawned {actorDef.Name} for building at {building.position}");
+            GameDebugLogger.Log($"[ActorSpawner] Spawned {actorDef.Name} for building at {building.position}");
             return true;
         }
 

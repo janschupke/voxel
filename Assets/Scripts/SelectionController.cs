@@ -33,6 +33,9 @@ namespace Voxel
         private readonly Dictionary<Transform, GameObject> _outlineObjects = new Dictionary<Transform, GameObject>();
         private Shader _outlineShader;
         private float _inventoryRefreshTimer;
+        private BuildingInventory _cachedInventory;
+        private const int RaycastBufferSize = 32;
+        private readonly RaycastHit[] _raycastBuffer = new RaycastHit[RaycastBufferSize];
         private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
         private static readonly int OutlineWidthId = Shader.PropertyToID("_OutlineWidth");
 
@@ -70,6 +73,7 @@ namespace Voxel
                 _selectedObject = null;
             }
             _selectedEntryName = null;
+            _cachedInventory = null;
             HideSelectionDetail();
         }
 
@@ -97,7 +101,7 @@ namespace Voxel
             _lastHoveredObject = _hoveredObject;
             _lastSelectedObject = _selectedObject;
 
-            if (_selectedObject != null && _selectedObject.GetComponent<BuildingInventory>() != null)
+            if (_selectedObject != null && _cachedInventory != null)
             {
                 _inventoryRefreshTimer -= Time.deltaTime;
                 if (_inventoryRefreshTimer <= 0f)
@@ -229,8 +233,10 @@ namespace Voxel
             entryName = null;
             float closestDistance = float.MaxValue;
 
-            foreach (var hit in Physics.RaycastAll(ray))
+            int hitCount = Physics.RaycastNonAlloc(ray, _raycastBuffer);
+            for (int i = 0; i < hitCount; i++)
             {
+                var hit = _raycastBuffer[i];
                 if (hit.distance < closestDistance && hit.distance > 0 &&
                     IsSelectablePlacedObject(hit.transform, out string name))
                 {
@@ -343,6 +349,7 @@ namespace Voxel
         {
             _selectedObject = obj;
             _selectedEntryName = entryName;
+            _cachedInventory = obj != null ? obj.GetComponent<BuildingInventory>() : null;
             ShowSelectionDetail(entryName);
         }
 
@@ -365,7 +372,7 @@ namespace Voxel
             if (_inventorySection == null) return;
 
             _inventorySection.Clear();
-            var inventory = _selectedObject != null ? _selectedObject.GetComponent<BuildingInventory>() : null;
+            var inventory = _cachedInventory;
             var itemRegistry = worldBootstrap?.ItemRegistry;
             if (inventory != null && itemRegistry != null)
             {

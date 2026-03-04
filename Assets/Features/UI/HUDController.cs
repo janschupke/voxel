@@ -15,6 +15,8 @@ public class HUDController : MonoBehaviour
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private PlacedObjectRegistry placedObjectRegistry;
 
+    private ObjectPlacementController _placementController;
+    private SelectionController _selectionController;
     private Label _fpsLabel;
     private float _fpsAccumulator;
     private int _fpsFrameCount;
@@ -31,6 +33,9 @@ public class HUDController : MonoBehaviour
             _fpsLabel = uiDocument.rootVisualElement.Q<Label>("FPS");
 
             var worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
+            _placementController = FindAnyObjectByType<ObjectPlacementController>();
+            _selectionController = FindAnyObjectByType<SelectionController>();
+
             var generateButton = uiDocument.rootVisualElement.Q<Button>("Generate");
             if (generateButton != null && worldBootstrap != null)
                 generateButton.clicked += worldBootstrap.RegenerateWorld;
@@ -47,9 +52,8 @@ public class HUDController : MonoBehaviour
                 };
 
             var placementContainer = uiDocument.rootVisualElement.Q<VisualElement>("PlacementButtons");
-            var objectPlacementController = FindAnyObjectByType<ObjectPlacementController>();
 
-            if (placementContainer != null && objectPlacementController != null)
+            if (placementContainer != null && _placementController != null)
             {
                 var registry = placedObjectRegistry != null ? placedObjectRegistry : worldBootstrap?.PlacedObjectRegistry;
                 if (registry != null && registry.Entries != null)
@@ -64,9 +68,9 @@ public class HUDController : MonoBehaviour
                             button.SetEnabled(false);
                         placementContainer.Add(button);
 
-                        objectPlacementController.RegisterButton(entry.Name, button);
+                        _placementController.RegisterButton(entry.Name, button);
                         var entryName = entry.Name;
-                        button.clicked += () => objectPlacementController.TogglePlacementMode(entryName);
+                        button.clicked += () => _placementController.TogglePlacementMode(entryName);
                     }
                 }
             }
@@ -130,11 +134,12 @@ public class HUDController : MonoBehaviour
     {
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
-            var placementController = FindAnyObjectByType<ObjectPlacementController>();
-            var selectionController = FindAnyObjectByType<SelectionController>();
-            placementController?.CancelPlacementMode();
-            selectionController?.ClearSelection();
+            _placementController?.CancelPlacementMode();
+            _selectionController?.ClearSelection();
         }
+
+        if (Keyboard.current != null && Keyboard.current.f2Key.wasPressedThisFrame)
+            GameDebugLogger.SetEnabled(!GameDebugLogger.IsEnabled);
 
         if (_fpsLabel == null) return;
 

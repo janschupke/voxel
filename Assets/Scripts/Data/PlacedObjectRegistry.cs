@@ -4,7 +4,7 @@ using UnityEngine;
 namespace Voxel
 {
     [CreateAssetMenu(fileName = "PlacedObjectRegistry", menuName = "Voxel/Placed Object Registry")]
-    public class PlacedObjectRegistry : ScriptableObject
+    public class PlacedObjectRegistry : ScriptableObject, IPlacedObjectRegistry
     {
         [SerializeField] private List<PlacedObjectEntry> entries = new();
 

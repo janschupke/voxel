@@ -5,56 +5,23 @@ namespace Voxel
 {
     /// <summary>
     /// Per-building inventory. Attached at runtime when placing or loading buildings with InventoryCapacity > 0.
+    /// Wires Unity to InventoryService (domain logic).
     /// </summary>
     public class BuildingInventory : MonoBehaviour
     {
-        private readonly Dictionary<Item, int> _items = new Dictionary<Item, int>();
-        private int _maxCapacity;
+        private readonly InventoryService _service = new InventoryService();
 
-        public int MaxCapacity => _maxCapacity;
+        public int MaxCapacity => _service.MaxCapacity;
 
         public void Initialize(string entryName, int capacity)
         {
-            _maxCapacity = Mathf.Max(0, capacity);
+            _service.Initialize(Mathf.Max(0, capacity));
         }
 
-        public void AddItem(Item item, int amount)
-        {
-            if (amount <= 0) return;
-            int current = GetCount(item);
-            int total = current + amount;
-            int allowed = Mathf.Min(total, _maxCapacity);
-            int toAdd = allowed - current;
-            if (toAdd <= 0) return;
-
-            _items[item] = current + toAdd;
-        }
-
-        public int GetCount(Item item)
-        {
-            return _items.TryGetValue(item, out int count) ? count : 0;
-        }
-
-        public int GetTotalCount()
-        {
-            int total = 0;
-            foreach (var count in _items.Values)
-                total += count;
-            return total;
-        }
-
-        public bool HasSpaceFor(int additional)
-        {
-            return GetTotalCount() + additional <= _maxCapacity;
-        }
-
-        public IEnumerable<(Item Item, int Count)> GetAllItems()
-        {
-            foreach (var kv in _items)
-            {
-                if (kv.Value > 0)
-                    yield return (kv.Key, kv.Value);
-            }
-        }
+        public void AddItem(Item item, int amount) => _service.AddItem(item, amount);
+        public int GetCount(Item item) => _service.GetCount(item);
+        public int GetTotalCount() => _service.GetTotalCount();
+        public bool HasSpaceFor(int additional) => _service.HasSpaceFor(additional);
+        public IEnumerable<(Item Item, int Count)> GetAllItems() => _service.GetAllItems();
     }
 }

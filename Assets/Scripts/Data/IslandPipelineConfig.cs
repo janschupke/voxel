@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Voxel.Debug;
 using Voxel.Core;
 
 namespace Voxel
@@ -35,7 +36,7 @@ namespace Voxel
             if (treeScatterConfig != null && treeParent != null)
                 stages.Add(new TreeScatterStage(treeScatterConfig, treeParent, worldScale));
             else if (treeScatterConfig != null && treeParent == null)
-                UnityEngine.Debug.LogWarning("[TreeScatter] TreeScatterConfig is set but TreeParent is null - trees will not be placed");
+                GameDebugLogger.LogWarning("[TreeScatter] TreeScatterConfig is set but TreeParent is null - trees will not be placed");
 
             return stages;
         }

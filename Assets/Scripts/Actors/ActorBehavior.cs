@@ -1,6 +1,7 @@
 using System.Collections.Generic;
 using UnityEngine;
 using Voxel.Core;
+using Voxel.Debug;
 using Voxel.Pathfinding;
 
 namespace Voxel
@@ -23,6 +24,7 @@ namespace Voxel
         private ActorState _state = ActorState.Idle;
         private ActorState _prevState = ActorState.Idle;
         private Vector3 _targetWorld;
+        private Renderer[] _cachedRenderers;
         private IReadOnlyList<GridNode> _path;
         private int _pathIndex;
         private float _workTimer;
@@ -37,7 +39,7 @@ namespace Voxel
             RangeBlocks = rangeBlocks;
             WorldScale = new WorldScale(bootstrap.WorldParameters != null ? bootstrap.WorldParameters.BlockScale : 1f);
             transform.position = homeBuilding.position;
-            UnityEngine.Debug.Log($"[Actor] {gameObject.name} Initialize: home={homeBuilding.position} range={rangeBlocks} pathing={definition.PathingMode}");
+            _cachedRenderers = null;
         }
 
         protected virtual void Update()
@@ -46,7 +48,7 @@ namespace Voxel
 
             if (_state != _prevState)
             {
-                UnityEngine.Debug.Log($"[Actor] {gameObject.name} state: {_prevState} -> {_state} (visible={_state == ActorState.GoingToTarget || _state == ActorState.WorkingOutside || _state == ActorState.Returning})");
+                GameDebugLogger.Log($"[Actor] {gameObject.name} state: {_prevState} -> {_state} (visible={_state == ActorState.GoingToTarget || _state == ActorState.WorkingOutside || _state == ActorState.Returning})");
                 _prevState = _state;
             }
 
@@ -80,10 +82,13 @@ namespace Voxel
 
         private void UpdateVisibility()
         {
+            if (_cachedRenderers == null)
+                _cachedRenderers = GetComponentsInChildren<Renderer>(includeInactive: true);
+
             bool visible = _state == ActorState.GoingToTarget || _state == ActorState.WorkingOutside || _state == ActorState.Returning;
-            foreach (var r in GetComponentsInChildren<Renderer>(includeInactive: true))
+            foreach (var r in _cachedRenderers)
             {
-                if (r.enabled != visible)
+                if (r != null && r.enabled != visible)
                     r.enabled = visible;
             }
         }
@@ -102,14 +107,14 @@ namespace Voxel
                 }
                 else
                 {
-                    UnityEngine.Debug.Log($"[Actor] {gameObject.name} Idle: found target but path is null/empty -> Blocked");
+                    GameDebugLogger.Log($"[Actor] {gameObject.name} Idle: found target but path is null/empty -> Blocked");
                     _state = ActorState.Blocked;
                     _blockedTimer = Definition.BlockedRetryDelaySeconds;
                 }
             }
             else if (hadCandidates)
             {
-                UnityEngine.Debug.Log($"[Actor] {gameObject.name} Idle: trees in range but no valid path -> Blocked");
+                GameDebugLogger.Log($"[Actor] {gameObject.name} Idle: trees in range but no valid path -> Blocked");
                 _state = ActorState.Blocked;
                 _blockedTimer = Definition.BlockedRetryDelaySeconds;
             }
@@ -120,7 +125,7 @@ namespace Voxel
             _blockedTimer -= Time.deltaTime;
             if (_blockedTimer <= 0f)
             {
-                UnityEngine.Debug.Log($"[Actor] {gameObject.name} Blocked: retry -> Idle");
+                GameDebugLogger.Log($"[Actor] {gameObject.name} Blocked: retry -> Idle");
                 _state = ActorState.Idle;
             }
         }
@@ -247,12 +252,12 @@ namespace Voxel
 
             if (!start.HasValue)
             {
-                UnityEngine.Debug.Log($"[Actor] {gameObject.name} BuildPath: no walkable block adjacent to start ({fx},{fz})");
+                GameDebugLogger.Log($"[Actor] {gameObject.name} BuildPath: no walkable block adjacent to start ({fx},{fz})");
                 return null;
             }
             if (!goal.HasValue)
             {
-                UnityEngine.Debug.Log($"[Actor] {gameObject.name} BuildPath: no walkable block adjacent to goal ({tx},{tz})");
+                GameDebugLogger.Log($"[Actor] {gameObject.name} BuildPath: no walkable block adjacent to goal ({tx},{tz})");
                 return null;
             }
 

@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using UnityEngine;
 using Voxel.Core;
+using Voxel.Debug;
 
 namespace Voxel
 {
@@ -24,12 +25,12 @@ namespace Voxel
         {
             if (_treeParent == null)
             {
-                UnityEngine.Debug.LogWarning("[TreeScatter] Skipped: TreeParent is null");
+                GameDebugLogger.LogWarning("[TreeScatter] Skipped: TreeParent is null");
                 return;
             }
             if (_config.TreePrefab == null)
             {
-                UnityEngine.Debug.LogWarning("[TreeScatter] Skipped: Tree prefab is not assigned in TreeScatterConfig");
+                GameDebugLogger.LogWarning("[TreeScatter] Skipped: Tree prefab is not assigned in TreeScatterConfig");
                 return;
             }
 
@@ -59,7 +60,7 @@ namespace Voxel
 
             if (candidates.Count == 0)
             {
-                UnityEngine.Debug.LogWarning("[TreeScatter] No eligible candidates (all below water or excluded)");
+                GameDebugLogger.LogWarning("[TreeScatter] No eligible candidates (all below water or excluded)");
                 return;
             }
 
@@ -141,7 +142,7 @@ namespace Voxel
             for (int cx = 0; cx < spatialGrid.GetLength(0); cx++)
                 for (int cz = 0; cz < spatialGrid.GetLength(1); cz++)
                     placedCount += spatialGrid[cx, cz].Count;
-            UnityEngine.Debug.Log($"[TreeScatter] Placed {placedCount} trees from {candidates.Count} candidates");
+            GameDebugLogger.Log($"[TreeScatter] Placed {placedCount} trees from {candidates.Count} candidates");
         }
 
         private static int GetTopSolidY(VoxelGrid grid, int x, int z, int gridHeight)

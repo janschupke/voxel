@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Voxel.Debug;
 using Voxel.Pathfinding;
 
 namespace Voxel
@@ -9,12 +10,21 @@ namespace Voxel
     /// </summary>
     public class WoodchuckActorBehavior : ActorBehavior
     {
+        private BuildingInventory _cachedInventory;
+
+        private BuildingInventory GetHomeInventory()
+        {
+            if (_cachedInventory == null && HomeBuilding != null)
+                _cachedInventory = HomeBuilding.GetComponent<BuildingInventory>();
+            return _cachedInventory;
+        }
+
         protected override (Vector3? Target, bool HadCandidates) TryGetReachableTarget()
         {
             var treeParent = WorldBootstrap.GetParentByEntryName("Tree");
             if (treeParent == null || treeParent.childCount == 0)
             {
-                UnityEngine.Debug.Log($"[Woodchuck] {gameObject.name} TryGetTarget: no trees (parent={treeParent != null}, count={treeParent?.childCount ?? 0})");
+                GameDebugLogger.Log($"[Woodchuck] {gameObject.name} TryGetTarget: no trees (parent={treeParent != null}, count={treeParent?.childCount ?? 0})");
                 return (null, false);
             }
 
@@ -35,7 +45,7 @@ namespace Voxel
 
             if (candidates.Count == 0)
             {
-                UnityEngine.Debug.Log($"[Woodchuck] {gameObject.name} TryGetTarget: {treeParent.childCount} trees total, 0 in range (home=({hx},{hz}) range={RangeBlocks})");
+                GameDebugLogger.Log($"[Woodchuck] {gameObject.name} TryGetTarget: {treeParent.childCount} trees total, 0 in range (home=({hx},{hz}) range={RangeBlocks})");
                 return (null, false);
             }
 
@@ -46,25 +56,25 @@ namespace Voxel
                 var path = BuildPathTo(HomeBuilding.position, treePos);
                 if (path != null && path.Count > 0)
                 {
-                    UnityEngine.Debug.Log($"[Woodchuck] {gameObject.name} TryGetTarget: found path to tree at {treePos} (path len={path.Count})");
+                    GameDebugLogger.Log($"[Woodchuck] {gameObject.name} TryGetTarget: found path to tree at {treePos} (path len={path.Count})");
                     return (treePos, true);
                 }
             }
 
-            UnityEngine.Debug.Log($"[Woodchuck] {gameObject.name} TryGetTarget: {candidates.Count} trees in range but no valid path to any");
+            GameDebugLogger.Log($"[Woodchuck] {gameObject.name} TryGetTarget: {candidates.Count} trees in range but no valid path to any");
             return (null, true);
         }
 
         protected override void OnWorkCompletedInside()
         {
-            var inventory = HomeBuilding != null ? HomeBuilding.GetComponent<BuildingInventory>() : null;
+            var inventory = GetHomeInventory();
             if (inventory != null && inventory.HasSpaceFor(1))
                 inventory.AddItem(Item.Wood, 1);
         }
 
         protected override bool IsBuildingInventoryFull()
         {
-            var inventory = HomeBuilding != null ? HomeBuilding.GetComponent<BuildingInventory>() : null;
+            var inventory = GetHomeInventory();
             return inventory != null && !inventory.HasSpaceFor(1);
         }
 

@@ -35,11 +35,13 @@ namespace Voxel.Debug
         private void OnEnable()
         {
             Application.logMessageReceived += HandleLog;
+            GameDebugLogger.RegisterService(this);
         }
 
         private void OnDisable()
         {
             Application.logMessageReceived -= HandleLog;
+            GameDebugLogger.RegisterService(null);
         }
 
         private void HandleLog(string logString, string stackTrace, LogType type)
