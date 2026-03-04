@@ -470,6 +470,7 @@ GameObject:
   - component: {fileID: 1088007616}
   - component: {fileID: 1088007619}
   - component: {fileID: 1088007620}
+  - component: {fileID: 1088007621}
   m_Layer: 0
   m_Name: GameBootstrap
   m_TagString: Untagged
@@ -554,6 +555,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 55319ee8c9c05495a9f9ecdc7e9062f1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.ActorSpawner
+  worldBootstrap: {fileID: 1088007617}
+--- !u!114 &1088007621
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1088007615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: f2a3b4c5d6e7890123456789abcdef02, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Voxel.FloatingTextService
+  floatingTextPrefab: {fileID: 0}
+  itemRegistry: {fileID: 0}
   worldBootstrap: {fileID: 1088007617}
 --- !u!1 &1314134874
 GameObject:

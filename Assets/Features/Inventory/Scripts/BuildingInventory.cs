@@ -18,7 +18,15 @@ namespace Voxel
             _service.Initialize(Mathf.Max(0, capacity));
         }
 
-        public void AddItem(Item item, int amount) => _service.AddItem(item, amount);
+        public void AddItem(Item item, int amount)
+        {
+            var before = GetTotalCount();
+            _service.AddItem(item, amount);
+            var after = GetTotalCount();
+            var added = after - before;
+            if (added > 0)
+                WorldObjectEventBus.Raise(new WorldObjectEvent(transform, WorldObjectEventTypes.UnitProduced, (item, added)));
+        }
         public int GetCount(Item item) => _service.GetCount(item);
         public int GetTotalCount() => _service.GetTotalCount();
         public bool HasSpaceFor(int additional) => _service.HasSpaceFor(additional);
