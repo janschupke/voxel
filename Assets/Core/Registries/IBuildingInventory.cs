@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 
 namespace Voxel
@@ -7,6 +8,8 @@ namespace Voxel
     /// </summary>
     public interface IBuildingInventory
     {
+        event Action InventoryChanged;
+
         int MaxCapacity { get; }
         int GetCount(Item item);
         int GetTotalCount();

@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -10,6 +11,8 @@ namespace Voxel
     public class BuildingInventory : MonoBehaviour, IBuildingInventory
     {
         private readonly InventoryService _service = new InventoryService();
+
+        public event Action InventoryChanged;
 
         public int MaxCapacity => _service.MaxCapacity;
 
@@ -26,28 +29,37 @@ namespace Voxel
             var added = after - before;
             if (added > 0 && emitUnitProduced)
                 WorldObjectEventBus.Raise(new WorldObjectEvent(transform, WorldObjectEventTypes.UnitProduced, (item, added)));
+            if (added > 0)
+                InventoryChanged?.Invoke();
         }
 
         public void ClearInventory()
         {
             _service.Clear();
+            InventoryChanged?.Invoke();
         }
 
         /// <summary>Load items from persistence. No WorldObjectEventBus emission.</summary>
         public void LoadFrom(IEnumerable<(Item Item, int Count)> items)
         {
             _service.LoadFrom(items);
+            InventoryChanged?.Invoke();
         }
 
         public int RemoveItem(Item item, int amount)
         {
-            return _service.RemoveItem(item, amount);
+            var removed = _service.RemoveItem(item, amount);
+            if (removed > 0)
+                InventoryChanged?.Invoke();
+            return removed;
         }
 
         /// <summary>Tries to remove 1 of the specified item. Returns (item, 1) if successful, null otherwise.</summary>
         public (Item Item, int Count)? TryTakeOne(Item item)
         {
             var removed = _service.RemoveItem(item, 1);
+            if (removed > 0)
+                InventoryChanged?.Invoke();
             return removed > 0 ? (item, removed) : null;
         }
 

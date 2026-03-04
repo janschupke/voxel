@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -11,6 +12,8 @@ namespace Voxel
     {
         private readonly StorageService _service = new StorageService();
 
+        public event Action StorageChanged;
+
         public void Initialize(int perItemCapacity)
         {
             _service.Initialize(perItemCapacity);
@@ -19,17 +22,20 @@ namespace Voxel
         public void AddItem(Item item, int amount)
         {
             _service.AddItem(item, amount);
+            StorageChanged?.Invoke();
         }
 
         public void Clear()
         {
             _service.Clear();
+            StorageChanged?.Invoke();
         }
 
-        /// <summary>Load items from persistence. No event emission.</summary>
+        /// <summary>Load items from persistence. Raises StorageChanged.</summary>
         public void LoadFrom(IEnumerable<(Item Item, int Count)> items)
         {
             _service.LoadFrom(items);
+            StorageChanged?.Invoke();
         }
 
         public int GetCount(Item item) => _service.GetCount(item);

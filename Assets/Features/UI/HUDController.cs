@@ -33,7 +33,6 @@ public class HUDController : MonoBehaviour
     private DebugLogService _debugLogService;
     private VisualElement _inventoryPanel;
     private ScrollView _inventoryPanelList;
-    private float _inventoryRefreshTimer;
 
     private void Start()
     {
@@ -129,7 +128,17 @@ public class HUDController : MonoBehaviour
             {
                 _debugLogService.LogReceived += OnLogReceived;
             }
+
+            var storage = worldBootstrap?.StorageInventory;
+            if (storage != null)
+                storage.StorageChanged += OnStorageChanged;
         }
+    }
+
+    private void OnStorageChanged()
+    {
+        if (_inventoryPanel != null && !_inventoryPanel.ClassListContains("hidden"))
+            RefreshInventoryPanel();
     }
 
     private void SetupDebugControls(VisualElement root, WorldBootstrap worldBootstrap)
@@ -243,6 +252,9 @@ public class HUDController : MonoBehaviour
     {
         if (_debugLogService != null)
             _debugLogService.LogReceived -= OnLogReceived;
+        var storage = worldBootstrap?.StorageInventory;
+        if (storage != null)
+            storage.StorageChanged -= OnStorageChanged;
     }
 
     private void OnLogReceived(LogEntry entry)
@@ -300,16 +312,6 @@ public class HUDController : MonoBehaviour
         if (Keyboard.current != null && Keyboard.current.iKey.wasPressedThisFrame)
         {
             ToggleInventoryPanel();
-        }
-
-        if (_inventoryPanel != null && !_inventoryPanel.ClassListContains("hidden"))
-        {
-            _inventoryRefreshTimer -= Time.deltaTime;
-            if (_inventoryRefreshTimer <= 0f)
-            {
-                _inventoryRefreshTimer = 0.5f;
-                RefreshInventoryPanel();
-            }
         }
 
         if (_fpsLabel == null) return;

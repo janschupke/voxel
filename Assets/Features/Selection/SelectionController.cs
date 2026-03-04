@@ -36,7 +36,6 @@ namespace Voxel
 
         private SelectionOutlineRenderer _outlineRenderer;
         private SelectionRaycaster _raycaster;
-        private float _inventoryRefreshTimer;
         private IBuildingInventory _cachedInventory;
         private Camera _cachedCamera;
 
@@ -77,12 +76,12 @@ namespace Voxel
 
         public void RefreshSelectionDisplay()
         {
-            _inventoryRefreshTimer = 0f;
             RefreshInventoryDisplay();
         }
 
         public void ClearSelection()
         {
+            UnsubscribeFromInventory();
             if (_selectedObject != null)
             {
                 _outlineRenderer?.ClearHighlight(_selectedObject);
@@ -91,6 +90,19 @@ namespace Voxel
             _selectedEntryName = null;
             _cachedInventory = null;
             HideSelectionDetail();
+        }
+
+        private void UnsubscribeFromInventory()
+        {
+            if (_cachedInventory != null)
+            {
+                _cachedInventory.InventoryChanged -= OnInventoryChanged;
+            }
+        }
+
+        private void OnInventoryChanged()
+        {
+            RefreshInventoryDisplay();
         }
 
         private void ClearHoverHighlight()
@@ -120,16 +132,6 @@ namespace Voxel
 
             _lastHoveredObject = _hoveredObject;
             _lastSelectedObject = _selectedObject;
-
-            if (_selectedObject != null && _cachedInventory != null)
-            {
-                _inventoryRefreshTimer -= Time.deltaTime;
-                if (_inventoryRefreshTimer <= 0f)
-                {
-                    _inventoryRefreshTimer = 0.5f;
-                    RefreshInventoryDisplay();
-                }
-            }
         }
 
         private void Update()
@@ -187,9 +189,12 @@ namespace Voxel
 
         private void SelectObject(Transform obj, string entryName)
         {
+            UnsubscribeFromInventory();
             _selectedObject = obj;
             _selectedEntryName = entryName;
             _cachedInventory = obj != null ? obj.GetComponent<BuildingInventory>() as IBuildingInventory : null;
+            if (_cachedInventory != null)
+                _cachedInventory.InventoryChanged += OnInventoryChanged;
             ShowSelectionDetail(entryName);
         }
 
@@ -206,7 +211,6 @@ namespace Voxel
                 else
                     _inventorySection.RemoveFromClassList("hidden");
             }
-            _inventoryRefreshTimer = 0f;
             RefreshInventoryDisplay();
             UpdateClearInventoryButtonVisibility();
         }
@@ -263,8 +267,6 @@ namespace Voxel
         {
             if (_cachedInventory == null) return;
             _cachedInventory.ClearInventory();
-            _inventoryRefreshTimer = 0f;
-            RefreshInventoryDisplay();
         }
 
         private void UpdateClearInventoryButtonVisibility()
