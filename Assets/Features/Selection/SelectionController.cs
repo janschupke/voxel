@@ -11,6 +11,8 @@ namespace Voxel
         [SerializeField] private WorldBootstrap worldBootstrap;
         [SerializeField] private UIDocument uiDocument;
         [SerializeField] private PlacedObjectRegistry registry;
+        [SerializeField] private ObjectPlacementController placementController;
+        [SerializeField] private RemovalController removalController;
 
         [Header("Outline")]
         [SerializeField] private Color hoverOutlineColor = new Color(0.2f, 0.5f, 0.9f, 1f);
@@ -36,6 +38,7 @@ namespace Voxel
         private SelectionRaycaster _raycaster;
         private float _inventoryRefreshTimer;
         private BuildingInventory _cachedInventory;
+        private Camera _cachedCamera;
 
         private void Start()
         {
@@ -43,8 +46,8 @@ namespace Voxel
                 worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
             if (registry == null && worldBootstrap != null)
                 registry = worldBootstrap.PlacedObjectRegistry;
-            _placementController = FindAnyObjectByType<ObjectPlacementController>();
-            _removalController = FindAnyObjectByType<RemovalController>();
+            _placementController = placementController ?? FindAnyObjectByType<ObjectPlacementController>();
+            _removalController = removalController ?? FindAnyObjectByType<RemovalController>();
 
             _outlineRenderer = new SelectionOutlineRenderer();
             _raycaster = new SelectionRaycaster(worldBootstrap, registry);
@@ -63,7 +66,8 @@ namespace Voxel
                 if (_clearInventoryButton != null)
                     _clearInventoryButton.clicked += OnClearInventoryClicked;
 
-                UpdateDebugControlsVisibility();
+                _cachedCamera = Camera.main;
+                UIPanelUtils.UpdateDebugControlsVisibility(uiDocument.rootVisualElement, worldBootstrap != null && worldBootstrap.ShowDebugControls);
                 HideSelectionDetail();
             }
         }
@@ -142,7 +146,8 @@ namespace Voxel
                 return;
             }
 
-            var cam = Camera.main;
+            if (_cachedCamera == null) _cachedCamera = Camera.main;
+            var cam = _cachedCamera;
             if (cam != null && Mouse.current != null)
             {
                 Ray ray = cam.ScreenPointToRay(Mouse.current.position.ReadValue());
@@ -264,16 +269,9 @@ namespace Voxel
 
         private void UpdateDebugControlsVisibility()
         {
-            bool show = worldBootstrap != null && worldBootstrap.ShowDebugControls;
             var root = uiDocument?.rootVisualElement;
             if (root == null) return;
-            foreach (var el in root.Query(className: "debug-only").ToList())
-            {
-                if (show)
-                    el.RemoveFromClassList("hidden");
-                else
-                    el.AddToClassList("hidden");
-            }
+            UIPanelUtils.UpdateDebugControlsVisibility(root, worldBootstrap != null && worldBootstrap.ShowDebugControls);
             UpdateClearInventoryButtonVisibility();
         }
     }

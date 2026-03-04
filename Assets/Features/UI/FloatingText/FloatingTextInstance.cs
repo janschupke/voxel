@@ -24,7 +24,7 @@ namespace Voxel
         private RectTransform _rectTransform;
         private Text _text;
         private Canvas _parentCanvas;
-        private Camera _camera;
+        private Camera _cachedCamera;
         private Vector3 _worldPos;
         private float _elapsed;
 
@@ -32,7 +32,7 @@ namespace Voxel
         {
             _source = source;
             _parentCanvas = parentCanvas;
-            _camera = Camera.main;
+            _cachedCamera = Camera.main;
             if (_rectTransform == null) _rectTransform = GetComponent<RectTransform>();
             if (_text == null) _text = GetComponent<Text>();
 
@@ -64,15 +64,15 @@ namespace Voxel
             if (_source != null)
                 _worldPos += Vector3.up * (riseSpeedWorldUnitsPerSec * Time.deltaTime);
 
-            if (_camera == null)
-                _camera = Camera.main;
-            if (_camera == null) return;
+            if (_cachedCamera == null)
+                _cachedCamera = Camera.main;
+            if (_cachedCamera == null) return;
 
-            var screenPoint = _camera.WorldToScreenPoint(_worldPos);
+            var screenPoint = _cachedCamera.WorldToScreenPoint(_worldPos);
             if (RectTransformUtility.ScreenPointToLocalPointInRectangle(
                 _parentCanvas.GetComponent<RectTransform>(),
                 screenPoint,
-                _parentCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _camera,
+                _parentCanvas.renderMode == RenderMode.ScreenSpaceOverlay ? null : _cachedCamera,
                 out var localPoint))
             {
                 _rectTransform.anchoredPosition = localPoint;

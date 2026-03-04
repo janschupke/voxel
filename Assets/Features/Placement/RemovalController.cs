@@ -18,6 +18,8 @@ namespace Voxel
         private (int x, int z)? _dragStartBlock;
         private RemovalExecutor _executor;
         private RemovalPreview _preview;
+        private Camera _cachedCamera;
+        private readonly List<(int x, int y, int z)> _blocksBuffer = new();
 
         private VoxelGrid Grid => worldBootstrap?.Grid;
         private WaterConfig WaterConfig => worldBootstrap?.WaterConfig;
@@ -31,6 +33,7 @@ namespace Voxel
             if (uiDocument == null) uiDocument = FindAnyObjectByType<UIDocument>();
             if (placementController == null) placementController = FindAnyObjectByType<ObjectPlacementController>();
             if (selectionController == null) selectionController = FindAnyObjectByType<SelectionController>();
+            _cachedCamera = Camera.main;
             _executor = worldBootstrap != null ? new RemovalExecutor(worldBootstrap) : null;
             _preview = worldBootstrap != null ? new RemovalPreview(worldBootstrap) : null;
         }
@@ -106,11 +109,8 @@ namespace Voxel
         private (int x, int z)? GetBlockUnderMouse()
         {
             if (Grid == null || WaterConfig == null) return null;
-            var cam = Camera.main;
-            if (cam == null) return null;
-            if (PlacementUtility.TryRaycastTopSurface(cam, Grid, WorldScale, out var block))
-                return (block.bx, block.bz);
-            return null;
+            if (_cachedCamera == null) _cachedCamera = Camera.main;
+            return PlacementInputUtils.GetBlockUnderMouse(_cachedCamera, Grid, WorldScale);
         }
 
         private int GetSurfaceY(int bx, int bz)
@@ -133,20 +133,25 @@ namespace Voxel
                 {
                     var start = _dragStartBlock.Value;
                     var end = endBlock.Value;
-                    var blocks = new List<(int x, int y, int z)>();
+                    _blocksBuffer.Clear();
                     foreach (var (x, surfaceY, z) in PlacementBlockService.GetBlocksForArea(start, end, Grid, waterLevelY))
-                        blocks.Add((x, surfaceY, z));
-                    _preview.SetBlocks(blocks);
+                        _blocksBuffer.Add((x, surfaceY, z));
+                    _preview.SetBlocks(_blocksBuffer);
                 }
                 else
                     _preview.Clear();
             }
             else
             {
-                if (PlacementUtility.TryRaycastTopSurface(Camera.main, Grid, WorldScale, waterLevelY, out var block, out _))
+                if (_cachedCamera == null) _cachedCamera = Camera.main;
+                if (_cachedCamera != null && PlacementUtility.TryRaycastTopSurface(_cachedCamera, Grid, WorldScale, waterLevelY, out var block, out _))
                 {
                     if (worldBootstrap.HasRemovableAtBlock(block.bx, block.by, block.bz))
-                        _preview.SetBlocks(new[] { (block.bx, block.by, block.bz) });
+                    {
+                        _blocksBuffer.Clear();
+                        _blocksBuffer.Add((block.bx, block.by, block.bz));
+                        _preview.SetBlocks(_blocksBuffer);
+                    }
                     else
                         _preview.Clear();
                 }

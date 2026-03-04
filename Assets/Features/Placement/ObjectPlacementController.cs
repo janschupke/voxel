@@ -25,6 +25,7 @@ namespace Voxel
         private float _rotationY;
         private readonly Dictionary<string, Button> _buttonsByType = new();
         private PlacementExecutor _executor;
+        private Camera _cachedCamera;
 
         private VoxelGrid Grid => worldBootstrap?.Grid;
         private WaterConfig WaterConfig => worldBootstrap?.WaterConfig;
@@ -39,6 +40,7 @@ namespace Voxel
                 registry = worldBootstrap.PlacedObjectRegistry;
             if (uiDocument == null)
                 uiDocument = FindAnyObjectByType<UIDocument>();
+            _cachedCamera = Camera.main;
             _executor = worldBootstrap != null ? new PlacementExecutor(worldBootstrap) : null;
         }
 
@@ -154,11 +156,8 @@ namespace Voxel
         private (int x, int z)? GetBlockUnderMouse()
         {
             if (Grid == null || WaterConfig == null) return null;
-            var cam = Camera.main;
-            if (cam == null) return null;
-            if (PlacementUtility.TryRaycastTopSurface(cam, Grid, WorldScale, out var block))
-                return (block.bx, block.bz);
-            return null;
+            if (_cachedCamera == null) _cachedCamera = Camera.main;
+            return PlacementInputUtils.GetBlockUnderMouse(_cachedCamera, Grid, WorldScale);
         }
 
         private void UpdatePreview()
@@ -171,7 +170,8 @@ namespace Voxel
                 return;
             }
 
-            var cam = Camera.main;
+            if (_cachedCamera == null) _cachedCamera = Camera.main;
+            var cam = _cachedCamera;
             if (cam == null)
             {
                 _preview?.Clear();

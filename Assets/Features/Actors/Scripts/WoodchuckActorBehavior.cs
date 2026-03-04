@@ -47,7 +47,7 @@ namespace Voxel
                 return (null, false);
             }
 
-            Shuffle(candidates);
+            candidates.Shuffle();
 
             foreach (var treePos in candidates)
             {
@@ -76,13 +76,5 @@ namespace Voxel
             return inventory != null && !inventory.HasSpaceFor(1);
         }
 
-        private static void Shuffle<T>(List<T> list)
-        {
-            for (int i = list.Count - 1; i > 0; i--)
-            {
-                int j = Random.Range(0, i + 1);
-                (list[i], list[j]) = (list[j], list[i]);
-            }
-        }
     }
 }

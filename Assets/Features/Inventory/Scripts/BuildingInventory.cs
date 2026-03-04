@@ -7,7 +7,7 @@ namespace Voxel
     /// Per-building inventory. Attached at runtime when placing or loading buildings with InventoryCapacity > 0.
     /// Wires Unity to InventoryService (domain logic).
     /// </summary>
-    public class BuildingInventory : MonoBehaviour
+    public class BuildingInventory : MonoBehaviour, IBuildingInventory
     {
         private readonly InventoryService _service = new InventoryService();
 

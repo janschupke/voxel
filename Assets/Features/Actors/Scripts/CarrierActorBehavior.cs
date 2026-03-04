@@ -13,6 +13,7 @@ namespace Voxel
     public class CarrierActorBehavior : ActorBehavior
     {
         private BuildingInventory _cachedInventory;
+        private BuildingInventory _cachedSourceInventory;
         private Transform _sourceBuilding;
         private Item? _carriedItem;
 
@@ -40,10 +41,10 @@ namespace Voxel
         private void TakeFromSource()
         {
             _carriedItem = null;
-            if (_sourceBuilding == null) return;
+            if (_sourceBuilding == null || _cachedSourceInventory == null) return;
 
-            var inv = _sourceBuilding.GetComponent<BuildingInventory>();
-            if (inv == null || inv.GetTotalCount() <= 0) return;
+            var inv = _cachedSourceInventory;
+            if (inv.GetTotalCount() <= 0) return;
 
             foreach (var (item, count) in inv.GetAllItems())
             {
@@ -61,6 +62,7 @@ namespace Voxel
         protected override (Vector3? Target, bool HadCandidates) TryGetReachableTarget()
         {
             _sourceBuilding = null;
+            _cachedSourceInventory = null;
 
             var registry = WorldBootstrap?.PlacedObjectRegistry;
             if (registry == null) return (null, false);
@@ -98,7 +100,7 @@ namespace Voxel
                 return (null, false);
             }
 
-            Shuffle(candidates);
+            candidates.Shuffle();
 
             foreach (var building in candidates)
             {
@@ -106,6 +108,7 @@ namespace Voxel
                 if (path != null && path.Count > 0)
                 {
                     _sourceBuilding = building;
+                    _cachedSourceInventory = building.GetComponent<BuildingInventory>();
                     GameDebugLogger.Log($"[Carrier] {gameObject.name} TryGetTarget: found path to {building.name} (path len={path.Count})");
                     return (building.position, true);
                 }
@@ -131,13 +134,5 @@ namespace Voxel
             return inventory != null && !inventory.HasSpaceFor(1);
         }
 
-        private static void Shuffle<T>(List<T> list)
-        {
-            for (int i = list.Count - 1; i > 0; i--)
-            {
-                int j = Random.Range(0, i + 1);
-                (list[i], list[j]) = (list[j], list[i]);
-            }
-        }
     }
 }

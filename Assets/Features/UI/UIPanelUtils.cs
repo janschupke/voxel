@@ -1,3 +1,4 @@
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -23,6 +24,19 @@ namespace Voxel
             var sidebar = doc.rootVisualElement.Q("Sidebar");
             return (topPanel != null && (picked == topPanel || topPanel.Contains(picked))) ||
                    (sidebar != null && (picked == sidebar || sidebar.Contains(picked)));
+        }
+
+        /// <summary>Shows or hides elements with class "debug-only" based on show flag.</summary>
+        public static void UpdateDebugControlsVisibility(VisualElement root, bool show)
+        {
+            if (root == null) return;
+            foreach (var el in root.Query(className: "debug-only").ToList())
+            {
+                if (show)
+                    el.RemoveFromClassList("hidden");
+                else
+                    el.AddToClassList("hidden");
+            }
         }
     }
 }

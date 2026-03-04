@@ -12,6 +12,8 @@ namespace Voxel
         private readonly SelectionOutlineRenderer _outlineRenderer = new();
         private readonly List<Transform> _outlinedTransforms = new();
         private readonly List<GameObject> _roadOverlays = new();
+        private readonly List<Transform> _transformsBuffer = new(32);
+        private readonly HashSet<Transform> _outlinedSet = new();
         private static readonly Color RemovalColor = new Color(1f, 0.2f, 0.2f, 0.6f);
         private const float OutlineWidth = 4f;
 
@@ -27,21 +29,21 @@ namespace Voxel
 
             if (_worldBootstrap == null) return;
 
-            var transformsBuffer = new List<Transform>(32);
-            var outlinedSet = new HashSet<Transform>();
+            _transformsBuffer.Clear();
+            _outlinedSet.Clear();
 
             foreach (var (bx, by, bz) in blocks)
             {
                 if (!_worldBootstrap.HasRemovableAtBlock(bx, by, bz)) continue;
 
-                transformsBuffer.Clear();
-                _worldBootstrap.GetTransformsAtBlock(bx, by, bz, transformsBuffer);
-                foreach (var t in transformsBuffer)
+                _transformsBuffer.Clear();
+                _worldBootstrap.GetTransformsAtBlock(bx, by, bz, _transformsBuffer);
+                foreach (var t in _transformsBuffer)
                 {
-                    if (t != null && outlinedSet.Add(t))
+                    if (t != null && _outlinedSet.Add(t))
                         _outlineRenderer.ApplyHighlight(t, RemovalColor, OutlineWidth, null);
                 }
-                _outlinedTransforms.AddRange(transformsBuffer);
+                _outlinedTransforms.AddRange(_transformsBuffer);
 
                 if (_worldBootstrap.HasRoadAt(bx, by, bz))
                 {

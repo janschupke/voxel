@@ -14,6 +14,11 @@ public class HUDController : MonoBehaviour
 
     [SerializeField] private UIDocument uiDocument;
     [SerializeField] private PlacedObjectRegistry placedObjectRegistry;
+    [SerializeField] private WorldBootstrap worldBootstrap;
+    [SerializeField] private ObjectPlacementController placementController;
+    [SerializeField] private SelectionController selectionController;
+    [SerializeField] private RemovalController removalController;
+    [SerializeField] private DebugLogService debugLogService;
 
     private ObjectPlacementController _placementController;
     private SelectionController _selectionController;
@@ -35,10 +40,10 @@ public class HUDController : MonoBehaviour
         {
             _fpsLabel = uiDocument.rootVisualElement.Q<Label>("FPS");
 
-            var worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
-            _placementController = FindAnyObjectByType<ObjectPlacementController>();
-            _selectionController = FindAnyObjectByType<SelectionController>();
-            _removalController = FindAnyObjectByType<RemovalController>();
+            if (worldBootstrap == null) worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
+            _placementController = placementController ?? FindAnyObjectByType<ObjectPlacementController>();
+            _selectionController = selectionController ?? FindAnyObjectByType<SelectionController>();
+            _removalController = removalController ?? FindAnyObjectByType<RemovalController>();
             if (_removalController == null && _placementController != null)
                 _removalController = _placementController.gameObject.AddComponent<RemovalController>();
 
@@ -105,7 +110,7 @@ public class HUDController : MonoBehaviour
             }
 
             _messageLog = uiDocument.rootVisualElement.Q<VisualElement>("MessageLog");
-            _debugLogService = GetComponent<DebugLogService>();
+            _debugLogService = debugLogService ?? GetComponent<DebugLogService>();
             if (_debugLogService == null)
                 _debugLogService = FindAnyObjectByType<DebugLogService>();
             if (_debugLogService == null)
@@ -133,14 +138,7 @@ public class HUDController : MonoBehaviour
     private void UpdateDebugControlsVisibility(VisualElement root, WorldBootstrap worldBootstrap)
     {
         if (root == null) return;
-        bool show = worldBootstrap != null && worldBootstrap.ShowDebugControls;
-        foreach (var el in root.Query(className: "debug-only").ToList())
-        {
-            if (show)
-                el.RemoveFromClassList("hidden");
-            else
-                el.AddToClassList("hidden");
-        }
+        UIPanelUtils.UpdateDebugControlsVisibility(root, worldBootstrap != null && worldBootstrap.ShowDebugControls);
     }
 
     private void ClearAllInventories(WorldBootstrap worldBootstrap)

@@ -160,6 +160,27 @@ The Voxel project has a solid foundation with clear Pure/Core/Features structure
 
 ---
 
+## Implementation Status (2026-03-04)
+
+The following audit items have been implemented:
+
+- **ActorBehavior:** Cached `GetPathGraph()` (call once per frame in movement states); cached renderers in Awake; extracted `UpdateMovementAlongPath`; invalidate renderer cache in RestoreState.
+- **RemovalPreview:** Reusable `_transformsBuffer` and `_outlinedSet` instance fields.
+- **RemovalController:** Reusable `_blocksBuffer`; cached `Camera.main`; uses `PlacementInputUtils.GetBlockUnderMouse`.
+- **ObjectPlacementController:** Cached camera; uses `PlacementInputUtils.GetBlockUnderMouse`.
+- **SelectionController:** Cached camera; uses `UIPanelUtils.UpdateDebugControlsVisibility`.
+- **FloatingTextInstance:** Cached camera.
+- **CarrierActorBehavior:** Cached `_cachedSourceInventory` when setting source building; uses `ListExtensions.Shuffle`.
+- **WoodchuckActorBehavior:** Uses `ListExtensions.Shuffle`.
+- **PlacementInputUtils:** New shared `GetBlockUnderMouse(Camera, VoxelGrid, WorldScale)`.
+- **UIPanelUtils:** New `UpdateDebugControlsVisibility(VisualElement root, bool show)`.
+- **ListExtensions:** New `Shuffle<T>()` extension for `List<T>`.
+- **IBuildingInventory:** New interface; `BuildingInventory` implements it.
+- **FloatingTextService:** Uses `IItemRegistry` via `_itemRegistry`.
+- **HUDController, SelectionController:** `[SerializeField]` for WorldBootstrap, controllers, DebugLogService with FindAnyObjectByType fallback.
+
+---
+
 ## References
 
 - `.cursor/rules/voxel-architecture.mdc` — Core/Features structure, domain/Unity separation, DI, interfaces

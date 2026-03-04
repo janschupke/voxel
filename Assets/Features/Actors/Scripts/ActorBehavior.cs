@@ -37,6 +37,11 @@ namespace Voxel
 
         public ActorState CurrentState => _state;
 
+        private void Awake()
+        {
+            _cachedRenderers = GetComponentsInChildren<Renderer>(includeInactive: true);
+        }
+
         public void Initialize(WorldBootstrap bootstrap, ActorDefinition definition, Transform homeBuilding, float rangeBlocks, OperationalRangeType rangeType = OperationalRangeType.Square)
         {
             worldBootstrap = bootstrap;
@@ -46,7 +51,6 @@ namespace Voxel
             RangeType = rangeType;
             WorldScale = new WorldScale(bootstrap.WorldParameters != null ? bootstrap.WorldParameters.BlockScale : 1f);
             transform.position = homeBuilding.position;
-            _cachedRenderers = null;
         }
 
         /// <summary>Restore state from persistence. Clears path and timers.</summary>
@@ -61,6 +65,7 @@ namespace Voxel
             _blockedTimer = 0f;
             _fullCheckTimer = 0f;
             _idleCheckCooldown = 0f;
+            _cachedRenderers = null;
         }
 
         protected virtual void Update()
@@ -176,26 +181,16 @@ namespace Voxel
             }
 
             var node = _path[_pathIndex];
-            if (Definition.PathingMode == ActorPathingMode.Road && !IsPathNodeWalkable(node))
+            if (Definition.PathingMode == ActorPathingMode.Road)
             {
-                TryRecoverFromInvalidPath(wasGoingToTarget: true);
-                return;
+                var graph = GetPathGraph();
+                if (!graph.IsWalkable(node))
+                {
+                    TryRecoverFromInvalidPath(wasGoingToTarget: true);
+                    return;
+                }
             }
-            int topY = PlacementUtility.GetTopSolidY(worldBootstrap.Grid, node.X, node.Z, worldBootstrap.Grid.Height);
-            if (topY < 0)
-            {
-                _pathIndex++;
-                return;
-            }
-
-            int surfaceY = topY + 1;
-            var targetPos = WorldScale.BlockToWorld(node.X + 0.5f, surfaceY, node.Z + 0.5f);
-            float blockScale = WorldScale.BlockScale;
-            float moveDist = Definition.MoveSpeed * blockScale * Time.deltaTime;
-
-            transform.position = Vector3.MoveTowards(transform.position, targetPos, moveDist);
-
-            if (Vector3.Distance(transform.position, targetPos) < 0.1f * blockScale)
+            if (UpdateMovementAlongPath())
                 _pathIndex++;
         }
 
@@ -229,17 +224,26 @@ namespace Voxel
             }
 
             var node = _path[_pathIndex];
-            if (Definition.PathingMode == ActorPathingMode.Road && !IsPathNodeWalkable(node))
+            if (Definition.PathingMode == ActorPathingMode.Road)
             {
-                TryRecoverFromInvalidPath(wasGoingToTarget: _state == ActorState.GoingToTarget || _state == ActorState.ReturningToBlocked);
-                return;
+                var graph = GetPathGraph();
+                if (!graph.IsWalkable(node))
+                {
+                    TryRecoverFromInvalidPath(wasGoingToTarget: _state == ActorState.GoingToTarget || _state == ActorState.ReturningToBlocked);
+                    return;
+                }
             }
-            int topY = PlacementUtility.GetTopSolidY(worldBootstrap.Grid, node.X, node.Z, worldBootstrap.Grid.Height);
-            if (topY < 0)
-            {
+            if (UpdateMovementAlongPath())
                 _pathIndex++;
-                return;
-            }
+        }
+
+        /// <summary>Moves toward current path node. Returns true if reached (advance path index).</summary>
+        private bool UpdateMovementAlongPath()
+        {
+            if (_path == null || _pathIndex >= _path.Count) return false;
+            var node = _path[_pathIndex];
+            int topY = PlacementUtility.GetTopSolidY(worldBootstrap.Grid, node.X, node.Z, worldBootstrap.Grid.Height);
+            if (topY < 0) return true;
 
             int surfaceY = topY + 1;
             var targetPos = WorldScale.BlockToWorld(node.X + 0.5f, surfaceY, node.Z + 0.5f);
@@ -248,8 +252,7 @@ namespace Voxel
 
             transform.position = Vector3.MoveTowards(transform.position, targetPos, moveDist);
 
-            if (Vector3.Distance(transform.position, targetPos) < 0.1f * blockScale)
-                _pathIndex++;
+            return Vector3.Distance(transform.position, targetPos) < 0.1f * blockScale;
         }
 
         private void UpdateWorkingInside()
@@ -428,12 +431,6 @@ namespace Voxel
             bool isBlockValid(int x, int y, int z) =>
                 !worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
             return new SmartSurfacePathGraph(grid, waterLevelY, roadOverlay, isBlockValid);
-        }
-
-        /// <summary>Check if path node is still valid. Uses same graph that built the path (Road checks road overlay; Smart/Free check blocking).</summary>
-        private bool IsPathNodeWalkable(GridNode node)
-        {
-            return GetPathGraph().IsWalkable(node);
         }
 
         /// <summary>Path node became unwalkable while actor on road. Try path home with fallback; if exists, return home (Blocked on arrival if was GoingToTarget). Else go Blocked.</summary>

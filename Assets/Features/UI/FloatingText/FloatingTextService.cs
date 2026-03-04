@@ -11,6 +11,7 @@ namespace Voxel
         [SerializeField] private GameObject floatingTextPrefab;
         [SerializeField] private ItemRegistry itemRegistry;
         [SerializeField] private WorldBootstrap worldBootstrap;
+        private IItemRegistry _itemRegistry;
 
         private Canvas _canvas;
         private float _blockScale = 1f;
@@ -19,8 +20,7 @@ namespace Voxel
         {
             if (worldBootstrap == null)
                 worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
-            if (itemRegistry == null && worldBootstrap != null)
-                itemRegistry = worldBootstrap.ItemRegistry as ItemRegistry;
+            _itemRegistry = itemRegistry ?? worldBootstrap?.ItemRegistry;
 
             _blockScale = worldBootstrap?.WorldParameters != null
                 ? worldBootstrap.WorldParameters.BlockScale
@@ -44,7 +44,7 @@ namespace Voxel
             {
                 if (evt.Data is (Item item, int amount) && amount > 0)
                 {
-                    var itemName = itemRegistry?.GetDefinition(item)?.Name ?? item.ToString();
+                    var itemName = _itemRegistry?.GetDefinition(item)?.Name ?? item.ToString();
                     var text = $"+{amount} {itemName}";
                     ShowAt(evt.Source, text);
                 }
