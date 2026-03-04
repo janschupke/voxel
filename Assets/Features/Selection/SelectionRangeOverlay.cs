@@ -74,12 +74,20 @@ namespace Voxel
             _positionsBuffer.Clear();
             for (int i = 0; i < _verticesBuffer.Count; i++)
             {
-                var (x, z) = _verticesBuffer[i];
-                int bx = Mathf.Clamp(x, 0, grid.Width - 1);
-                int bz = Mathf.Clamp(z, 0, grid.Depth - 1);
-                int topY = PlacementUtility.GetTopSolidY(grid, bx, bz, grid.Height);
-                int surfaceY = topY >= 0 ? topY + 1 : 0;
-                _positionsBuffer.Add(worldScale.BlockToWorld(x, surfaceY, z));
+                var (x0, z0) = _verticesBuffer[i];
+                var (x1, z1) = _verticesBuffer[(i + 1) % _verticesBuffer.Count];
+                int steps = Mathf.Max(Mathf.Abs(x1 - x0), Mathf.Abs(z1 - z0), 1);
+                for (int s = 0; s < steps; s++)
+                {
+                    float t = (float)s / steps;
+                    int x = Mathf.RoundToInt(Mathf.Lerp(x0, x1, t));
+                    int z = Mathf.RoundToInt(Mathf.Lerp(z0, z1, t));
+                    int bx = Mathf.Clamp(x, 0, grid.Width - 1);
+                    int bz = Mathf.Clamp(z, 0, grid.Depth - 1);
+                    int topY = PlacementUtility.GetTopSolidY(grid, bx, bz, grid.Height);
+                    int surfaceY = topY >= 0 ? topY + 1 : 0;
+                    _positionsBuffer.Add(worldScale.BlockToWorld(x, surfaceY, z));
+                }
             }
 
             if (_positionsArray == null || _positionsArray.Length < _positionsBuffer.Count)
