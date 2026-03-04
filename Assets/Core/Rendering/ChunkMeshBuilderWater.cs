@@ -12,14 +12,13 @@ namespace Voxel.Rendering
     {
         /// <summary>
         /// Collects water faces for air voxels below water level.
-        /// When surfaceOnly is true, only the +Y face is added (Minecraft-style).
+        /// Only the +Y face is added (Minecraft-style surface-only).
         /// </summary>
         public static void CollectWaterFaces(
             VoxelGrid grid, int ox, int oy, int oz, WaterConfig waterConfig, float voxelScale,
             List<Vector3> vertices, List<Vector3> normals, List<int> triangles)
         {
             int waterLevelY = waterConfig.GetWaterLevelY(grid.Height);
-            bool surfaceOnly = waterConfig.SurfaceOnly;
 
             for (int x = 0; x < ChunkMeshBuilder.ChunkSize; x++)
             {
@@ -37,21 +36,9 @@ namespace Voxel.Rendering
                             continue;
 
                         const float waterSurfaceOffset = -0.5f;
-                        if (surfaceOnly)
-                        {
-                            if (!IsWaterFaceVisible(grid, wx, wy, wz, 5, waterLevelY))
-                                continue;
-                            ChunkMeshBuilder.AddFaceToBand(x, y, z, 5, voxelScale, vertices, normals, triangles, waterSurfaceOffset);
-                        }
-                        else
-                        {
-                            for (int face = 0; face < 6; face++)
-                            {
-                                if (!IsWaterFaceVisible(grid, wx, wy, wz, face, waterLevelY))
-                                    continue;
-                                ChunkMeshBuilder.AddFaceToBand(x, y, z, face, voxelScale, vertices, normals, triangles, waterSurfaceOffset);
-                            }
-                        }
+                        if (!IsWaterFaceVisible(grid, wx, wy, wz, 5, waterLevelY))
+                            continue;
+                        ChunkMeshBuilder.AddFaceToBand(x, y, z, 5, voxelScale, vertices, normals, triangles, waterSurfaceOffset);
                     }
                 }
             }

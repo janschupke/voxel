@@ -14,9 +14,6 @@ namespace Voxel
         [SerializeField] [Tooltip("Water material (transparent/semi-transparent)")]
         private Material material;
 
-        [SerializeField] [Tooltip("Only render top face (Minecraft-style)")]
-        private bool surfaceOnly = true;
-
         [SerializeField] [Range(0f, 0.5f)] [Tooltip("Vertex Y displacement per voxel scale (scaled by block scale at runtime)")]
         private float waveAmplitude = 0.15f;
 
@@ -26,21 +23,12 @@ namespace Voxel
         [SerializeField] [Range(0.1f, 3f)] [Tooltip("Animation speed for wave effect")]
         private float waveSpeed = 1f;
 
-        [SerializeField] [Range(0f, 0.1f)] [Tooltip("Distortion amount for refraction")]
-        private float refractionStrength = 0.02f;
-
-        [SerializeField] [Tooltip("Toggle refraction effect")]
-        private bool refractionEnabled = true;
-
         public bool Enabled => enabled;
         public int WaterLevelY => waterLevelY;
         public Material Material => material;
-        public bool SurfaceOnly => surfaceOnly;
         public float WaveAmplitude => waveAmplitude;
         public float WaveFrequency => waveFrequency;
         public float WaveSpeed => waveSpeed;
-        public float RefractionStrength => refractionStrength;
-        public bool RefractionEnabled => refractionEnabled;
 
         /// <summary>
         /// Returns the water level Y, clamped to valid grid bounds.

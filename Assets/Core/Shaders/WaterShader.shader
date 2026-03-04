@@ -6,8 +6,6 @@ Shader "Voxel/Water"
         _WaveAmplitude ("Wave Amplitude", Range(0, 1)) = 0.4
         _WaveFrequency ("Wave Frequency", Range(0.01, 1)) = 0.1
         _WaveSpeed ("Wave Speed", Range(0.1, 3)) = 1
-        _RefractionStrength ("Refraction Strength", Range(0, 0.1)) = 0.04
-        [Toggle] _RefractionEnabled ("Refraction Enabled", Float) = 1
     }
     SubShader
     {
@@ -58,9 +56,9 @@ Shader "Voxel/Water"
                 float3 positionWS = TransformObjectToWorld(IN.positionOS.xyz);
                 float time = _Time.y;
 
-                // Wave in object/local space to avoid world-scale distortion; scale by block units
-                float wave = sin(IN.positionOS.x * _WaveFrequency + time * _WaveSpeed)
-                    * sin(IN.positionOS.z * _WaveFrequency + time * _WaveSpeed);
+                // Wave in world space so adjacent chunks share the same wave phase at borders (no seams)
+                float wave = sin(positionWS.x * _WaveFrequency + time * _WaveSpeed)
+                    * sin(positionWS.z * _WaveFrequency + time * _WaveSpeed);
                 positionWS.y += wave * _WaveAmplitude;
 
                 OUT.positionWS = positionWS;

@@ -15,9 +15,6 @@ MonoBehaviour:
   enabled: 1
   waterLevelY: 10
   material: {fileID: 0}
-  surfaceOnly: 1
-  waveAmplitude: 0.05
+  waveAmplitude: 0.5
   waveFrequency: 0.5
   waveSpeed: 1
-  refractionStrength: 0.02
-  refractionEnabled: 0

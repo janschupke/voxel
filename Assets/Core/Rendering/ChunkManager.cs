@@ -114,10 +114,6 @@ namespace Voxel.Rendering
                 waterMat.SetFloat("_WaveFrequency", waterConfig.WaveFrequency);
             if (waterMat.HasProperty("_WaveSpeed"))
                 waterMat.SetFloat("_WaveSpeed", waterConfig.WaveSpeed);
-            if (waterMat.HasProperty("_RefractionStrength"))
-                waterMat.SetFloat("_RefractionStrength", waterConfig.RefractionStrength);
-            if (waterMat.HasProperty("_RefractionEnabled"))
-                waterMat.SetFloat("_RefractionEnabled", waterConfig.RefractionEnabled ? 1f : 0f);
         }
 
         public void BuildAllChunks()
