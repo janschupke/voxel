@@ -95,7 +95,7 @@ namespace Voxel
 
             foreach (var building in candidates)
             {
-                var path = BuildPathTo(HomeBuilding.position, building.position);
+                var path = BuildPathTo(HomeBuilding.position, building.position, fromIsBuilding: true, toIsBuilding: false);
                 if (path != null && path.Count > 0)
                 {
                     _sourceBuilding = building;

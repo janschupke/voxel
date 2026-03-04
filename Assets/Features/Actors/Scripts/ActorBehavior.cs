@@ -108,7 +108,7 @@ namespace Voxel
             if (target.HasValue)
             {
                 _targetWorld = target.Value;
-                _path = BuildPathTo(HomeBuilding.position, target.Value);
+                _path = BuildPathTo(HomeBuilding.position, target.Value, fromIsBuilding: true, toIsBuilding: false);
                 if (_path != null && _path.Count > 0)
                 {
                     _pathIndex = 0;
@@ -146,7 +146,7 @@ namespace Voxel
                 if (SkipWorkOutside)
                 {
                     OnArrivedAtTarget();
-                    _path = BuildPathTo(transform.position, HomeBuilding.position);
+                    _path = BuildPathTo(transform.position, HomeBuilding.position, fromIsBuilding: false, toIsBuilding: true);
                     _pathIndex = 0;
                     _state = ActorState.Returning;
                 }
@@ -182,7 +182,7 @@ namespace Voxel
             _workTimer -= Time.deltaTime;
             if (_workTimer <= 0f)
             {
-                _path = BuildPathTo(transform.position, HomeBuilding.position);
+                _path = BuildPathTo(transform.position, HomeBuilding.position, fromIsBuilding: false, toIsBuilding: true);
                 _pathIndex = 0;
                 _state = ActorState.Returning;
             }
@@ -269,7 +269,7 @@ namespace Voxel
         /// </summary>
         protected abstract (Vector3? Target, bool HadCandidates) TryGetReachableTarget();
 
-        protected IReadOnlyList<GridNode> BuildPathTo(Vector3 fromWorld, Vector3 toWorld)
+        protected IReadOnlyList<GridNode> BuildPathTo(Vector3 fromWorld, Vector3 toWorld, bool fromIsBuilding = false, bool toIsBuilding = false)
         {
             var graph = GetPathGraph();
             if (graph == null) return null;
@@ -277,8 +277,8 @@ namespace Voxel
             var (fx, _, fz) = WorldScale.WorldToBlock(fromWorld);
             var (tx, _, tz) = WorldScale.WorldToBlock(toWorld);
 
-            var start = FindWalkableAdjacent(fx, fz, graph);
-            var goal = FindWalkableAdjacent(tx, tz, graph);
+            var start = fromIsBuilding ? FindOptimalWalkableAdjacentCardinal(fx, fz, graph, tx, tz) : FindWalkableAdjacent(fx, fz, graph);
+            var goal = toIsBuilding ? FindOptimalWalkableAdjacentCardinal(tx, tz, graph, fx, fz) : FindWalkableAdjacent(tx, tz, graph);
 
             if (!start.HasValue)
             {
@@ -294,6 +294,7 @@ namespace Voxel
             return AStarPathfinder.FindPath(graph, start.Value, goal.Value);
         }
 
+        /// <summary>Returns the first walkable block at or adjacent to (bx,bz). Used for targets (tree, building).</summary>
         private GridNode? FindWalkableAdjacent(int bx, int bz, IGridGraph<GridNode> graph)
         {
             var node = new GridNode(bx, bz);
@@ -311,6 +312,29 @@ namespace Voxel
                 }
             }
             return null;
+        }
+
+        /// <summary>Returns the walkable block in a cardinal direction from (bx,bz) that is closest to (targetBx, targetBz). Used for buildings.</summary>
+        private GridNode? FindOptimalWalkableAdjacentCardinal(int bx, int bz, IGridGraph<GridNode> graph, int targetBx, int targetBz)
+        {
+            GridNode? best = null;
+            float bestDistSq = float.MaxValue;
+
+            foreach (var (dx, dz) in new[] { (0, 0), (1, 0), (-1, 0), (0, 1), (0, -1) })
+            {
+                var n = new GridNode(bx + dx, bz + dz);
+                if (!graph.IsWalkable(n)) continue;
+
+                int dx2 = (bx + dx) - targetBx;
+                int dz2 = (bz + dz) - targetBz;
+                float distSq = dx2 * dx2 + dz2 * dz2;
+                if (distSq < bestDistSq)
+                {
+                    bestDistSq = distSq;
+                    best = n;
+                }
+            }
+            return best;
         }
 
         private IGridGraph<GridNode> GetPathGraph()

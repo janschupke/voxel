@@ -51,7 +51,7 @@ namespace Voxel
 
             foreach (var treePos in candidates)
             {
-                var path = BuildPathTo(HomeBuilding.position, treePos);
+                var path = BuildPathTo(HomeBuilding.position, treePos, fromIsBuilding: true, toIsBuilding: false);
                 if (path != null && path.Count > 0)
                 {
                     GameDebugLogger.Log($"[Woodchuck] {gameObject.name} TryGetTarget: found path to tree at {treePos} (path len={path.Count})");
