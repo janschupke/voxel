@@ -10,7 +10,7 @@ namespace Voxel
     public static class WorldPersistenceService
     {
         private const string WorldFileName = "world.dat";
-        private const int SaveVersion = 2;
+        private const int SaveVersion = 3;
         private static string WorldPath => Path.Combine(Application.persistentDataPath, "World", WorldFileName);
 
         public static bool WorldExists()
@@ -24,7 +24,9 @@ namespace Voxel
                 File.Delete(WorldPath);
         }
 
-        public static void Save(VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects = null)
+        public static void Save(VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects = null,
+            IReadOnlyList<BuildingInventorySaveData> buildingInventories = null,
+            IReadOnlyList<ActorSaveData> actorData = null)
         {
             var dir = Path.GetDirectoryName(WorldPath);
             if (!string.IsNullOrEmpty(dir))
@@ -57,9 +59,56 @@ namespace Voxel
                     writer.Write(p.RotationY);
                 }
             }
+
+            int invCount = buildingInventories?.Count ?? 0;
+            writer.Write(invCount);
+            if (invCount > 0)
+            {
+                for (int i = 0; i < invCount; i++)
+                {
+                    var inv = buildingInventories[i];
+                    writer.Write(inv.EntryName ?? "");
+                    writer.Write(inv.BlockX);
+                    writer.Write(inv.BlockY);
+                    writer.Write(inv.BlockZ);
+                    int itemCount = inv.Items?.Count ?? 0;
+                    writer.Write(itemCount);
+                    if (inv.Items != null)
+                    {
+                        for (int j = 0; j < itemCount; j++)
+                        {
+                            var (itemId, amt) = inv.Items[j];
+                            writer.Write(itemId);
+                            writer.Write(amt);
+                        }
+                    }
+                }
+            }
+
+            int actorCount = actorData?.Count ?? 0;
+            writer.Write(actorCount);
+            if (actorCount > 0)
+            {
+                for (int i = 0; i < actorCount; i++)
+                {
+                    var a = actorData[i];
+                    writer.Write(a.ActorTypeName ?? "");
+                    writer.Write(a.HomeEntryName ?? "");
+                    writer.Write(a.HomeBlockX);
+                    writer.Write(a.HomeBlockY);
+                    writer.Write(a.HomeBlockZ);
+                    writer.Write(a.PosX);
+                    writer.Write(a.PosY);
+                    writer.Write(a.PosZ);
+                    writer.Write(a.StateId);
+                    writer.Write(a.CarriedItemId);
+                }
+            }
         }
 
-        public static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects) Load()
+        public static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,
+            IReadOnlyList<BuildingInventorySaveData> buildingInventories,
+            IReadOnlyList<ActorSaveData> actorData) Load()
         {
             if (!WorldExists())
                 throw new FileNotFoundException("No saved world found", WorldPath);
@@ -70,15 +119,80 @@ namespace Voxel
             using var reader = new BinaryReader(gzip);
             int version = reader.ReadInt32();
 
+            if (version == 3)
+                return LoadV3(reader);
             if (version < 100)
-            {
                 return LoadV2(reader);
-            }
 
-            return LoadV1(reader, version);
+            var (grid, placedObjects) = LoadV1(reader, version);
+            return (grid, placedObjects, new List<BuildingInventorySaveData>(), new List<ActorSaveData>());
         }
 
-        private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects) LoadV2(BinaryReader reader)
+        private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,
+            IReadOnlyList<BuildingInventorySaveData> buildingInventories,
+            IReadOnlyList<ActorSaveData> actorData) LoadV3(BinaryReader reader)
+        {
+            var (grid, placedObjects) = LoadV2Core(reader);
+
+            var buildingInventories = new List<BuildingInventorySaveData>();
+            var actorData = new List<ActorSaveData>();
+
+            try
+            {
+                int invCount = reader.ReadInt32();
+                if (invCount > 0 && invCount < 100000)
+                {
+                    for (int i = 0; i < invCount; i++)
+                    {
+                        var entryName = reader.ReadString();
+                        var bx = reader.ReadInt32();
+                        var by = reader.ReadInt32();
+                        var bz = reader.ReadInt32();
+                        int itemCount = reader.ReadInt32();
+                        var items = new List<(int ItemId, int Count)>();
+                        for (int j = 0; j < itemCount && j < 10000; j++)
+                        {
+                            items.Add((reader.ReadInt32(), reader.ReadInt32()));
+                        }
+                        buildingInventories.Add(new BuildingInventorySaveData(entryName, bx, by, bz, items));
+                    }
+                }
+
+                int actorCount = reader.ReadInt32();
+                if (actorCount > 0 && actorCount < 100000)
+                {
+                    for (int i = 0; i < actorCount; i++)
+                    {
+                        actorData.Add(new ActorSaveData(
+                            reader.ReadString(),
+                            reader.ReadString(),
+                            reader.ReadInt32(),
+                            reader.ReadInt32(),
+                            reader.ReadInt32(),
+                            reader.ReadSingle(),
+                            reader.ReadSingle(),
+                            reader.ReadSingle(),
+                            reader.ReadInt32(),
+                            reader.ReadInt32()));
+                    }
+                }
+            }
+            catch (EndOfStreamException)
+            {
+            }
+
+            return (grid, placedObjects, buildingInventories, actorData);
+        }
+
+        private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,
+            IReadOnlyList<BuildingInventorySaveData> buildingInventories,
+            IReadOnlyList<ActorSaveData> actorData) LoadV2(BinaryReader reader)
+        {
+            var (grid, placedObjects) = LoadV2Core(reader);
+            return (grid, placedObjects, new List<BuildingInventorySaveData>(), new List<ActorSaveData>());
+        }
+
+        private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects) LoadV2Core(BinaryReader reader)
         {
             int width = reader.ReadInt32();
             int depth = reader.ReadInt32();

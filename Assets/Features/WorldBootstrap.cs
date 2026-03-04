@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Voxel.Pure;
 
@@ -41,14 +43,17 @@ namespace Voxel
 
             if (WorldPersistenceService.WorldExists())
             {
-                var (grid, placedObjects) = WorldPersistenceService.Load();
+                var (grid, placedObjects, buildingInventories, actorData) = WorldPersistenceService.Load();
                 _grid = grid;
-                _placedObjectManager.LoadPlacedObjects(placedObjects, _grid, terrainMode);
+                var inventoryLookup = BuildInventoryLookup(buildingInventories);
+                _placedObjectManager.LoadPlacedObjects(placedObjects, _grid, terrainMode, inventoryLookup);
+                if (actorSpawner != null)
+                    actorSpawner.SetSavedActorData(actorData);
             }
             else
             {
                 _grid = CreateNewWorld();
-                WorldPersistenceService.Save(_grid, _placedObjectManager.CollectPlacedObjectsForSave());
+                SaveWorld();
             }
 
             _renderer = GetComponent<VoxelGridRenderer>();
@@ -65,11 +70,18 @@ namespace Voxel
 
         private void OnApplicationQuit()
         {
+            SaveWorld();
             if (topDownCamera != null)
             {
                 topDownCamera.GetPositionAndZoom(out float x, out float z, out float blocks);
                 GameSettings.SaveCamera(x, z, blocks);
             }
+        }
+
+        private void OnApplicationPause(bool pauseStatus)
+        {
+            if (pauseStatus)
+                SaveWorld();
         }
 
         private VoxelGrid CreateNewWorld()
@@ -101,7 +113,64 @@ namespace Voxel
         public void SaveWorld()
         {
             if (_grid != null)
-                WorldPersistenceService.Save(_grid, _placedObjectManager.CollectPlacedObjectsForSave());
+            {
+                WorldPersistenceService.Save(
+                    _grid,
+                    _placedObjectManager.CollectPlacedObjectsForSave(),
+                    _placedObjectManager.CollectBuildingInventoriesForSave(),
+                    CollectActorDataForSave());
+            }
+        }
+
+        private static Dictionary<(string, int, int, int), List<(Item, int)>> BuildInventoryLookup(
+            IReadOnlyList<BuildingInventorySaveData> buildingInventories)
+        {
+            var lookup = new Dictionary<(string, int, int, int), List<(Item, int)>>();
+            if (buildingInventories == null) return lookup;
+            foreach (var inv in buildingInventories)
+            {
+                var items = new List<(Item, int)>();
+                if (inv.Items != null)
+                {
+                    foreach (var (itemId, count) in inv.Items)
+                    {
+                        if (count <= 0) continue;
+                        if (itemId >= 0 && Enum.IsDefined(typeof(Item), itemId))
+                            items.Add(((Item)itemId, count));
+                    }
+                }
+                if (items.Count > 0)
+                    lookup[(inv.EntryName, inv.BlockX, inv.BlockY, inv.BlockZ)] = items;
+            }
+            return lookup;
+        }
+
+        public List<ActorSaveData> CollectActorDataForSave()
+        {
+            var list = new List<ActorSaveData>();
+            var actorsParent = _placedObjectManager.GetParentByEntryName("Actors");
+            if (actorsParent == null) return list;
+
+            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
+            foreach (var ab in actorsParent.GetComponentsInChildren<ActorBehavior>(includeInactive: true))
+            {
+                if (ab == null || ab.HomeBuildingTransform == null) continue;
+                var (hx, hy, hz) = worldScale.WorldToBlock(ab.HomeBuildingTransform.position);
+                var homeEntryName = _placedObjectManager.GetEntryNameForTransform(ab.HomeBuildingTransform) ?? "";
+                var actorTypeName = ab is CarrierActorBehavior ? "Carrier" : "Woodchuck";
+                var carriedItemId = -1;
+                if (ab is CarrierActorBehavior carrier && carrier.CarriedItem.HasValue)
+                    carriedItemId = (int)carrier.CarriedItem.Value;
+
+                list.Add(new ActorSaveData(
+                    actorTypeName,
+                    homeEntryName,
+                    hx, hy, hz,
+                    ab.transform.position.x, ab.transform.position.y, ab.transform.position.z,
+                    (int)ab.CurrentState,
+                    carriedItemId));
+            }
+            return list;
         }
 
         public void SpawnActorsForBuildings()
@@ -114,7 +183,7 @@ namespace Voxel
         {
             WorldPersistenceService.DeleteWorld();
             _grid = CreateNewWorld();
-            WorldPersistenceService.Save(_grid, _placedObjectManager.CollectPlacedObjectsForSave());
+            SaveWorld();
             var mountainMaterial = terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null
                 ? islandPipelineConfig.MountainStageConfig?.Material
                 : null;

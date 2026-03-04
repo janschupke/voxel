@@ -35,6 +35,8 @@ namespace Voxel
         private float _fullCheckTimer;
         private float _idleCheckCooldown;
 
+        public ActorState CurrentState => _state;
+
         public void Initialize(WorldBootstrap bootstrap, ActorDefinition definition, Transform homeBuilding, float rangeBlocks, OperationalRangeType rangeType = OperationalRangeType.Square)
         {
             worldBootstrap = bootstrap;
@@ -45,6 +47,20 @@ namespace Voxel
             WorldScale = new WorldScale(bootstrap.WorldParameters != null ? bootstrap.WorldParameters.BlockScale : 1f);
             transform.position = homeBuilding.position;
             _cachedRenderers = null;
+        }
+
+        /// <summary>Restore state from persistence. Clears path and timers.</summary>
+        public virtual void RestoreState(ActorState state, Vector3 position)
+        {
+            _state = state;
+            _prevState = state;
+            transform.position = position;
+            _path = null;
+            _pathIndex = 0;
+            _workTimer = 0f;
+            _blockedTimer = 0f;
+            _fullCheckTimer = 0f;
+            _idleCheckCooldown = 0f;
         }
 
         protected virtual void Update()

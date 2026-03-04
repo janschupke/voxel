@@ -33,6 +33,12 @@ namespace Voxel
             _service.Clear();
         }
 
+        /// <summary>Load items from persistence. No WorldObjectEventBus emission.</summary>
+        public void LoadFrom(IEnumerable<(Item Item, int Count)> items)
+        {
+            _service.LoadFrom(items);
+        }
+
         public int RemoveItem(Item item, int amount)
         {
             return _service.RemoveItem(item, amount);

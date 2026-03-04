@@ -1,3 +1,5 @@
+using System;
+using System.Collections.Generic;
 using UnityEngine;
 using Voxel.Debug;
 using Voxel.Pure;
@@ -12,6 +14,13 @@ namespace Voxel
     public class ActorSpawner : MonoBehaviour
     {
         [SerializeField] private WorldBootstrap worldBootstrap;
+
+        private IReadOnlyList<ActorSaveData> _savedActorData;
+
+        public void SetSavedActorData(IReadOnlyList<ActorSaveData> data)
+        {
+            _savedActorData = data;
+        }
 
         private void Start()
         {
@@ -93,8 +102,40 @@ namespace Voxel
             var behavior = GetOrAddBehavior(actorGo, actorDef);
 
             behavior.Initialize(worldBootstrap, actorDef, building, entry.OperationalRangeCells, entry.OperationalRangeType);
+
+            var saved = FindSavedActorData(entry.Name, building);
+            if (saved.HasValue)
+            {
+                var state = ParseActorState(saved.Value.StateId);
+                var position = new Vector3(saved.Value.PosX, saved.Value.PosY, saved.Value.PosZ);
+                behavior.RestoreState(state, position);
+                if (behavior is CarrierActorBehavior carrier && saved.Value.CarriedItemId >= 0 &&
+                    Enum.IsDefined(typeof(Item), saved.Value.CarriedItemId))
+                    carrier.SetCarriedItem((Item)saved.Value.CarriedItemId);
+            }
+
             GameDebugLogger.Log($"[ActorSpawner] Spawned {actorDef.Name} for building at {building.position}");
             return true;
+        }
+
+        private ActorSaveData? FindSavedActorData(string entryName, Transform building)
+        {
+            if (_savedActorData == null || _savedActorData.Count == 0) return null;
+            var worldScale = new WorldScale(worldBootstrap?.WorldParameters != null ? worldBootstrap.WorldParameters.BlockScale : 1f);
+            var (bx, by, bz) = worldScale.WorldToBlock(building.position);
+            foreach (var s in _savedActorData)
+            {
+                if (s.HomeEntryName == entryName && s.HomeBlockX == bx && s.HomeBlockY == by && s.HomeBlockZ == bz)
+                    return s;
+            }
+            return null;
+        }
+
+        private static ActorState ParseActorState(int stateId)
+        {
+            if (stateId >= 0 && Enum.IsDefined(typeof(ActorState), stateId))
+                return (ActorState)stateId;
+            return ActorState.Idle;
         }
 
         private static ActorBehavior GetOrAddBehavior(GameObject actorGo, ActorDefinition actorDef)
@@ -106,7 +147,7 @@ namespace Voxel
             if (existing != null)
             {
                 existing.enabled = false;
-                Object.Destroy(existing);
+                UnityEngine.Object.Destroy(existing);
             }
             return (ActorBehavior)actorGo.AddComponent(neededType);
         }

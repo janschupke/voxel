@@ -53,6 +53,18 @@ namespace Voxel
             _items.Clear();
         }
 
+        /// <summary>Load items from persistence. Clears existing and adds each pair, respecting capacity. No event emission.</summary>
+        public void LoadFrom(IEnumerable<(Item Item, int Count)> items)
+        {
+            _items.Clear();
+            if (items == null) return;
+            foreach (var (item, count) in items)
+            {
+                if (count <= 0) continue;
+                AddItem(item, count);
+            }
+        }
+
         /// <summary>Removes up to amount of item. Returns actual count removed.</summary>
         public int RemoveItem(Item item, int amount)
         {

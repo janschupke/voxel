@@ -206,7 +206,37 @@ namespace Voxel
             return list.Count > 0 ? list : null;
         }
 
-        public void LoadPlacedObjects(IReadOnlyList<PlacedObjectData> placedObjects, VoxelGrid grid, TerrainGenerationMode terrainMode)
+        public List<BuildingInventorySaveData> CollectBuildingInventoriesForSave()
+        {
+            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            var list = new List<BuildingInventorySaveData>();
+
+            foreach (var kv in _parentsByEntryName)
+            {
+                if (kv.Value == null || kv.Key == "Road") continue;
+                for (int i = 0; i < kv.Value.childCount; i++)
+                {
+                    var child = kv.Value.GetChild(i);
+                    var inv = child.GetComponent<BuildingInventory>();
+                    if (inv == null || inv.GetTotalCount() <= 0) continue;
+
+                    var (bx, by, bz) = worldScale.WorldToBlock(child.position);
+                    var items = new List<(int ItemId, int Count)>();
+                    foreach (var (item, count) in inv.GetAllItems())
+                    {
+                        if (count > 0)
+                            items.Add(((int)item, count));
+                    }
+                    if (items.Count > 0)
+                        list.Add(new BuildingInventorySaveData(kv.Key, bx, by, bz, items));
+                }
+            }
+
+            return list;
+        }
+
+        public void LoadPlacedObjects(IReadOnlyList<PlacedObjectData> placedObjects, VoxelGrid grid, TerrainGenerationMode terrainMode,
+            IReadOnlyDictionary<(string EntryName, int BlockX, int BlockY, int BlockZ), List<(Item Item, int Count)>> inventoryLookup = null)
         {
             if (_registry == null || placedObjects == null || placedObjects.Count == 0)
             {
@@ -244,6 +274,9 @@ namespace Voxel
                     var inv = instance.GetComponent<BuildingInventory>();
                     if (inv == null) inv = instance.AddComponent<BuildingInventory>();
                     inv.Initialize(p.EntryName, entry.InventoryCapacity);
+                    var key = (p.EntryName, p.BlockX, p.BlockY, p.BlockZ);
+                    if (inventoryLookup != null && inventoryLookup.TryGetValue(key, out var items) && items != null && items.Count > 0)
+                        inv.LoadFrom(items);
                 }
             }
 

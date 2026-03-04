@@ -16,6 +16,13 @@ namespace Voxel
         private Transform _sourceBuilding;
         private Item? _carriedItem;
 
+        public Item? CarriedItem => _carriedItem;
+
+        public void SetCarriedItem(Item? item)
+        {
+            _carriedItem = item;
+        }
+
         private BuildingInventory GetHomeInventory()
         {
             if (_cachedInventory == null && HomeBuilding != null)
