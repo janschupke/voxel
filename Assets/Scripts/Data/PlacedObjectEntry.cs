@@ -48,5 +48,9 @@ namespace Voxel
         public float OperationalRangeInBlocks;
 
         public bool HasOperationalRange => OperationalRangeInBlocks > 0.001f;
+
+        [Header("Actor")]
+        [Tooltip("When set, an actor of this type operates within the building's operational range.")]
+        public ActorDefinition AssignedActor;
     }
 }

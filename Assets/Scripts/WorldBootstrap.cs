@@ -24,9 +24,15 @@ namespace Voxel
 
         [SerializeField] private PlacedObjectRegistry placedObjectRegistry;
         [SerializeField] private RoadConfig roadConfig;
+        [SerializeField] private ActorSpawner actorSpawner;
 
         private void Start()
         {
+            if (actorSpawner == null)
+                actorSpawner = GetComponent<ActorSpawner>();
+            if (actorSpawner == null)
+                actorSpawner = gameObject.AddComponent<ActorSpawner>();
+
             if (WorldPersistenceService.WorldExists())
             {
                 var (grid, placedObjects) = WorldPersistenceService.Load();
@@ -133,6 +139,12 @@ namespace Voxel
         {
             if (_grid != null)
                 WorldPersistenceService.Save(_grid, CollectPlacedObjectsForSave());
+        }
+
+        public void SpawnActorsForBuildings()
+        {
+            if (actorSpawner != null)
+                actorSpawner.SpawnActorsForBuildings();
         }
 
         public void RegenerateWorld()

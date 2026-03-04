@@ -298,6 +298,7 @@ namespace Voxel
             instance.transform.localScale = scale;
 
             worldBootstrap.SaveWorld();
+            worldBootstrap.SpawnActorsForBuildings();
         }
 
         private void PlaceInLine((int x, int z) start, (int x, int z) end)
@@ -363,7 +364,10 @@ namespace Voxel
                 placed++;
             }
             if (placed > 0)
+            {
                 worldBootstrap.SaveWorld();
+                worldBootstrap.SpawnActorsForBuildings();
+            }
         }
 
         private void PlaceInArea((int x, int z) start, (int x, int z) end)
@@ -434,7 +438,10 @@ namespace Voxel
             }
 
             if (placed > 0)
+            {
                 worldBootstrap.SaveWorld();
+                worldBootstrap.SpawnActorsForBuildings();
+            }
         }
 
         private void RemoveTreesAtBlock((int x, int y, int z) block)

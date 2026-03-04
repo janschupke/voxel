@@ -469,6 +469,7 @@ GameObject:
   - component: {fileID: 1088007617}
   - component: {fileID: 1088007616}
   - component: {fileID: 1088007619}
+  - component: {fileID: 1088007620}
   m_Layer: 0
   m_Name: GameBootstrap
   m_TagString: Untagged
@@ -512,6 +513,7 @@ MonoBehaviour:
   topDownCamera: {fileID: 330585551}
   placedObjectRegistry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
   roadConfig: {fileID: 11400000, guid: 09a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5, type: 2}
+  actorSpawner: {fileID: 1088007620}
 --- !u!4 &1088007618
 Transform:
   m_ObjectHideFlags: 0
@@ -540,6 +542,19 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.ApplicationSettingsManager
   targetFrameRate: 60
+--- !u!114 &1088007620
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1088007615}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 55319ee8c9c05495a9f9ecdc7e9062f1, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::Voxel.ActorSpawner
+  worldBootstrap: {fileID: 1088007617}
 --- !u!1 &1314134874
 GameObject:
   m_ObjectHideFlags: 0
@@ -627,6 +642,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.ObjectPlacementController
   worldBootstrap: {fileID: 1088007617}
   registry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
+  uiDocument: {fileID: 0}
 --- !u!114 &1314134880
 MonoBehaviour:
   m_ObjectHideFlags: 0
