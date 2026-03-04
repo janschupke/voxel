@@ -218,7 +218,9 @@ namespace Voxel
                 _selectionName.text = name;
             if (_inventorySection != null)
             {
-                if (name == "Warehouse")
+                var entry = registry?.GetByName(name);
+                bool hideInventory = entry != null && entry.UsesGlobalStorage;
+                if (hideInventory)
                     _inventorySection.AddToClassList("hidden");
                 else
                     _inventorySection.RemoveFromClassList("hidden");

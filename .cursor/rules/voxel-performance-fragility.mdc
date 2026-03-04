@@ -1,0 +1,60 @@
+---
+description: Performance and code fragility rules to avoid allocations, leaks, and non-extensible patterns
+globs: "**/*.cs"
+alwaysApply: false
+---
+
+# Performance & Code Fragility
+
+## Avoid Per-Frame Allocations
+
+- **Reuse lists**: Use instance fields (e.g. `_buffer = new List<T>(capacity)`), `Clear()` and reuse. Never `new List<T>()` in `Update`, `FixedUpdate`, or per-frame logic.
+- **GetComponentsInChildren**: Use the `List<T>` overload: `GetComponentsInChildren(false, _resultsBuffer)` instead of the allocating array return.
+- **Color/Vector3**: Prefer cached structs; avoid `new Color(...)` in per-frame code if profiling shows GC pressure.
+
+```csharp
+// ❌ BAD: allocates every frame
+void Update() {
+    var list = new List<Transform>();
+    GetTransformsAtBlock(x, y, z, list);
+}
+
+// ✅ GOOD: reuse buffer
+private readonly List<Transform> _buffer = new List<Transform>(8);
+void Update() {
+    _buffer.Clear();
+    GetTransformsAtBlock(x, y, z, _buffer);
+}
+```
+
+## Material & Shader Lifecycle
+
+- **Destroy materials** you instantiate: `Object.Destroy(material)` in `OnDestroy` or when discarding (e.g. preview `Release()`).
+- **Cache Shader.Find**: Never call `Shader.Find` in hot paths. Cache in instance/static field on first use. Use `ShaderNames` constants.
+- **Shared vs instantiated**: Prefer one shared material for similar visuals; destroy only when the owning object is disposed.
+
+```csharp
+// ❌ BAD: Shader.Find per quad; material leak
+var mat = new Material(Shader.Find("Sprites/Default"));
+
+// ✅ GOOD: cache shader; destroy material in Release/OnDestroy
+_defaultShader ??= Shader.Find(ShaderNames.Fallback);
+_roadOverlayMaterial ??= new Material(_defaultShader) { color = RemovalColor };
+// ... in Release(): if (_roadOverlayMaterial != null) Object.Destroy(_roadOverlayMaterial);
+```
+
+## Object.Destroy vs DestroyImmediate
+
+- Use `Object.Destroy` at runtime. Never `DestroyImmediate` outside Editor scripts.
+
+## Avoid Hardcoded Values
+
+- **Entry names**: Use `PlacedObjectKeys` (Road, Tree, Actors, Warehouse) or registry-driven lookup (e.g. `GetGlobalStorageEntry()`).
+- **Shader names**: Use `ShaderNames` constants.
+- **Magic numbers**: Extract to named constants (`const int BufferCapacity = 32`, `const float Epsilon = 0.001f`).
+
+## Extensibility
+
+- **Avoid name checks**: Use registry flags (e.g. `entry.UsesGlobalStorage`) instead of `name == "Warehouse"`.
+- **Avoid enum switches for types**: Prefer `ActorDefinition.BehaviorTypeName` or registry mapping so new kinds don't require code changes.
+- **Data-driven over code**: Add new structures/items via ScriptableObjects and registry entries, not enum edits and switch cases.

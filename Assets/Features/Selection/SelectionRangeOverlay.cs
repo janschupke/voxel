@@ -17,7 +17,8 @@ namespace Voxel
         private LineRenderer _lineRenderer;
         private Shader _rangeOverlayShader;
         private Shader _fallbackShader;
-        private readonly List<Vector3> _positionsBuffer = new List<Vector3>(256);
+        private const int OutlineBufferCapacity = 256;
+        private readonly List<Vector3> _positionsBuffer = new List<Vector3>(OutlineBufferCapacity);
         private Vector3[] _positionsArray;
         private Vector3 _lastCachedCenter;
         private int _lastCachedRangeCells = -1;
@@ -127,9 +128,9 @@ namespace Voxel
             _lineRenderer.startWidth = lineWidth;
             _lineRenderer.endWidth = lineWidth;
             if (_rangeOverlayShader == null)
-                _rangeOverlayShader = Shader.Find("Voxel/RangeOverlay");
+                _rangeOverlayShader = Shader.Find(ShaderNames.RangeOverlay);
             if (_fallbackShader == null)
-                _fallbackShader = Shader.Find("Sprites/Default");
+                _fallbackShader = Shader.Find(ShaderNames.Fallback);
             var shader = _rangeOverlayShader != null ? _rangeOverlayShader : _fallbackShader;
             _lineRenderer.material = new Material(shader != null ? shader : _fallbackShader);
             if (_lineRenderer.material.HasProperty("_Color"))

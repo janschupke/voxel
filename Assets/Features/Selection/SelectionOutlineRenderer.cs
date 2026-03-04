@@ -15,7 +15,7 @@ namespace Voxel
 
         public SelectionOutlineRenderer()
         {
-            _outlineShader = Shader.Find("Voxel/SelectionOutline");
+            _outlineShader = Shader.Find(ShaderNames.SelectionOutline);
         }
 
         public void ApplyHighlight(Transform t, Color color, float width, System.Func<Transform, bool> isExcluded)

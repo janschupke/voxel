@@ -50,7 +50,7 @@ namespace Voxel
         /// <summary>Registers a placed object in the block spatial index. Call after instantiating.</summary>
         public void RegisterPlacedObject(string entryName, Transform transform)
         {
-            if (transform == null || string.IsNullOrEmpty(entryName) || entryName == "Road") return;
+            if (transform == null || string.IsNullOrEmpty(entryName) || entryName == PlacedObjectKeys.Road) return;
             var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
             var (bx, by, bz) = worldScale.WorldToBlock(transform.position);
             var key = (bx, by, bz);
@@ -76,7 +76,7 @@ namespace Voxel
         public Transform GetOrCreateParentForEntry(string entryName)
         {
             if (string.IsNullOrEmpty(entryName)) return null;
-            if (entryName == "Road") return null;
+            if (entryName == PlacedObjectKeys.Road) return null;
             if (_parentsByEntryName.TryGetValue(entryName, out var parent) && parent != null)
                 return parent;
             var go = new GameObject(entryName + "s");
@@ -221,7 +221,7 @@ namespace Voxel
         public bool HasEntryAtBlock(string entryName, int bx, int by, int bz)
         {
             if (string.IsNullOrEmpty(entryName)) return false;
-            if (entryName == "Road") return _roadOverlay.Contains(bx, by, bz);
+            if (entryName == PlacedObjectKeys.Road) return _roadOverlay.Contains(bx, by, bz);
             if (!_blockToTransforms.TryGetValue((bx, by, bz), out var list)) return false;
             foreach (var t in list)
             {
@@ -283,7 +283,7 @@ namespace Voxel
                 : Mathf.Clamp(15, 0, height - 1);
 
             var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            var treeParent = GetOrCreateParentForEntry("Tree");
+            var treeParent = GetOrCreateParentForEntry(PlacedObjectKeys.Tree);
             var heightBuffer = new HeightBuffer(grid.Width, grid.Depth);
             var context = new TerrainPipelineContext(heightBuffer, grid, waterLevelY, _islandPipelineConfig.MasterSeed);
             var stage = new TreeScatterStage(treeConfig, treeParent, worldScale);

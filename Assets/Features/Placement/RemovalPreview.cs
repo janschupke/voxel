@@ -98,7 +98,7 @@ namespace Voxel
             if (renderer != null)
             {
                 if (_defaultShader == null)
-                    _defaultShader = Shader.Find("Sprites/Default");
+                    _defaultShader = Shader.Find(ShaderNames.Fallback);
                 if (_roadOverlayMaterial == null && _defaultShader != null)
                 {
                     _roadOverlayMaterial = new Material(_defaultShader);

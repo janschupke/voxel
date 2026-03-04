@@ -34,7 +34,7 @@ namespace Voxel
 
             foreach (var (x, y, z) in roadOverlay.GetAllBlocks())
             {
-                list.Add(new PlacedObjectData("Road", x, y, z, 0f));
+                list.Add(new PlacedObjectData(PlacedObjectKeys.Road, x, y, z, 0f));
             }
 
             return list.Count > 0 ? list : null;
@@ -50,7 +50,7 @@ namespace Voxel
 
             foreach (var kv in parentsByEntryName)
             {
-                if (kv.Value == null || kv.Key == "Road") continue;
+                if (kv.Value == null || kv.Key == PlacedObjectKeys.Road) continue;
                 var entry = registry?.GetByName(kv.Key);
                 if (entry != null && entry.UsesGlobalStorage) continue;
                 for (int i = 0; i < kv.Value.childCount; i++)
@@ -99,14 +99,14 @@ namespace Voxel
 
             foreach (var p in placedObjects)
             {
-                if (p.EntryName == "Road")
+                if (p.EntryName == PlacedObjectKeys.Road)
                 {
                     addRoadAt?.Invoke(p.BlockX, p.BlockY, p.BlockZ);
                     continue;
                 }
 
                 var entry = registry.GetByName(p.EntryName);
-                var prefab = entry?.Prefab ?? (p.EntryName == "Tree" ? islandPipelineConfig?.TreeScatterConfig?.TreePrefab : null);
+                var prefab = entry?.Prefab ?? (p.EntryName == PlacedObjectKeys.Tree ? islandPipelineConfig?.TreeScatterConfig?.TreePrefab : null);
                 if (prefab == null) continue;
 
                 var parent = getOrCreateParent(p.EntryName);
@@ -132,7 +132,7 @@ namespace Voxel
 
             if (terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null)
             {
-                var treeParent = getParentByName("Tree");
+                var treeParent = getParentByName(PlacedObjectKeys.Tree);
                 if (treeParent == null || treeParent.childCount == 0)
                     runTreePlacement?.Invoke(grid);
             }

@@ -9,5 +9,6 @@ namespace Voxel
     {
         IReadOnlyList<PlacedObjectEntry> Entries { get; }
         PlacedObjectEntry GetByName(string name);
+        PlacedObjectEntry GetGlobalStorageEntry();
     }
 }

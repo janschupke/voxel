@@ -29,7 +29,8 @@ namespace Voxel
         private PlacementExecutor _executor;
         private PlacementPreviewUpdater _previewUpdater;
         private Camera _cachedCamera;
-        private readonly List<Transform> _transformsBuffer = new List<Transform>(8);
+        private const int TransformsBufferCapacity = 8;
+        private readonly List<Transform> _transformsBuffer = new List<Transform>(TransformsBufferCapacity);
         private Func<bool> _escapeHandler;
         private Func<bool> _rotateHandler;
 

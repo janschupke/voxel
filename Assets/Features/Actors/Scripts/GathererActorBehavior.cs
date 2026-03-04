@@ -14,7 +14,8 @@ namespace Voxel
     public abstract class GathererActorBehavior : ActorBehavior
     {
         private IBuildingInventory _cachedInventory;
-        private readonly List<Vector3> _candidatesBuffer = new List<Vector3>(32);
+        private const int CandidatesBufferCapacity = 32;
+        private readonly List<Vector3> _candidatesBuffer = new List<Vector3>(CandidatesBufferCapacity);
 
         /// <summary>Registry entry name for the objects to gather (e.g. "Tree", "Wheat").</summary>
         protected abstract string TargetEntryName { get; }

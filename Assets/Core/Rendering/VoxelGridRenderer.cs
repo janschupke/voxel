@@ -24,8 +24,8 @@ namespace Voxel
             Material mat = chunkMaterial;
             if (mat == null)
             {
-                var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-                mat = shader != null ? new Material(shader) : new Material(Shader.Find("Sprites/Default"));
+                var shader = Shader.Find(ShaderNames.UniversalLit) ?? Shader.Find(ShaderNames.Standard);
+                mat = shader != null ? new Material(shader) : new Material(Shader.Find(ShaderNames.Fallback));
             }
 
             _chunkParent = new GameObject("VoxelWorld").transform;

@@ -55,10 +55,12 @@ namespace Voxel
         [Tooltip("Square = Chebyshev (axis-aligned). GridCircle = Euclidean (cell centers).")]
         public OperationalRangeType OperationalRangeType = OperationalRangeType.Square;
 
-        public bool HasOperationalRange => OperationalRangeInBlocks > 0.001f;
+        private const float OperationalRangeEpsilon = 0.001f;
+
+        public bool HasOperationalRange => OperationalRangeInBlocks > OperationalRangeEpsilon;
 
         /// <summary>Range as integer cell count for use with OperationalRange utility.</summary>
-        public int OperationalRangeCells => OperationalRangeInBlocks > 0.001f ? (int)(OperationalRangeInBlocks + 0.5f) : 0;
+        public int OperationalRangeCells => OperationalRangeInBlocks > OperationalRangeEpsilon ? (int)(OperationalRangeInBlocks + 0.5f) : 0;
 
         [Header("Actor")]
         [Tooltip("When set, an actor of this type operates within the building's operational range.")]

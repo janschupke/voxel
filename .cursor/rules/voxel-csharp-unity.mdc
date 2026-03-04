@@ -16,8 +16,9 @@ alwaysApply: false
 
 - **No LINQ** in `Update`, `FixedUpdate`, or other per-frame code.
 - **Cache** `GetComponent` results in `Awake`; avoid repeated calls in `Update`.
-- **Reuse** lists and collections; avoid per-frame allocations.
-- Prefer non-allocating APIs (e.g. `GetComponent` overloads, `Physics.OverlapSphereNonAlloc`).
+- **Reuse** lists and collections; avoid per-frame allocations (see `voxel-performance-fragility.mdc`).
+- Prefer non-allocating APIs: `GetComponentsInChildren(false, list)`, `Physics.OverlapSphereNonAlloc`.
+- **Never** call `Shader.Find` in hot paths; cache shaders in instance/static fields.
 
 ## Update Loop
 

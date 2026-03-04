@@ -15,7 +15,8 @@ namespace Voxel
         private IBuildingInventory _cachedSourceInventory;
         private Transform _sourceBuilding;
         private Item? _carriedItem;
-        private readonly List<Transform> _candidatesBuffer = new List<Transform>(32);
+        private const int CandidatesBufferCapacity = 32;
+        private readonly List<Transform> _candidatesBuffer = new List<Transform>(CandidatesBufferCapacity);
 
         public Item? CarriedItem => _carriedItem;
 

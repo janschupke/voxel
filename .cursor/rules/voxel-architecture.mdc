@@ -82,3 +82,9 @@ When planning modifications to existing code:
 - **Assess first**: Check for bloat (unused code, oversized classes, duplicated logic) and mixed concerns (Unity + domain in one class, multiple responsibilities).
 - **Consider structured refactor**: If issues exist, plan a refactor before adding features—extract domain logic, split responsibilities, consolidate duplicates.
 - **Incremental over big-bang**: Prefer small, testable refactor steps; avoid rewriting large files in one pass.
+
+## Avoid Code Fragility
+
+- **Use constants**: Prefer `PlacedObjectKeys`, `ShaderNames`, and named constants over hardcoded strings/numbers.
+- **Registry-driven logic**: Use entry flags (e.g. `UsesGlobalStorage`) and registry lookups instead of name comparisons.
+- **Extensible mappings**: For type resolution (e.g. actor behaviors), support data-driven overrides (e.g. `BehaviorTypeName`) so new kinds don't require code edits.

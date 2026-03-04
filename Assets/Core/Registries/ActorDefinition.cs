@@ -21,6 +21,9 @@ namespace Voxel
         [Tooltip("Behavior component to add at runtime.")]
         [SerializeField] private ActorBehaviorKind behaviorKind = ActorBehaviorKind.Woodchuck;
 
+        [Tooltip("Optional. Override behavior type by assembly-qualified name (e.g. Voxel.CarrierActorBehavior, Assembly-CSharp). Leave empty to use BehaviorKind.")]
+        [SerializeField] private string behaviorTypeName;
+
         [Tooltip("Pathing mode: Road (road only), Free (shortest land path), Smart (prefer road, any path)")]
         public ActorPathingMode PathingMode = ActorPathingMode.Free;
 
@@ -45,5 +48,8 @@ namespace Voxel
         public float IdleCheckCooldownSeconds = 0.5f;
 
         public ActorBehaviorKind BehaviorKind => behaviorKind;
+
+        /// <summary>When non-empty, used instead of BehaviorKind to resolve the behavior Type. Enables adding new behaviors without code changes.</summary>
+        public string BehaviorTypeName => behaviorTypeName;
     }
 }

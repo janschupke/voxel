@@ -16,7 +16,8 @@ namespace Voxel
         [SerializeField] private WorldBootstrap worldBootstrap;
 
         private IReadOnlyList<ActorSaveData> _savedActorData;
-        private readonly List<ActorBehavior> _actorsBuffer = new List<ActorBehavior>(64);
+        private const int ActorsBufferCapacity = 64;
+        private readonly List<ActorBehavior> _actorsBuffer = new List<ActorBehavior>(ActorsBufferCapacity);
 
         public void SetSavedActorData(IReadOnlyList<ActorSaveData> data)
         {
@@ -47,7 +48,7 @@ namespace Voxel
         public void DestroyOrphanedActors()
         {
             if (worldBootstrap == null) return;
-            var actorsParent = worldBootstrap.GetParentByEntryName("Actors");
+            var actorsParent = worldBootstrap.GetParentByEntryName(PlacedObjectKeys.Actors);
             if (actorsParent == null) return;
 
             _actorsBuffer.Clear();
@@ -55,7 +56,7 @@ namespace Voxel
             foreach (var ab in _actorsBuffer)
             {
                 if (ab != null && ab.HomeBuildingTransform == null)
-                    Object.Destroy(ab.gameObject);
+                    UnityEngine.Object.Destroy(ab.gameObject);
             }
         }
 
@@ -120,7 +121,7 @@ namespace Voxel
             var actorGo = Instantiate(prefab, building.position, Quaternion.identity);
             actorGo.name = actorDef.Name + " (Actor)";
 
-            var actorsParent = worldBootstrap.GetOrCreateParentForEntry("Actors");
+            var actorsParent = worldBootstrap.GetOrCreateParentForEntry(PlacedObjectKeys.Actors);
             if (actorsParent != null)
                 actorGo.transform.SetParent(actorsParent);
 
@@ -166,7 +167,7 @@ namespace Voxel
         private static ActorBehavior GetOrAddBehavior(GameObject actorGo, ActorDefinition actorDef)
         {
             var existing = actorGo.GetComponent<ActorBehavior>();
-            var neededType = GetBehaviorType(actorDef.BehaviorKind);
+            var neededType = GetBehaviorType(actorDef);
             if (existing != null && existing.GetType() == neededType)
                 return existing;
             if (existing != null)
@@ -177,7 +178,19 @@ namespace Voxel
             return (ActorBehavior)actorGo.AddComponent(neededType);
         }
 
-        private static System.Type GetBehaviorType(ActorBehaviorKind kind)
+        private static System.Type GetBehaviorType(ActorDefinition actorDef)
+        {
+            if (actorDef != null && !string.IsNullOrWhiteSpace(actorDef.BehaviorTypeName))
+            {
+                var type = System.Type.GetType(actorDef.BehaviorTypeName);
+                if (type != null && typeof(ActorBehavior).IsAssignableFrom(type))
+                    return type;
+                GameDebugLogger.LogWarning($"[ActorSpawner] BehaviorTypeName '{actorDef.BehaviorTypeName}' not found or not assignable to ActorBehavior; falling back to BehaviorKind.");
+            }
+            return GetBehaviorTypeFromKind(actorDef?.BehaviorKind ?? ActorBehaviorKind.Woodchuck);
+        }
+
+        private static System.Type GetBehaviorTypeFromKind(ActorBehaviorKind kind)
         {
             return kind switch
             {
@@ -189,7 +202,7 @@ namespace Voxel
 
         private bool HasActorForBuilding(Transform building)
         {
-            var actorsParent = worldBootstrap.GetParentByEntryName("Actors");
+            var actorsParent = worldBootstrap.GetParentByEntryName(PlacedObjectKeys.Actors);
             if (actorsParent == null) return false;
 
             _actorsBuffer.Clear();

@@ -107,7 +107,7 @@ namespace Voxel
         private VoxelGrid CreateNewWorld()
         {
             _placedObjectManager.Clear();
-            var treeParent = _placedObjectManager.GetOrCreateParentForEntry("Tree");
+            var treeParent = _placedObjectManager.GetOrCreateParentForEntry(PlacedObjectKeys.Tree);
             return WorldCreationService.CreateNewWorld(
                 terrainMode, worldParameters, noiseParameters,
                 islandPipelineConfig, waterConfig, treeParent);
@@ -151,9 +151,9 @@ namespace Voxel
             if (_storageInventory == null)
                 _storageInventory = gameObject.AddComponent<StorageInventory>();
             int capacity = storagePerItemCapacity;
-            var warehouseEntry = placedObjectRegistry?.GetByName("Warehouse");
-            if (warehouseEntry != null && warehouseEntry.InventoryCapacity > 0)
-                capacity = warehouseEntry.InventoryCapacity;
+            var globalStorageEntry = placedObjectRegistry?.GetGlobalStorageEntry();
+            if (globalStorageEntry != null && globalStorageEntry.InventoryCapacity > 0)
+                capacity = globalStorageEntry.InventoryCapacity;
             _storageInventory.Initialize(capacity);
         }
 
@@ -195,7 +195,7 @@ namespace Voxel
         public List<ActorSaveData> CollectActorDataForSave()
         {
             var list = new List<ActorSaveData>();
-            var actorsParent = _placedObjectManager.GetParentByEntryName("Actors");
+            var actorsParent = _placedObjectManager.GetParentByEntryName(PlacedObjectKeys.Actors);
             if (actorsParent == null) return list;
 
             var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);

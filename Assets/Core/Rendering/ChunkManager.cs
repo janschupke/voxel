@@ -51,8 +51,8 @@ namespace Voxel.Rendering
         private static Material[] ResolveMaterials(Material fallbackMaterial, TerrainMaterialConfig config,
             WaterConfig waterConfig, Material mountainMaterial, RoadConfig roadConfig, float blockScale = 1f)
         {
-            var shader = Shader.Find("Universal Render Pipeline/Lit") ?? Shader.Find("Standard");
-            if (shader == null) shader = Shader.Find("Sprites/Default");
+            var shader = Shader.Find(ShaderNames.UniversalLit) ?? Shader.Find(ShaderNames.Standard);
+            if (shader == null) shader = Shader.Find(ShaderNames.Fallback);
 
             Material[] terrainMaterials;
             if (config == null || config.Bands == null || config.Bands.Count == 0)
@@ -87,7 +87,7 @@ namespace Voxel.Rendering
                 var waterMat = waterConfig.Material;
                 if (waterMat == null)
                 {
-                    var waterShader = Shader.Find("Voxel/Water");
+                    var waterShader = Shader.Find(ShaderNames.Water);
                     waterMat = waterShader != null
                         ? new Material(waterShader)
                         : new Material(shader) { color = new Color(0.2f, 0.5f, 0.9f, 0.7f) };
