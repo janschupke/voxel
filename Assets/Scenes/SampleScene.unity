@@ -277,9 +277,11 @@ MonoBehaviour:
   panSensitivity: 0.15
   zoomSpeed: 5
   zoomSmoothTime: 0.08
+  rotationYawSmoothTime: 0.15
   minBlocksVisible: 20
   maxBlocksVisible: 400
   fieldOfView: 50
+  locateTranslateDuration: 0.5
   inputActions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
 --- !u!1 &410087039
 GameObject:
@@ -515,6 +517,8 @@ MonoBehaviour:
   itemRegistry: {fileID: 11400000, guid: 8a5d15074e5444f83966c245eb03cd86, type: 2}
   roadConfig: {fileID: 11400000, guid: 09a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5, type: 2}
   actorSpawner: {fileID: 1088007620}
+  showDebugControls: 1
+  storagePerItemCapacity: 100
 --- !u!4 &1088007618
 Transform:
   m_ObjectHideFlags: 0
@@ -606,6 +610,11 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::HUDController
   uiDocument: {fileID: 1314134876}
   placedObjectRegistry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
+  worldBootstrap: {fileID: 0}
+  placementController: {fileID: 0}
+  selectionController: {fileID: 0}
+  removalController: {fileID: 0}
+  debugLogService: {fileID: 0}
 --- !u!114 &1314134876
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -674,6 +683,8 @@ MonoBehaviour:
   worldBootstrap: {fileID: 1088007617}
   uiDocument: {fileID: 1314134876}
   registry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
+  placementController: {fileID: 0}
+  removalController: {fileID: 0}
   hoverOutlineColor: {r: 0.2, g: 0.5, b: 0.9, a: 1}
   selectedOutlineColor: {r: 0.4, g: 0.7, b: 1, a: 1}
   hoverOutlineWidth: 1

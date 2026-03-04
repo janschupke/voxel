@@ -2,6 +2,13 @@ using UnityEngine;
 
 namespace Voxel
 {
+    public enum ActorBehaviorKind
+    {
+        Woodchuck,
+        WheatFarm,
+        Carrier
+    }
+
     [CreateAssetMenu(fileName = "ActorDefinition", menuName = "Voxel/Actor Definition")]
     public class ActorDefinition : ScriptableObject
     {
@@ -10,6 +17,9 @@ namespace Voxel
 
         [Tooltip("Prefab to instantiate (e.g. ActorPlaceholder)")]
         public GameObject Prefab;
+
+        [Tooltip("Behavior component to add at runtime.")]
+        [SerializeField] private ActorBehaviorKind behaviorKind = ActorBehaviorKind.Woodchuck;
 
         [Tooltip("Pathing mode: Road (road only), Free (shortest land path), Smart (prefer road, any path)")]
         public ActorPathingMode PathingMode = ActorPathingMode.Free;
@@ -33,5 +43,7 @@ namespace Voxel
         [Tooltip("When Idle, wait this many seconds before checking for targets again. Higher values reduce CPU load.")]
         [Min(0.1f)]
         public float IdleCheckCooldownSeconds = 0.5f;
+
+        public ActorBehaviorKind BehaviorKind => behaviorKind;
     }
 }

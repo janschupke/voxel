@@ -10,14 +10,14 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4c04d44c9d54465ea43bef584bcac19c, type: 3}
-  m_Name: CarrierActor
+  m_Name: WheatFarmActor
   m_EditorClassIdentifier: 
-  Name: Carrier
-  Prefab: {fileID: 4839831951012057953, guid: 842b106f633dd4e81b6ae2b7e027b700, type: 3}
-  behaviorKind: 2
-  PathingMode: 0
+  Name: Wheat Farm Actor
+  Prefab: {fileID: 4839831951012057953, guid: 8681851548a564fbf9b16bd60858c4b8, type: 3}
+  behaviorKind: 1
+  PathingMode: 1
   WorkDurationOutside: 3
   WorkDurationInside: 2
   MoveSpeed: 2
   BlockedRetryDelaySeconds: 5
-  IdleCheckCooldownSeconds: 3
+  IdleCheckCooldownSeconds: 0.5

@@ -10,21 +10,21 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 65640b8dfe739431d96432b68804acb1, type: 3}
-  m_Name: Woodchuck
+  m_Name: Wheat
   m_EditorClassIdentifier: 
-  Name: Woodchuck
-  Prefab: {fileID: 3532374132240110004, guid: 22cc4a53bf6c244b7bf109c8d5cdae70, type: 3}
+  Name: Wheat
+  Prefab: {fileID: 4056082060252207166, guid: ea57df742875440449d51aa9ce9577c1, type: 3}
   CanReplaceTrees: 1
-  IsBlocking: 1
+  IsBlocking: 0
   IsSurfaceOverlay: 0
-  PlacementMode: 0
+  PlacementMode: 1
   LinePlacementExtendThroughExisting: 0
-  PrefabHeightInUnits: 2
+  PrefabHeightInUnits: 3.2
   ScaleMultiplier: 1
   RandomRotation: 0
-  IsSelectable: 1
-  OperationalRangeInBlocks: 4
-  OperationalRangeType: 1
-  AssignedActor: {fileID: 11400000, guid: 91859f1e98c7423c818068e74532c75c, type: 2}
-  InventoryCapacity: 10
+  IsSelectable: 0
+  OperationalRangeInBlocks: 0
+  OperationalRangeType: 0
+  AssignedActor: {fileID: 0}
+  InventoryCapacity: 0
   UsesGlobalStorage: 0

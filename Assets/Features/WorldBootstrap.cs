@@ -203,7 +203,7 @@ namespace Voxel
                 if (ab == null || ab.HomeBuildingTransform == null) continue;
                 var (hx, hy, hz) = worldScale.WorldToBlock(ab.HomeBuildingTransform.position);
                 var homeEntryName = _placedObjectManager.GetEntryNameForTransform(ab.HomeBuildingTransform) ?? "";
-                var actorTypeName = ab is CarrierActorBehavior ? "Carrier" : "Woodchuck";
+                var actorTypeName = ab.ActorTypeNameForSave;
                 var carriedItemId = -1;
                 if (ab is CarrierActorBehavior carrier && carrier.CarriedItem.HasValue)
                     carriedItemId = (int)carrier.CarriedItem.Value;

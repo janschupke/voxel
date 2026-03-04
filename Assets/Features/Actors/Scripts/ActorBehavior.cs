@@ -38,6 +38,9 @@ namespace Voxel
 
         public ActorState CurrentState => _state;
 
+        /// <summary>Actor type name for persistence (e.g. "Woodchuck", "Carrier", "Wheat Farm Actor").</summary>
+        public string ActorTypeNameForSave => Definition?.Name ?? "Unknown";
+
         private void Awake()
         {
             _cachedRenderers = GetComponentsInChildren<Renderer>(includeInactive: true);
@@ -143,7 +146,7 @@ namespace Voxel
             }
             else if (hadCandidates)
             {
-                GameDebugLogger.Log($"[Actor] {gameObject.name} Idle: trees in range but no valid path -> Blocked");
+                GameDebugLogger.Log($"[Actor] {gameObject.name} Idle: targets in range but no valid path -> Blocked");
                 _state = ActorState.Blocked;
                 _blockedTimer = Definition.BlockedRetryDelaySeconds;
             }

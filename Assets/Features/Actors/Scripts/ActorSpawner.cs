@@ -141,7 +141,7 @@ namespace Voxel
         private static ActorBehavior GetOrAddBehavior(GameObject actorGo, ActorDefinition actorDef)
         {
             var existing = actorGo.GetComponent<ActorBehavior>();
-            var neededType = actorDef.Name == "Carrier" ? typeof(CarrierActorBehavior) : typeof(WoodchuckActorBehavior);
+            var neededType = GetBehaviorType(actorDef.BehaviorKind);
             if (existing != null && existing.GetType() == neededType)
                 return existing;
             if (existing != null)
@@ -150,6 +150,16 @@ namespace Voxel
                 UnityEngine.Object.Destroy(existing);
             }
             return (ActorBehavior)actorGo.AddComponent(neededType);
+        }
+
+        private static System.Type GetBehaviorType(ActorBehaviorKind kind)
+        {
+            return kind switch
+            {
+                ActorBehaviorKind.Carrier => typeof(CarrierActorBehavior),
+                ActorBehaviorKind.WheatFarm => typeof(WheatFarmActorBehavior),
+                _ => typeof(WoodchuckActorBehavior)
+            };
         }
 
         private bool HasActorForBuilding(Transform building)
