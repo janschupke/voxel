@@ -37,6 +37,8 @@ public class HUDController : MonoBehaviour
     private Func<bool> _escapeHandlerInventory;
     private Func<bool> _hotkeyHandlerI;
     private Func<bool> _hotkeyHandlerF2;
+    private Func<bool> _hotkeyHandlerQ;
+    private Func<bool> _hotkeyHandlerE;
 
     private void Start()
     {
@@ -147,6 +149,12 @@ public class HUDController : MonoBehaviour
 
             _hotkeyHandlerF2 = () => { GameDebugLogger.SetEnabled(!GameDebugLogger.IsEnabled); UpdateDebugButtonText(); return true; };
             HotkeyManager.Instance?.Register(Key.F2, "F2", "Toggle debug logger", null, _hotkeyHandlerF2);
+
+            _hotkeyHandlerQ = () => { (worldBootstrap?.TopDownCamera ?? FindAnyObjectByType<TopDownCamera>())?.RotateYawBy(-90f); return true; };
+            HotkeyManager.Instance?.Register(Key.Q, "Q", "Rotate camera left 90°", null, _hotkeyHandlerQ);
+
+            _hotkeyHandlerE = () => { (worldBootstrap?.TopDownCamera ?? FindAnyObjectByType<TopDownCamera>())?.RotateYawBy(90f); return true; };
+            HotkeyManager.Instance?.Register(Key.E, "E", "Rotate camera right 90°", null, _hotkeyHandlerE);
         }
     }
 
@@ -284,6 +292,10 @@ public class HUDController : MonoBehaviour
             HotkeyManager.Instance?.Unregister(_hotkeyHandlerI);
         if (_hotkeyHandlerF2 != null)
             HotkeyManager.Instance?.Unregister(_hotkeyHandlerF2);
+        if (_hotkeyHandlerQ != null)
+            HotkeyManager.Instance?.Unregister(_hotkeyHandlerQ);
+        if (_hotkeyHandlerE != null)
+            HotkeyManager.Instance?.Unregister(_hotkeyHandlerE);
         if (_removalController != null)
             _removalController.RemovalModeChanged -= UpdateRemoveButtonState;
     }

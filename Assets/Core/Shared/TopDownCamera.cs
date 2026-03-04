@@ -27,6 +27,8 @@ namespace Voxel
         [SerializeField] private float zoomSpeed = 2f;
         [Tooltip("Zoom smooth time in seconds (smaller = snappier).")]
         [SerializeField] private float zoomSmoothTime = 0.08f;
+        [Tooltip("Rotation smooth time in seconds for Q/E yaw changes.")]
+        [SerializeField] private float rotationYawSmoothTime = 0.15f;
         [SerializeField] private float minBlocksVisible = 10f;
         [SerializeField] private float maxBlocksVisible = 40f;
         [SerializeField] private float fieldOfView = 50f;
@@ -49,6 +51,12 @@ namespace Voxel
         private Vector2 _translateStartXZ;
         private Vector2 _translateTargetXZ;
         private float _translateElapsed;
+        private float _rotationYawTarget;
+        private float _smoothedRotationYaw;
+        private float _rotationYawVelocity;
+        private Vector3 _orbitPivot;
+        private float _orbitRadius;
+        private bool _isOrbiting;
 
         private float Scale => _worldScale.BlockScale > 0f ? _worldScale.BlockScale : 1f;
 
@@ -69,8 +77,37 @@ namespace Voxel
             _camera = GetComponent<Camera>();
             _camera.orthographic = false;
             _camera.fieldOfView = fieldOfView;
+            _rotationYawTarget = rotationYaw;
+            _smoothedRotationYaw = rotationYaw;
             if (inputActions != null)
                 _moveAction = inputActions.FindActionMap("Player")?.FindAction("Move");
+        }
+
+        /// <summary>Rotate camera yaw by delta degrees (e.g. -90 for Q, +90 for E). Orbits around center of visible plane. Smoothed over rotationYawSmoothTime.</summary>
+        public void RotateYawBy(float delta)
+        {
+            if (_camera == null || _worldScale.BlockScale <= 0f) return;
+
+            Vector3 pivot = GetViewCenterPivot();
+            Vector3 camPos = transform.position;
+            float dx = camPos.x - pivot.x;
+            float dz = camPos.z - pivot.z;
+            _orbitRadius = Mathf.Sqrt(dx * dx + dz * dz);
+            if (_orbitRadius < 0.001f) _orbitRadius = 0.001f;
+            _orbitPivot = pivot;
+            _isOrbiting = true;
+            _rotationYawTarget = Mathf.Repeat(_rotationYawTarget + delta, 360f);
+        }
+
+        /// <summary>World position at center of view (ray from camera center hits y=0 plane).</summary>
+        private Vector3 GetViewCenterPivot()
+        {
+            if (_camera == null) return transform.position;
+            Ray ray = _camera.ViewportPointToRay(new Vector3(0.5f, 0.5f, 0f));
+            if (Mathf.Abs(ray.direction.y) < 0.0001f) return new Vector3(transform.position.x, 0f, transform.position.z);
+            float t = -ray.origin.y / ray.direction.y;
+            if (t <= 0f) return new Vector3(transform.position.x, 0f, transform.position.z);
+            return ray.origin + ray.direction * t;
         }
 
         private void OnEnable() => inputActions?.Enable();
@@ -99,12 +136,15 @@ namespace Voxel
             }
             HandleZoomInput();
             SmoothZoom(dt);
+            SmoothRotationYaw(dt);
+            if (_isOrbiting)
+                ApplyOrbitPosition();
             ApplyRotation();
             ApplyHeight();
         }
 
         private void ApplyRotation() =>
-            transform.rotation = Quaternion.Euler(90f - lookAngle, rotationYaw, 0f);
+            transform.rotation = Quaternion.Euler(90f - lookAngle, _smoothedRotationYaw, 0f);
 
         private float HeightForBlocks(float blocks)
         {
@@ -195,6 +235,24 @@ namespace Voxel
             _smoothedBlocksVisible = Mathf.SmoothDamp(_smoothedBlocksVisible, _blocksVisible, ref _zoomVelocity, zoomSmoothTime, Mathf.Infinity, dt);
         }
 
+        private void SmoothRotationYaw(float dt)
+        {
+            _smoothedRotationYaw = Mathf.SmoothDampAngle(_smoothedRotationYaw, _rotationYawTarget, ref _rotationYawVelocity, rotationYawSmoothTime, Mathf.Infinity, dt);
+            if (_isOrbiting && Mathf.Abs(Mathf.DeltaAngle(_smoothedRotationYaw, _rotationYawTarget)) < 0.5f)
+                _isOrbiting = false;
+        }
+
+        private void ApplyOrbitPosition()
+        {
+            float rad = (_smoothedRotationYaw + 180f) * Mathf.Deg2Rad;
+            float x = _orbitPivot.x + _orbitRadius * Mathf.Sin(rad);
+            float z = _orbitPivot.z + _orbitRadius * Mathf.Cos(rad);
+            var pos = transform.position;
+            pos.x = x;
+            pos.z = z;
+            transform.position = pos;
+        }
+
         private void ApplyHeight()
         {
             if (_worldScale.BlockScale <= 0f) return;
@@ -227,7 +285,7 @@ namespace Voxel
         private Vector2 GetCameraXZToCenterTarget(Vector3 target)
         {
             float height = HeightForBlocks(_smoothedBlocksVisible);
-            Vector3 forward = Quaternion.Euler(90f - lookAngle, rotationYaw, 0f) * Vector3.forward;
+            Vector3 forward = Quaternion.Euler(90f - lookAngle, _smoothedRotationYaw, 0f) * Vector3.forward;
             if (Mathf.Abs(forward.y) < 0.001f) // near-horizontal, avoid div by zero
                 return new Vector2(target.x, target.z);
             float t = (target.y - height) / forward.y;
@@ -289,6 +347,9 @@ namespace Voxel
             _zoomVelocity = 0f;
             float heightAboveGround = ws.BlockScale > 0f ? HeightForBlocks(_blocksVisible) : size;
 
+            _rotationYawTarget = rotationYaw;
+            _smoothedRotationYaw = rotationYaw;
+            _rotationYawVelocity = 0f;
             Vector3 lookAt = new Vector3(centerX, worldHeight * 0.5f, centerZ);
             Vector3 forward = Quaternion.Euler(90f - lookAngle, rotationYaw, 0f) * Vector3.forward;
             transform.position = lookAt - forward * heightAboveGround;
