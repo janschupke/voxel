@@ -35,10 +35,14 @@ public class HUDController : MonoBehaviour
     private VisualElement _inventoryPanel;
     private ScrollView _inventoryPanelList;
     private Func<bool> _escapeHandlerInventory;
+    private Func<bool> _escapeHandlerLogPanel;
     private Func<bool> _hotkeyHandlerI;
+    private Func<bool> _hotkeyHandlerL;
     private Func<bool> _hotkeyHandlerF2;
     private Func<bool> _hotkeyHandlerQ;
     private Func<bool> _hotkeyHandlerE;
+    private VisualElement _logPanel;
+    private ScrollView _logPanelList;
 
     private void Start()
     {
@@ -102,6 +106,10 @@ public class HUDController : MonoBehaviour
             if (inventoryButton != null)
                 inventoryButton.clicked += ToggleInventoryPanel;
 
+            var logButton = uiDocument.rootVisualElement.Q<Button>("Log");
+            if (logButton != null)
+                logButton.clicked += ToggleLogPanel;
+
             var placementContainer = uiDocument.rootVisualElement.Q<VisualElement>("PlacementButtons");
 
             if (placementContainer != null && _placementController != null)
@@ -127,6 +135,8 @@ public class HUDController : MonoBehaviour
             }
 
             _messageLog = uiDocument.rootVisualElement.Q<VisualElement>("MessageLog");
+            _logPanel = uiDocument.rootVisualElement.Q<VisualElement>("LogPanel");
+            _logPanelList = uiDocument.rootVisualElement.Q<ScrollView>("LogPanelList");
             _debugLogService = debugLogService ?? GetComponent<DebugLogService>();
             if (_debugLogService == null)
                 _debugLogService = FindAnyObjectByType<DebugLogService>();
@@ -142,10 +152,14 @@ public class HUDController : MonoBehaviour
                 storage.StorageChanged += OnStorageChanged;
 
             _escapeHandlerInventory = TryCloseInventoryPanel;
+            _escapeHandlerLogPanel = TryCloseLogPanel;
             HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Close inventory", null, _escapeHandlerInventory, HotkeyManager.PriorityUiOverlay);
+            HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Close log panel", null, _escapeHandlerLogPanel, HotkeyManager.PriorityUiOverlay + 2);
 
             _hotkeyHandlerI = () => { ToggleInventoryPanel(); return true; };
+            _hotkeyHandlerL = () => { ToggleLogPanel(); return true; };
             HotkeyManager.Instance?.Register(Key.I, "I", "Toggle inventory panel", null, _hotkeyHandlerI);
+            HotkeyManager.Instance?.Register(Key.L, "L", "Toggle log window", null, _hotkeyHandlerL);
 
             _hotkeyHandlerF2 = () => { GameDebugLogger.SetEnabled(!GameDebugLogger.IsEnabled); UpdateDebugButtonText(); return true; };
             HotkeyManager.Instance?.Register(Key.F2, "F2", "Toggle debug logger", null, _hotkeyHandlerF2);
@@ -164,6 +178,64 @@ public class HUDController : MonoBehaviour
             return false;
         _inventoryPanel.AddToClassList("hidden");
         return true;
+    }
+
+    private bool TryCloseLogPanel()
+    {
+        if (_logPanel == null || _logPanel.ClassListContains("hidden"))
+            return false;
+        _logPanel.AddToClassList("hidden");
+        return true;
+    }
+
+    private void ToggleLogPanel()
+    {
+        if (_logPanel == null) return;
+        bool isHidden = _logPanel.ClassListContains("hidden");
+        if (isHidden)
+        {
+            _logPanel.RemoveFromClassList("hidden");
+            RefreshLogPanel();
+        }
+        else
+        {
+            _logPanel.AddToClassList("hidden");
+        }
+    }
+
+    private void RefreshLogPanel()
+    {
+        if (_logPanelList == null || _debugLogService == null) return;
+        _logPanelList.Clear();
+        foreach (var entry in _debugLogService.Entries)
+            AddLogEntryToPanel(entry);
+        ScrollLogPanelToBottom();
+    }
+
+    private void ScrollLogPanelToBottom()
+    {
+        if (_logPanelList == null || _logPanelList.childCount == 0) return;
+        var last = _logPanelList[_logPanelList.childCount - 1];
+        _logPanelList.ScrollTo(last);
+    }
+
+    private void AddLogEntryToPanel(LogEntry entry)
+    {
+        if (_logPanelList == null) return;
+        var label = new Label(entry.Message) { enableRichText = false };
+        label.style.whiteSpace = WhiteSpace.Normal;
+        label.AddToClassList("log-panel-entry");
+        switch (entry.Type)
+        {
+            case LogType.Warning:
+                label.AddToClassList("log-panel-entry-warning");
+                break;
+            case LogType.Error:
+            case LogType.Exception:
+                label.AddToClassList("log-panel-entry-error");
+                break;
+        }
+        _logPanelList.Add(label);
     }
 
     private void OnStorageChanged()
@@ -288,8 +360,12 @@ public class HUDController : MonoBehaviour
             storage.StorageChanged -= OnStorageChanged;
         if (_escapeHandlerInventory != null)
             HotkeyManager.Instance?.Unregister(_escapeHandlerInventory);
+        if (_escapeHandlerLogPanel != null)
+            HotkeyManager.Instance?.Unregister(_escapeHandlerLogPanel);
         if (_hotkeyHandlerI != null)
             HotkeyManager.Instance?.Unregister(_hotkeyHandlerI);
+        if (_hotkeyHandlerL != null)
+            HotkeyManager.Instance?.Unregister(_hotkeyHandlerL);
         if (_hotkeyHandlerF2 != null)
             HotkeyManager.Instance?.Unregister(_hotkeyHandlerF2);
         if (_hotkeyHandlerQ != null)
@@ -302,6 +378,12 @@ public class HUDController : MonoBehaviour
 
     private void OnLogReceived(LogEntry entry)
     {
+        if (_logPanel != null && !_logPanel.ClassListContains("hidden"))
+        {
+            AddLogEntryToPanel(entry);
+            ScrollLogPanelToBottom();
+        }
+
         if (_messageLog == null) return;
 
         var label = new Label(entry.Message)

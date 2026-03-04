@@ -17,6 +17,7 @@ namespace Voxel
         private ScrollView _hotkeysPanelList;
         private Func<bool> _escapeHandler;
         private Func<bool> _f1Handler;
+        private Func<bool> _hHandler;
 
         private void Start()
         {
@@ -39,6 +40,9 @@ namespace Voxel
 
                 _f1Handler = TryOpenHotkeysPanel;
                 HotkeyManager.Instance.Register(Key.F1, "F1", "Show hotkeys", null, _f1Handler);
+
+                _hHandler = ToggleHotkeysPanelHandler;
+                HotkeyManager.Instance.Register(Key.H, "H", "Toggle hotkeys panel", null, _hHandler);
             }
         }
 
@@ -65,6 +69,14 @@ namespace Voxel
                 HotkeyManager.Instance?.Unregister(_escapeHandler);
             if (_f1Handler != null)
                 HotkeyManager.Instance?.Unregister(_f1Handler);
+            if (_hHandler != null)
+                HotkeyManager.Instance?.Unregister(_hHandler);
+        }
+
+        private bool ToggleHotkeysPanelHandler()
+        {
+            ToggleHotkeysPanel();
+            return true;
         }
 
         private void ToggleHotkeysPanel()

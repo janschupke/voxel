@@ -8,7 +8,7 @@ namespace Voxel
 {
     public enum TerrainGenerationMode { PerlinNoise, IslandPipeline }
 
-    [DefaultExecutionOrder(-100)]
+    [DefaultExecutionOrder(-500)]
     public class WorldBootstrap : MonoBehaviour
     {
         [SerializeField] private TerrainGenerationMode terrainMode = TerrainGenerationMode.PerlinNoise;
