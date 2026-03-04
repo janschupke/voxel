@@ -8,6 +8,7 @@ using Voxel.Debug;
 using UnityEditor;
 #endif
 
+[DefaultExecutionOrder(-300)]
 public class HUDController : MonoBehaviour
 {
     private const float LogDisplayDurationMs = 5000f;
@@ -33,9 +34,13 @@ public class HUDController : MonoBehaviour
     private DebugLogService _debugLogService;
     private VisualElement _inventoryPanel;
     private ScrollView _inventoryPanelList;
+    private Func<bool> _escapeHandlerInventory;
 
     private void Start()
     {
+        if (GetComponent<EscapeHandler>() == null)
+            gameObject.AddComponent<EscapeHandler>();
+
         if (uiDocument == null)
             uiDocument = GetComponent<UIDocument>();
 
@@ -55,11 +60,8 @@ public class HUDController : MonoBehaviour
             _removeButton = uiDocument.rootVisualElement.Q<Button>("Remove");
             if (_removeButton != null && _removalController != null)
             {
-                _removeButton.clicked += () =>
-                {
-                    _removalController.ToggleRemovalMode();
-                    UpdateRemoveButtonState();
-                };
+                _removalController.RemovalModeChanged += UpdateRemoveButtonState;
+                _removeButton.clicked += () => _removalController.ToggleRemovalMode();
             }
 
             var generateButton = uiDocument.rootVisualElement.Q<Button>("Generate");
@@ -132,7 +134,18 @@ public class HUDController : MonoBehaviour
             var storage = worldBootstrap?.StorageInventory;
             if (storage != null)
                 storage.StorageChanged += OnStorageChanged;
+
+            _escapeHandlerInventory = TryCloseInventoryPanel;
+            EscapeHandler.Instance?.Register(EscapeHandler.PriorityUiOverlay, _escapeHandlerInventory);
         }
+    }
+
+    private bool TryCloseInventoryPanel()
+    {
+        if (_inventoryPanel == null || _inventoryPanel.ClassListContains("hidden"))
+            return false;
+        _inventoryPanel.AddToClassList("hidden");
+        return true;
     }
 
     private void OnStorageChanged()
@@ -255,6 +268,10 @@ public class HUDController : MonoBehaviour
         var storage = worldBootstrap?.StorageInventory;
         if (storage != null)
             storage.StorageChanged -= OnStorageChanged;
+        if (_escapeHandlerInventory != null)
+            EscapeHandler.Instance?.Unregister(_escapeHandlerInventory);
+        if (_removalController != null)
+            _removalController.RemovalModeChanged -= UpdateRemoveButtonState;
     }
 
     private void OnLogReceived(LogEntry entry)
@@ -295,14 +312,6 @@ public class HUDController : MonoBehaviour
 
     private void Update()
     {
-        if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
-        {
-            _placementController?.CancelPlacementMode();
-            _removalController?.CancelRemovalMode();
-            _selectionController?.ClearSelection();
-            UpdateRemoveButtonState();
-        }
-
         if (Keyboard.current != null && Keyboard.current.f2Key.wasPressedThisFrame)
         {
             GameDebugLogger.SetEnabled(!GameDebugLogger.IsEnabled);

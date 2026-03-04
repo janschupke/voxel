@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -38,6 +39,7 @@ namespace Voxel
         private SelectionRaycaster _raycaster;
         private IBuildingInventory _cachedInventory;
         private Camera _cachedCamera;
+        private Func<bool> _escapeHandler;
 
         private void Start()
         {
@@ -69,6 +71,16 @@ namespace Voxel
                 UIPanelUtils.UpdateDebugControlsVisibility(uiDocument.rootVisualElement, worldBootstrap != null && worldBootstrap.ShowDebugControls);
                 HideSelectionDetail();
             }
+
+            _escapeHandler = TryClearSelection;
+            EscapeHandler.Instance?.Register(EscapeHandler.PriorityDeselect, _escapeHandler);
+        }
+
+        private bool TryClearSelection()
+        {
+            if (_selectedObject == null) return false;
+            ClearSelection();
+            return true;
         }
 
         public Transform SelectedObject => _selectedObject;
@@ -282,6 +294,12 @@ namespace Voxel
             if (root == null) return;
             UIPanelUtils.UpdateDebugControlsVisibility(root, worldBootstrap != null && worldBootstrap.ShowDebugControls);
             UpdateClearInventoryButtonVisibility();
+        }
+
+        private void OnDestroy()
+        {
+            if (_escapeHandler != null)
+                EscapeHandler.Instance?.Unregister(_escapeHandler);
         }
     }
 }

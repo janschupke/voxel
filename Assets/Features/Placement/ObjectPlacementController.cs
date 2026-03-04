@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -27,6 +28,7 @@ namespace Voxel
         private PlacementExecutor _executor;
         private PlacementPreviewUpdater _previewUpdater;
         private Camera _cachedCamera;
+        private Func<bool> _escapeHandler;
 
         private VoxelGrid Grid => worldBootstrap?.Grid;
         private WaterConfig WaterConfig => worldBootstrap?.WaterConfig;
@@ -44,6 +46,16 @@ namespace Voxel
             _cachedCamera = Camera.main;
             _executor = worldBootstrap != null ? new PlacementExecutor(worldBootstrap) : null;
             _previewUpdater = worldBootstrap != null && _cachedCamera != null ? new PlacementPreviewUpdater(worldBootstrap, _cachedCamera) : null;
+
+            _escapeHandler = TryCancelPlacementMode;
+            EscapeHandler.Instance?.Register(EscapeHandler.PriorityModeCancel, _escapeHandler);
+        }
+
+        private bool TryCancelPlacementMode()
+        {
+            if (!_placementModeActive) return false;
+            CancelPlacementMode();
+            return true;
         }
 
         public bool IsPlacementModeActive => _placementModeActive;
@@ -234,6 +246,12 @@ namespace Voxel
         {
             if (_placementModeActive)
                 CancelPlacementMode();
+        }
+
+        private void OnDestroy()
+        {
+            if (_escapeHandler != null)
+                EscapeHandler.Instance?.Unregister(_escapeHandler);
         }
     }
 }

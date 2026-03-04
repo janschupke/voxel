@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
@@ -9,6 +10,8 @@ namespace Voxel
     /// <summary>Controller for removal mode: red preview, click/drag to remove structures, roads, and trees.</summary>
     public class RemovalController : MonoBehaviour
     {
+        public event Action RemovalModeChanged;
+
         [SerializeField] private WorldBootstrap worldBootstrap;
         [SerializeField] private UIDocument uiDocument;
         [SerializeField] private ObjectPlacementController placementController;
@@ -20,6 +23,7 @@ namespace Voxel
         private RemovalPreview _preview;
         private Camera _cachedCamera;
         private readonly List<(int x, int y, int z)> _blocksBuffer = new();
+        private Func<bool> _escapeHandler;
 
         private VoxelGrid Grid => worldBootstrap?.Grid;
         private WaterConfig WaterConfig => worldBootstrap?.WaterConfig;
@@ -36,6 +40,16 @@ namespace Voxel
             _cachedCamera = Camera.main;
             _executor = worldBootstrap != null ? new RemovalExecutor(worldBootstrap) : null;
             _preview = worldBootstrap != null ? new RemovalPreview(worldBootstrap) : null;
+
+            _escapeHandler = TryCancelRemovalMode;
+            EscapeHandler.Instance?.Register(EscapeHandler.PriorityModeCancel, _escapeHandler);
+        }
+
+        private bool TryCancelRemovalMode()
+        {
+            if (!_removalModeActive) return false;
+            CancelRemovalMode();
+            return true;
         }
 
         public void ToggleRemovalMode()
@@ -53,6 +67,7 @@ namespace Voxel
             _removalModeActive = true;
             _dragStartBlock = null;
             _preview?.Clear();
+            RemovalModeChanged?.Invoke();
         }
 
         public void CancelRemovalMode()
@@ -60,6 +75,7 @@ namespace Voxel
             _removalModeActive = false;
             _dragStartBlock = null;
             _preview?.Clear();
+            RemovalModeChanged?.Invoke();
         }
 
         private void Update()
@@ -164,6 +180,12 @@ namespace Voxel
         {
             if (_removalModeActive)
                 CancelRemovalMode();
+        }
+
+        private void OnDestroy()
+        {
+            if (_escapeHandler != null)
+                EscapeHandler.Instance?.Unregister(_escapeHandler);
         }
     }
 }
