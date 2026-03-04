@@ -1,0 +1,12 @@
+---
+description: Always use the current date when dates are needed
+alwaysApply: true
+---
+
+# Current Date
+
+When dates are needed (e.g. audit reports, documentation, file names, version info):
+
+- **Use the current date** — never assume or hardcode a past/future year.
+- **Establish context**: Run `date` in the CLI to get the actual current date before writing dates.
+- **Format**: Use ISO 8601 (`YYYY-MM-DD`) for file names and technical contexts; use natural format elsewhere (e.g. "March 4, 2026").
