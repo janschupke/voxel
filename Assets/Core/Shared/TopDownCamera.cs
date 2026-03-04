@@ -30,6 +30,8 @@ namespace Voxel
         [SerializeField] private float minBlocksVisible = 10f;
         [SerializeField] private float maxBlocksVisible = 40f;
         [SerializeField] private float fieldOfView = 50f;
+        [Tooltip("Duration in seconds for smooth camera translation when locating a structure.")]
+        [SerializeField] private float locateTranslateDuration = 0.5f;
         [Tooltip("Input actions (e.g. InputSystem_Actions). Uses Player/Move. Required for keyboard/gamepad movement.")]
         [SerializeField] private InputActionAsset inputActions;
 
@@ -43,6 +45,10 @@ namespace Voxel
         private InputAction _moveAction;
         private bool _centerOnNextFrame;
         private Vector3 _centerTarget;
+        private bool _isTranslating;
+        private Vector2 _translateStartXZ;
+        private Vector2 _translateTargetXZ;
+        private float _translateElapsed;
 
         private float Scale => _worldScale.BlockScale > 0f ? _worldScale.BlockScale : 1f;
 
@@ -76,16 +82,21 @@ namespace Voxel
             if (_centerOnNextFrame)
             {
                 _centerOnNextFrame = false;
-                if (_worldScale.BlockScale > 0f)
-                {
-                    float height = HeightForBlocks(_smoothedBlocksVisible);
-                    transform.position = new Vector3(_centerTarget.x, height, _centerTarget.z);
-                    ApplyRotation();
-                }
+                StartTranslateToPosition(_centerTarget);
             }
             float dt = Time.deltaTime;
-            HandleMoveInput(dt);
-            HandlePanInput();
+            if (_isTranslating)
+            {
+                if (HasMoveOrPanInput())
+                    _isTranslating = false;
+                else
+                    UpdateTranslate(dt);
+            }
+            if (!_isTranslating)
+            {
+                HandleMoveInput(dt);
+                HandlePanInput();
+            }
             HandleZoomInput();
             SmoothZoom(dt);
             ApplyRotation();
@@ -109,6 +120,15 @@ namespace Voxel
             forward = transform.forward;
             forward.y = 0f;
             forward = forward.sqrMagnitude < 0.01f ? Vector3.forward : forward.normalized;
+        }
+
+        private bool HasMoveOrPanInput()
+        {
+            if (_moveAction != null && _moveAction.ReadValue<Vector2>().sqrMagnitude > 0.01f)
+                return true;
+            if (Mouse.current != null && Mouse.current.rightButton.isPressed)
+                return true;
+            return false;
         }
 
         private void HandleMoveInput(float dt)
@@ -188,6 +208,44 @@ namespace Voxel
             if (_camera == null) return;
             _centerTarget = worldPosition;
             _centerOnNextFrame = true;
+        }
+
+        private void StartTranslateToPosition(Vector3 worldPosition)
+        {
+            if (_worldScale.BlockScale <= 0f) return;
+            var pos = transform.position;
+            _translateStartXZ = new Vector2(pos.x, pos.z);
+            _translateTargetXZ = GetCameraXZToCenterTarget(worldPosition);
+            _translateElapsed = 0f;
+            _isTranslating = true;
+        }
+
+        /// <summary>
+        /// Returns the camera XZ position such that the given world position appears at screen center.
+        /// Accounts for camera tilt: the view center is offset from directly below the camera.
+        /// </summary>
+        private Vector2 GetCameraXZToCenterTarget(Vector3 target)
+        {
+            float height = HeightForBlocks(_smoothedBlocksVisible);
+            Vector3 forward = Quaternion.Euler(90f - lookAngle, rotationYaw, 0f) * Vector3.forward;
+            if (Mathf.Abs(forward.y) < 0.001f) // near-horizontal, avoid div by zero
+                return new Vector2(target.x, target.z);
+            float t = (target.y - height) / forward.y;
+            return new Vector2(target.x - t * forward.x, target.z - t * forward.z);
+        }
+
+        private void UpdateTranslate(float dt)
+        {
+            _translateElapsed += dt;
+            float t = Mathf.Clamp01(_translateElapsed / locateTranslateDuration);
+            float smoothT = Mathf.SmoothStep(0f, 1f, t);
+            Vector2 newXZ = Vector2.Lerp(_translateStartXZ, _translateTargetXZ, smoothT);
+            var pos = transform.position;
+            pos.x = newXZ.x;
+            pos.z = newXZ.y;
+            transform.position = pos;
+            if (t >= 1f)
+                _isTranslating = false;
         }
 
         public void RestorePosition(float posX, float posZ, float blocksVisible)
