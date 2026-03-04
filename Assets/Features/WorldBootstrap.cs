@@ -291,6 +291,15 @@ namespace Voxel
         public bool HasBlockingObjectAtBlock(int bx, int by, int bz) =>
             _placedObjectManager.HasBlockingObjectAtBlock(bx, by, bz);
 
+        public bool BlocksPathingAtBlock(int bx, int by, int bz) =>
+            _placedObjectManager.BlocksPathingAtBlock(bx, by, bz);
+
+        public bool HasEnvironmentAtBlock(int bx, int by, int bz) =>
+            _placedObjectManager.HasEnvironmentAtBlock(bx, by, bz);
+
+        public void RemoveEnvironmentAtBlock(int bx, int by, int bz) =>
+            _placedObjectManager.RemoveEnvironmentAtBlock(bx, by, bz);
+
         public bool HasEntryAtBlock(string entryName, int bx, int by, int bz) =>
             _placedObjectManager.HasEntryAtBlock(entryName, bx, by, bz);
 

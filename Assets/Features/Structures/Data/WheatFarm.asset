@@ -16,6 +16,7 @@ MonoBehaviour:
   Prefab: {fileID: 3532374132240110004, guid: e7a44b82c113447c596521f996cdfd6f, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
+  StructureType: 0
   IsSurfaceOverlay: 0
   PlacementMode: 0
   LinePlacementExtendThroughExisting: 0

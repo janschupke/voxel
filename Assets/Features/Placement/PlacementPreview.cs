@@ -13,9 +13,13 @@ namespace Voxel
         private readonly float _prefabHeightInUnits;
         private readonly float _scaleMultiplier;
         private readonly List<GameObject> _instances = new();
+        private readonly List<(int x, int y, int z)> _previewBlocks = new();
         private const int MaxAreaPreviews = 256;
 
         public GameObject Prefab => _prefab;
+
+        /// <summary>Blocks currently shown in the preview (for hiding environment underneath).</summary>
+        public IReadOnlyList<(int x, int y, int z)> PreviewBlocks => _previewBlocks;
 
         public PlacementPreview(GameObject prefab, WorldScale worldScale, float prefabHeightInUnits = 2f, float scaleMultiplier = 1f)
         {
@@ -32,7 +36,10 @@ namespace Voxel
 
             var instance = CreatePreviewInstance(block, rotationY, valid);
             if (instance != null)
+            {
                 _instances.Add(instance);
+                _previewBlocks.Add(block);
+            }
         }
 
         public void SetArea((int x, int z) start, (int x, int z) end, VoxelGrid grid, int waterLevelY,
@@ -64,6 +71,7 @@ namespace Voxel
                     if (instance != null)
                     {
                         _instances.Add(instance);
+                        _previewBlocks.Add((x, surfaceY, z));
                         count++;
                     }
                 }
@@ -99,6 +107,7 @@ namespace Voxel
                 if (instance != null)
                 {
                     _instances.Add(instance);
+                    _previewBlocks.Add((node.X, surfaceY, node.Z));
                     count++;
                 }
             }
@@ -133,6 +142,7 @@ namespace Voxel
                     if (instance != null)
                     {
                         _instances.Add(instance);
+                        _previewBlocks.Add((x, surfaceY, z));
                         count++;
                     }
                 }
@@ -147,6 +157,7 @@ namespace Voxel
                     Object.Destroy(go);
             }
             _instances.Clear();
+            _previewBlocks.Clear();
         }
 
         private GameObject CreatePreviewInstance((int x, int y, int z) block, float rotationY, bool valid)

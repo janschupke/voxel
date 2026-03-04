@@ -24,6 +24,8 @@ namespace Voxel
 
             if (entry.IsSurfaceOverlay)
             {
+                if (entry.CanReplaceEnvironment)
+                    _worldBootstrap.RemoveEnvironmentAtBlock(block.x, block.y, block.z);
                 _worldBootstrap.AddRoadAt(block.x, block.y, block.z);
                 _worldBootstrap.SaveWorld();
                 _worldBootstrap.Renderer?.InvalidateChunkAt(block.x, block.y - 1, block.z);
@@ -33,8 +35,8 @@ namespace Voxel
             var parent = _worldBootstrap.GetParentForEntry(entry);
             if (parent == null || entry.Prefab == null) return;
 
-            if (entry.CanReplaceTrees)
-                RemoveTreesAtBlock(block);
+            if (entry.CanReplaceEnvironment)
+                _worldBootstrap.RemoveEnvironmentAtBlock(block.x, block.y, block.z);
 
             var worldScale = GetWorldScale();
             var pos = worldScale.BlockToWorld(block.x + 0.5f, block.y, block.z + 0.5f);
@@ -79,8 +81,8 @@ namespace Voxel
                     if (skipExisting && _worldBootstrap.HasRoadAt(node.X, surfaceY, node.Z)) continue;
                     if (_worldBootstrap.HasBlockingObjectAtBlock(node.X, surfaceY, node.Z)) continue;
 
-                    if (entry.CanReplaceTrees)
-                        RemoveTreesAtBlock((node.X, surfaceY, node.Z));
+                    if (entry.CanReplaceEnvironment)
+                        _worldBootstrap.RemoveEnvironmentAtBlock(node.X, surfaceY, node.Z);
 
                     _worldBootstrap.AddRoadAt(node.X, surfaceY, node.Z);
                     _worldBootstrap.Renderer?.InvalidateChunkAt(node.X, topY, node.Z);
@@ -109,8 +111,8 @@ namespace Voxel
                 int surfaceY = topY + 1;
                 if (_worldBootstrap.HasBlockingObjectAtBlock(node.X, surfaceY, node.Z)) continue;
 
-                if (entry.CanReplaceTrees)
-                    RemoveTreesAtBlock((node.X, surfaceY, node.Z));
+                if (entry.CanReplaceEnvironment)
+                    _worldBootstrap.RemoveEnvironmentAtBlock(node.X, surfaceY, node.Z);
 
                 var pos = worldScale.BlockToWorld(node.X + 0.5f, surfaceY, node.Z + 0.5f);
                 var rotation = entry.RandomRotation
@@ -146,6 +148,9 @@ namespace Voxel
                 {
                     if (_worldBootstrap.HasBlockingObjectAtBlock(x, surfaceY, z)) continue;
 
+                    if (entry.CanReplaceEnvironment)
+                        _worldBootstrap.RemoveEnvironmentAtBlock(x, surfaceY, z);
+
                     _worldBootstrap.AddRoadAt(x, surfaceY, z);
                     _worldBootstrap.Renderer?.InvalidateChunkAt(x, surfaceY - 1, z);
                     roadPlaced++;
@@ -171,6 +176,9 @@ namespace Voxel
             {
                 if (_worldBootstrap.HasBlockingObjectAtBlock(x, surfaceY, z)) continue;
 
+                if (entry.CanReplaceEnvironment)
+                    _worldBootstrap.RemoveEnvironmentAtBlock(x, surfaceY, z);
+
                 var pos = worldScale.BlockToWorld(x + 0.5f, surfaceY, z + 0.5f);
                 var rotation = entry.RandomRotation
                     ? Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)
@@ -187,24 +195,6 @@ namespace Voxel
                 _worldBootstrap.SaveWorld();
                 _worldBootstrap.SpawnActorsForBuildings();
             }
-        }
-
-        private void RemoveTreesAtBlock((int x, int y, int z) block)
-        {
-            var parent = _worldBootstrap?.GetParentByEntryName("Tree");
-            if (parent == null) return;
-
-            var worldScale = GetWorldScale();
-            var toDestroy = new List<Transform>();
-            for (int i = 0; i < parent.childCount; i++)
-            {
-                var child = parent.GetChild(i);
-                var (bx, by, bz) = worldScale.WorldToBlock(child.position);
-                if (bx == block.x && by == block.y && bz == block.z)
-                    toDestroy.Add(child);
-            }
-            foreach (var t in toDestroy)
-                Object.Destroy(t.gameObject);
         }
 
         private static void TryAddBuildingInventory(GameObject instance, PlacedObjectEntry entry)

@@ -147,6 +147,7 @@ namespace Voxel
             return false;
         }
 
+        /// <summary>Returns true if placement is blocked (road or building). Used for placement validation.</summary>
         public bool HasBlockingObjectAtBlock(int bx, int by, int bz)
         {
             if (_roadOverlay.Contains(bx, by, bz)) return true;
@@ -154,7 +155,9 @@ namespace Voxel
             var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
             foreach (var entry in _registry.Entries)
             {
-                if (entry == null || !entry.IsBlocking) continue;
+                if (entry == null) continue;
+                if (entry.StructureType == Pure.StructureType.Road) continue; // Road is in overlay, not parents
+                if (!entry.BlocksPlacement && !entry.IsBlocking) continue; // Backward compat: IsBlocking
                 if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
                 for (int i = 0; i < parent.childCount; i++)
                 {
@@ -163,6 +166,64 @@ namespace Voxel
                 }
             }
             return false;
+        }
+
+        /// <summary>Returns true if actor pathing is blocked. Only buildings block; roads and environment are walkable.</summary>
+        public bool BlocksPathingAtBlock(int bx, int by, int bz)
+        {
+            if (_registry == null) return false;
+            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            foreach (var entry in _registry.Entries)
+            {
+                if (entry == null || !entry.BlocksPathing) continue;
+                if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
+                for (int i = 0; i < parent.childCount; i++)
+                {
+                    var (hx, hy, hz) = worldScale.WorldToBlock(parent.GetChild(i).position);
+                    if (hx == bx && hy == by && hz == bz) return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>Returns true if any environment object (Tree, Wheat, etc.) is at the block.</summary>
+        public bool HasEnvironmentAtBlock(int bx, int by, int bz)
+        {
+            if (_registry == null) return false;
+            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            foreach (var entry in _registry.Entries)
+            {
+                if (entry == null || entry.StructureType != Pure.StructureType.Environment) continue;
+                if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
+                for (int i = 0; i < parent.childCount; i++)
+                {
+                    var (hx, hy, hz) = worldScale.WorldToBlock(parent.GetChild(i).position);
+                    if (hx == bx && hy == by && hz == bz) return true;
+                }
+            }
+            return false;
+        }
+
+        /// <summary>Removes all environment objects at the block. Used when placing over environment.</summary>
+        public void RemoveEnvironmentAtBlock(int bx, int by, int bz)
+        {
+            if (_registry == null) return;
+            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            foreach (var entry in _registry.Entries)
+            {
+                if (entry == null || entry.StructureType != Pure.StructureType.Environment) continue;
+                if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
+                var toRemove = new List<Transform>();
+                for (int i = 0; i < parent.childCount; i++)
+                {
+                    var child = parent.GetChild(i);
+                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
+                    if (hx == bx && hy == by && hz == bz)
+                        toRemove.Add(child);
+                }
+                foreach (var t in toRemove)
+                    Object.Destroy(t.gameObject);
+            }
         }
 
         public bool HasEntryAtBlock(string entryName, int bx, int by, int bz)

@@ -22,7 +22,7 @@ namespace Voxel
         private bool _previewValid;
         private (int x, int z)? _dragStartBlock;
         private PlacementPreview _preview;
-        private readonly HashSet<Transform> _hiddenTrees = new();
+        private readonly HashSet<Transform> _hiddenEnvironment = new();
         private float _rotationY;
         private readonly Dictionary<string, Button> _buttonsByType = new();
         private PlacementExecutor _executor;
@@ -112,7 +112,7 @@ namespace Voxel
             _activeEntry = null;
             _rotationY = 0f;
             _dragStartBlock = null;
-            RestoreHiddenTrees();
+            RestoreHiddenEnvironment();
             _preview?.Clear();
             _preview = null;
             _previewBlock = null;
@@ -211,43 +211,52 @@ namespace Voxel
 
             _previewUpdater.Update(_activeEntry, _preview, dragStart, _rotationY, out var newBlock, out var newValid);
 
-            if (_activeEntry.PlacementMode != PlacementMode.Area && _activeEntry.PlacementMode != PlacementMode.Line)
+            _previewBlock = newBlock;
+            _previewValid = newValid;
+
+            RestoreHiddenEnvironment();
+            if (_activeEntry.CanReplaceEnvironment && _preview != null)
             {
-                if (!_previewBlock.HasValue || _previewBlock.Value != newBlock || _previewValid != newValid)
+                if (_activeEntry.PlacementMode == PlacementMode.Area || _activeEntry.PlacementMode == PlacementMode.Line)
                 {
-                    _previewBlock = newBlock;
-                    _previewValid = newValid;
-                    RestoreHiddenTrees();
-                    if (newValid && newBlock.HasValue && _activeEntry.CanReplaceTrees)
-                        HideReplaceableAtBlock(newBlock.Value);
+                    foreach (var (x, y, z) in _preview.PreviewBlocks)
+                    {
+                        if (worldBootstrap.HasEnvironmentAtBlock(x, y, z))
+                            HideEnvironmentAtBlock((x, y, z));
+                    }
+                }
+                else if (newValid && newBlock.HasValue && worldBootstrap.HasEnvironmentAtBlock(newBlock.Value.x, newBlock.Value.y, newBlock.Value.z))
+                {
+                    HideEnvironmentAtBlock(newBlock.Value);
                 }
             }
         }
 
-        private void HideReplaceableAtBlock((int x, int y, int z) block)
+        private void HideEnvironmentAtBlock((int x, int y, int z) block)
         {
-            var parent = worldBootstrap?.GetParentByEntryName("Tree");
-            if (parent == null) return;
-            for (int i = 0; i < parent.childCount; i++)
+            if (worldBootstrap == null || registry == null) return;
+            var transforms = new List<Transform>();
+            worldBootstrap.GetTransformsAtBlock(block.x, block.y, block.z, transforms);
+            foreach (var child in transforms)
             {
-                var child = parent.GetChild(i);
-                var (bx, by, bz) = WorldScale.WorldToBlock(child.position);
-                if (bx == block.x && by == block.y && bz == block.z)
+                var entryName = worldBootstrap.GetEntryNameForTransform(child);
+                var entry = string.IsNullOrEmpty(entryName) ? null : registry.GetByName(entryName);
+                if (entry != null && entry.StructureType == Pure.StructureType.Environment)
                 {
                     child.gameObject.SetActive(false);
-                    _hiddenTrees.Add(child);
+                    _hiddenEnvironment.Add(child);
                 }
             }
         }
 
-        private void RestoreHiddenTrees()
+        private void RestoreHiddenEnvironment()
         {
-            foreach (var t in _hiddenTrees)
+            foreach (var t in _hiddenEnvironment)
             {
                 if (t != null)
                     t.gameObject.SetActive(true);
             }
-            _hiddenTrees.Clear();
+            _hiddenEnvironment.Clear();
         }
 
         private void OnDisable()

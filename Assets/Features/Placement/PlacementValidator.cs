@@ -14,7 +14,8 @@ namespace Voxel
         {
             if (worldBootstrap == null) return false;
             if (worldBootstrap.HasBlockingObjectAtBlock(x, y, z)) return false;
-            if (entry != null && !entry.CanReplaceTrees && worldBootstrap.HasEntryAtBlock("Tree", x, y, z))
+            // Environment and roads cannot be placed over existing environment; only buildings can replace.
+            if (entry != null && !entry.CanReplaceEnvironment && worldBootstrap.HasEnvironmentAtBlock(x, y, z))
                 return false;
             return true;
         }

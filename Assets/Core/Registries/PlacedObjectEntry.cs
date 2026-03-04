@@ -19,11 +19,14 @@ namespace Voxel
         [Tooltip("Prefab to instantiate when placing")]
         public GameObject Prefab;
 
-        [Tooltip("When placing, remove trees at the target block(s)")]
+        [Tooltip("When placing, remove trees at the target block(s). Deprecated: use StructureType.")]
         public bool CanReplaceTrees;
 
-        [Tooltip("Blocks placement of other objects at the same block (e.g. buildings). False for vegetation like trees.")]
+        [Tooltip("Blocks placement of other objects at the same block (e.g. buildings). Deprecated: use StructureType.")]
         public bool IsBlocking = true;
+
+        [Tooltip("Classification for placement and pathing rules.")]
+        public StructureType StructureType = StructureType.Building;
 
         [Tooltip("When true, no 3D prefab is instantiated; placement adds to a data structure (e.g. RoadOverlay) instead.")]
         public bool IsSurfaceOverlay;
@@ -67,5 +70,14 @@ namespace Voxel
         public int InventoryCapacity;
         [Tooltip("When true, this building uses global storage instead of per-building inventory. No BuildingInventory is added.")]
         public bool UsesGlobalStorage;
+
+        /// <summary>Blocks placement of other objects at the same block. Building and Road block; Environment does not.</summary>
+        public bool BlocksPlacement => StructureType == StructureType.Building || StructureType == StructureType.Road;
+
+        /// <summary>Blocks actor pathing. Only buildings block; Road and Environment are walkable.</summary>
+        public bool BlocksPathing => StructureType == StructureType.Building;
+
+        /// <summary>When placing, can replace environment (Tree, Wheat, etc.) at the target block(s). Buildings, roads, and environment can replace.</summary>
+        public bool CanReplaceEnvironment => StructureType == StructureType.Building || StructureType == StructureType.Road || StructureType == StructureType.Environment;
     }
 }

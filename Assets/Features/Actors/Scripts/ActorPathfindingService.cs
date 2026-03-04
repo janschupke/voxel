@@ -51,7 +51,7 @@ namespace Voxel
                 : 0;
 
             bool isBlockValid(int x, int y, int z) =>
-                !_worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
+                !_worldBootstrap.BlocksPathingAtBlock(x, y, z);
 
             return definition.PathingMode switch
             {
@@ -70,7 +70,7 @@ namespace Voxel
                 ? _worldBootstrap.WaterConfig.GetWaterLevelY(grid.Height)
                 : 0;
             bool isBlockValid(int x, int y, int z) =>
-                !_worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
+                !_worldBootstrap.BlocksPathingAtBlock(x, y, z);
             return new SmartSurfacePathGraph(grid, waterLevelY, roadOverlay, isBlockValid);
         }
 
