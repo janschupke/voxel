@@ -51,6 +51,13 @@ public class HUDController : MonoBehaviour
 #endif
                 };
 
+            var debugToggle = uiDocument.rootVisualElement.Q<Toggle>("Debug");
+            if (debugToggle != null)
+            {
+                debugToggle.SetValueWithoutNotify(GameDebugLogger.IsEnabled);
+                debugToggle.RegisterValueChangedCallback(evt => GameDebugLogger.SetEnabled(evt.newValue));
+            }
+
             var placementContainer = uiDocument.rootVisualElement.Q<VisualElement>("PlacementButtons");
 
             if (placementContainer != null && _placementController != null)

@@ -9,7 +9,7 @@ namespace Voxel.Debug
     public static class GameDebugLogger
     {
         private static DebugLogService _service;
-        private static bool _enabled;
+        private static bool _enabled = true;
 
         public static bool IsEnabled => _enabled;
 

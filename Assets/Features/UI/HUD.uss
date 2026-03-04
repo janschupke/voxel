@@ -90,6 +90,11 @@
     padding-bottom: 5px;
 }
 
+#Debug {
+    color: white;
+    font-size: 10px;
+}
+
 #FPS {
     /* flex-grow: 0;
     flex-shrink: 0; */
