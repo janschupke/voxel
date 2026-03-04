@@ -7,30 +7,42 @@ alwaysApply: true
 
 ## Project Structure
 
-Use a **feature-based structure** with two main roots:
+Use a **three-layer structure** with feature co-location:
 
 ```
 Assets/
-├── Core/           # Shared domain logic, infrastructure, cross-cutting concerns
-│   ├── Grid/       # Voxel grid, coordinates, spatial data
-│   ├── Terrain/    # Terrain pipeline, height buffers, noise
+├── Pure/           # Reusable pure code: algorithms, domain logic (no UnityEngine)
+│   ├── Grid/       # Voxel grid, BlockQueries, coordinates
+│   ├── Terrain/    # Height buffers, TerrainPipeline, noise
 │   ├── Pathfinding/
-│   └── Data/       # Shared data types, registries, definitions
+│   └── Data/       # Item enum, pure data types
 │
-└── Features/       # Feature modules, co-located by capability
-    ├── UI/         # HUD, panels, UI controllers + .uxml/.uss
-    ├── Actors/     # Actor behaviors, spawning, pathing
-    ├── Placement/  # Object placement, preview, validation
-    └── ...
+├── Core/           # Core Unity logic: rendering, registries, shared infrastructure
+│   ├── Rendering/  # ChunkManager, ChunkMeshBuilder, VoxelGridRenderer
+│   ├── Registries/ # ItemRegistry, PlacedObjectRegistry, configs
+│   ├── Shared/     # WorldScale, GameSettings, TopDownCamera
+│   ├── Materials/  # Shared terrain materials
+│   └── Shaders/    # WaterShader (shared)
+│
+└── Features/       # Game features: scripts + assets co-located
+    ├── Actors/     # Scripts, prefabs, actor definitions
+    ├── Structures/ # Prefabs, models, textures, materials, shaders (House, Tree, Road)
+    ├── Placement/  # Scripts, placement data
+    ├── Selection/  # Scripts, shaders
+    ├── Inventory/  # Scripts, item definitions, textures
+    ├── UI/         # Scripts, UXML, USS
+    ├── Terrain/    # Stages, configs
+    ├── World/      # World creation, persistence
+    └── Debug/
 ```
 
-**Co-locate** related files: scripts, UXML, USS, and feature-specific data in the same feature folder.
+**Co-locate** scripts, textures, models, prefabs, data, UXML, USS with each feature folder.
 
 ## Separate Business Logic from Unity Code
 
 - **Domain layer**: Pure C# classes with no `UnityEngine` dependencies. Game rules, calculations, state machines.
 - **Unity layer**: MonoBehaviours, ScriptableObjects, and components that **wire** domain logic to Unity APIs.
-- **Rule**: Domain types live in `Core/` or feature folders; they must not reference `MonoBehaviour`, `GameObject`, `Transform`, or `UnityEngine.Object`.
+- **Rule**: Domain types live in `Pure/` or feature folders; they must not reference `MonoBehaviour`, `GameObject`, `Transform`, or `UnityEngine.Object`.
 
 ```csharp
 // ❌ BAD: Business logic mixed with Unity
@@ -43,7 +55,7 @@ public class BuildingInventory : MonoBehaviour
 }
 
 // ✅ GOOD: Domain logic separate, Unity only wires it
-// Core/Inventory/InventoryService.cs - no UnityEngine
+// Pure/ or Features/Inventory/InventoryService.cs - no UnityEngine
 public class InventoryService
 {
     public int GetMaxStack(Item item, IItemRegistry registry) => registry.GetDefinition(item)?.MaxStack ?? 0;

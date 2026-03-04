@@ -1,4 +1,4 @@
-using Voxel.Core;
+using Voxel.Pure;
 
 namespace Voxel
 {

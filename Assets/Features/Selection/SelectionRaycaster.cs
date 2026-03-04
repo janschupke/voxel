@@ -1,5 +1,5 @@
 using UnityEngine;
-using Voxel.Core;
+using Voxel.Pure;
 
 namespace Voxel
 {
