@@ -8,13 +8,12 @@ namespace Voxel
     {
         [SerializeField] private Material chunkMaterial;
         [SerializeField] private TerrainMaterialConfig terrainMaterialConfig;
-        [SerializeField] private WaterConfig waterConfig;
 
         private ChunkManager _chunkManager;
         private VoxelGrid _grid;
         private Transform _chunkParent;
 
-        public void Initialize(VoxelGrid grid, WorldParameters worldParameters = null, Material mountainMaterial = null, RoadOverlay roadOverlay = null, RoadConfig roadConfigParam = null)
+        public void Initialize(VoxelGrid grid, WorldParameters worldParameters = null, WaterConfig waterConfig = null, Material mountainMaterial = null, RoadOverlay roadOverlay = null, RoadConfig roadConfigParam = null)
         {
             if (_chunkParent != null)
                 Destroy(_chunkParent.gameObject);

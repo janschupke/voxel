@@ -54,7 +54,7 @@ namespace Voxel
             var mountainMaterial = terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null
                 ? islandPipelineConfig.MountainStageConfig?.Material
                 : null;
-            _renderer.Initialize(_grid, worldParameters, mountainMaterial, _placedObjectManager.RoadOverlay, roadConfig);
+            _renderer.Initialize(_grid, worldParameters, waterConfig, mountainMaterial, _placedObjectManager.RoadOverlay, roadConfig);
 
             SetupCamera(restoreCamera: true);
         }
@@ -114,7 +114,7 @@ namespace Voxel
             var mountainMaterial = terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null
                 ? islandPipelineConfig.MountainStageConfig?.Material
                 : null;
-            _renderer.Initialize(_grid, worldParameters, mountainMaterial, _placedObjectManager.RoadOverlay, roadConfig);
+            _renderer.Initialize(_grid, worldParameters, waterConfig, mountainMaterial, _placedObjectManager.RoadOverlay, roadConfig);
             SetupCamera(restoreCamera: false);
         }
 

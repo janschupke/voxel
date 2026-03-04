@@ -20,4 +20,4 @@ MonoBehaviour:
   waveFrequency: 0.5
   waveSpeed: 1
   refractionStrength: 0.02
-  refractionEnabled: 1
+  refractionEnabled: 0

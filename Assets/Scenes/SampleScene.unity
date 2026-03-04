@@ -491,7 +491,6 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.VoxelGridRenderer
   chunkMaterial: {fileID: 0}
   terrainMaterialConfig: {fileID: 11400000, guid: c7d8e9f0a1234567890abcdef0123456, type: 2}
-  waterConfig: {fileID: 11400000, guid: 58124c420b7334c3ea8e797ee87b73d4, type: 2}
 --- !u!114 &1088007617
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -589,8 +588,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a7cc2292fb1d84e96b5b41b1ecb29fbe, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::HUDController
-  uiDocument: {fileID: 0}
-  placedObjectRegistry: {fileID: 0}
+  uiDocument: {fileID: 1314134876}
+  placedObjectRegistry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
 --- !u!114 &1314134876
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -643,7 +642,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.ObjectPlacementController
   worldBootstrap: {fileID: 1088007617}
   registry: {fileID: 11400000, guid: f9e8d7c6b5a4939281706f5e4d3c2b1a, type: 2}
-  uiDocument: {fileID: 0}
+  uiDocument: {fileID: 1314134876}
 --- !u!114 &1314134880
 MonoBehaviour:
   m_ObjectHideFlags: 0

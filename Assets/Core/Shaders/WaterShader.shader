@@ -29,16 +29,12 @@ Shader "Voxel/Water"
             #pragma fragment frag
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/DeclareOpaqueTexture.hlsl"
-            #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/ShaderVariablesFunctions.hlsl"
 
             CBUFFER_START(UnityPerMaterial)
             float4 _WaterColor;
             float _WaveAmplitude;
             float _WaveFrequency;
             float _WaveSpeed;
-            float _RefractionStrength;
-            float _RefractionEnabled;
             CBUFFER_END
 
             struct Attributes
@@ -62,8 +58,9 @@ Shader "Voxel/Water"
                 float3 positionWS = TransformObjectToWorld(IN.positionOS.xyz);
                 float time = _Time.y;
 
-                float wave = sin(positionWS.x * _WaveFrequency + time * _WaveSpeed)
-                    * sin(positionWS.z * _WaveFrequency + time * _WaveSpeed);
+                // Wave in object/local space to avoid world-scale distortion; scale by block units
+                float wave = sin(IN.positionOS.x * _WaveFrequency + time * _WaveSpeed)
+                    * sin(IN.positionOS.z * _WaveFrequency + time * _WaveSpeed);
                 positionWS.y += wave * _WaveAmplitude;
 
                 OUT.positionWS = positionWS;
@@ -76,30 +73,7 @@ Shader "Voxel/Water"
 
             half4 frag(Varyings IN) : SV_Target
             {
-                half4 color = _WaterColor;
-
-                if (_RefractionEnabled > 0.5)
-                {
-                    float2 screenUV = GetNormalizedScreenSpaceUV(IN.positionCS);
-                    float3 viewDir = normalize(IN.viewDirWS);
-                    float2 distortionBasis = viewDir.xz;
-                    float viewBasisLen = length(distortionBasis);
-                    if (viewBasisLen < 0.01)
-                    {
-                        float t = _Time.y;
-                        distortionBasis = float2(sin(t * 2.0), cos(t * 2.0));
-                    }
-                    else
-                    {
-                        distortionBasis /= viewBasisLen;
-                    }
-                    float2 distortedUV = screenUV + distortionBasis * _RefractionStrength;
-                    distortedUV = saturate(distortedUV);
-                    float3 sceneColor = SampleSceneColor(distortedUV);
-                    color = half4(lerp(sceneColor, _WaterColor.rgb, 1.0 - _WaterColor.a), _WaterColor.a);
-                }
-
-                return color;
+                return half4(_WaterColor);
             }
             ENDHLSL
         }
