@@ -19,3 +19,4 @@ MonoBehaviour:
   WorkDurationInside: 2
   MoveSpeed: 2
   BlockedRetryDelaySeconds: 5
+  IdleCheckCooldownSeconds: 3

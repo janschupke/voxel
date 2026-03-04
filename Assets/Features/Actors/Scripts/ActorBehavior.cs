@@ -103,7 +103,7 @@ namespace Voxel
             _idleCheckCooldown -= Time.deltaTime;
             if (_idleCheckCooldown > 0f) return;
 
-            _idleCheckCooldown = 0.5f;
+            _idleCheckCooldown = Definition.IdleCheckCooldownSeconds;
             var (target, hadCandidates) = TryGetReachableTarget();
             if (target.HasValue)
             {

@@ -29,5 +29,9 @@ namespace Voxel
         [Tooltip("When Blocked (trees in range but no path), retry after this many seconds")]
         [Min(0.5f)]
         public float BlockedRetryDelaySeconds = 5f;
+
+        [Tooltip("When Idle, wait this many seconds before checking for targets again. Higher values reduce CPU load.")]
+        [Min(0.1f)]
+        public float IdleCheckCooldownSeconds = 0.5f;
     }
 }
