@@ -1,3 +1,4 @@
+using System;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -30,6 +31,9 @@ public class HUDController : MonoBehaviour
     private int _fpsFrameCount;
     private VisualElement _messageLog;
     private DebugLogService _debugLogService;
+    private VisualElement _inventoryPanel;
+    private ScrollView _inventoryPanelList;
+    private float _inventoryRefreshTimer;
 
     private void Start()
     {
@@ -84,6 +88,12 @@ public class HUDController : MonoBehaviour
                     UpdateDebugButtonText();
                 };
             }
+
+            _inventoryPanel = uiDocument.rootVisualElement.Q<VisualElement>("InventoryPanel");
+            _inventoryPanelList = uiDocument.rootVisualElement.Q<ScrollView>("InventoryPanelList");
+            var inventoryButton = uiDocument.rootVisualElement.Q<Button>("Inventory");
+            if (inventoryButton != null)
+                inventoryButton.clicked += ToggleInventoryPanel;
 
             var placementContainer = uiDocument.rootVisualElement.Q<VisualElement>("PlacementButtons");
 
@@ -147,7 +157,7 @@ public class HUDController : MonoBehaviour
         var registry = worldBootstrap.PlacedObjectRegistry;
         foreach (var entry in registry.Entries)
         {
-            if (entry == null || entry.InventoryCapacity <= 0) continue;
+            if (entry == null || entry.InventoryCapacity <= 0 || entry.UsesGlobalStorage) continue;
             var parent = worldBootstrap.GetParentByEntryName(entry.Name);
             if (parent == null) continue;
             for (int i = 0; i < parent.childCount; i++)
@@ -157,6 +167,7 @@ public class HUDController : MonoBehaviour
                     inv.ClearInventory();
             }
         }
+        worldBootstrap.StorageInventory?.Clear();
         _selectionController?.RefreshSelectionDisplay();
     }
 
@@ -175,6 +186,57 @@ public class HUDController : MonoBehaviour
     {
         if (_debugButton != null)
             _debugButton.text = GameDebugLogger.IsEnabled ? "Debug On" : "Debug Off";
+    }
+
+    private void ToggleInventoryPanel()
+    {
+        if (_inventoryPanel == null) return;
+        bool isHidden = _inventoryPanel.ClassListContains("hidden");
+        if (isHidden)
+        {
+            _inventoryPanel.RemoveFromClassList("hidden");
+            RefreshInventoryPanel();
+        }
+        else
+        {
+            _inventoryPanel.AddToClassList("hidden");
+        }
+    }
+
+    private void RefreshInventoryPanel()
+    {
+        if (_inventoryPanelList == null || worldBootstrap == null) return;
+        _inventoryPanelList.Clear();
+
+        var itemRegistry = worldBootstrap.ItemRegistry;
+        var storage = worldBootstrap.StorageInventory;
+        if (itemRegistry == null || storage == null) return;
+
+        foreach (Item item in Enum.GetValues(typeof(Item)))
+        {
+            var def = itemRegistry.GetDefinition(item);
+            var count = storage.GetCount(item);
+
+            var row = new VisualElement();
+            row.AddToClassList("inventory-row");
+
+            var icon = new VisualElement();
+            icon.AddToClassList("inventory-icon");
+            if (def?.Sprite != null)
+                icon.style.backgroundImage = new StyleBackground(def.Sprite);
+
+            var nameLabel = new Label(def?.Name ?? item.ToString());
+            nameLabel.AddToClassList("inventory-count");
+            nameLabel.style.flexGrow = 1;
+
+            var countLabel = new Label(count.ToString());
+            countLabel.AddToClassList("inventory-count");
+
+            row.Add(icon);
+            row.Add(nameLabel);
+            row.Add(countLabel);
+            _inventoryPanelList.Add(row);
+        }
     }
 
     private void OnDestroy()
@@ -233,6 +295,21 @@ public class HUDController : MonoBehaviour
         {
             GameDebugLogger.SetEnabled(!GameDebugLogger.IsEnabled);
             UpdateDebugButtonText();
+        }
+
+        if (Keyboard.current != null && Keyboard.current.iKey.wasPressedThisFrame)
+        {
+            ToggleInventoryPanel();
+        }
+
+        if (_inventoryPanel != null && !_inventoryPanel.ClassListContains("hidden"))
+        {
+            _inventoryRefreshTimer -= Time.deltaTime;
+            if (_inventoryRefreshTimer <= 0f)
+            {
+                _inventoryRefreshTimer = 0.5f;
+                RefreshInventoryPanel();
+            }
         }
 
         if (_fpsLabel == null) return;

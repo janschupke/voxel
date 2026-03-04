@@ -10,7 +10,7 @@ namespace Voxel
     public static class WorldPersistenceService
     {
         private const string WorldFileName = "world.dat";
-        private const int SaveVersion = 3;
+        private const int SaveVersion = 4;
         private static string WorldPath => Path.Combine(Application.persistentDataPath, "World", WorldFileName);
 
         public static bool WorldExists()
@@ -26,7 +26,8 @@ namespace Voxel
 
         public static void Save(VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects = null,
             IReadOnlyList<BuildingInventorySaveData> buildingInventories = null,
-            IReadOnlyList<ActorSaveData> actorData = null)
+            IReadOnlyList<ActorSaveData> actorData = null,
+            IReadOnlyList<(int ItemId, int Count)> globalStorageItems = null)
         {
             var dir = Path.GetDirectoryName(WorldPath);
             if (!string.IsNullOrEmpty(dir))
@@ -104,11 +105,24 @@ namespace Voxel
                     writer.Write(a.CarriedItemId);
                 }
             }
+
+            int globalCount = globalStorageItems?.Count ?? 0;
+            writer.Write(globalCount);
+            if (globalCount > 0 && globalStorageItems != null)
+            {
+                for (int i = 0; i < globalCount; i++)
+                {
+                    var (itemId, amt) = globalStorageItems[i];
+                    writer.Write(itemId);
+                    writer.Write(amt);
+                }
+            }
         }
 
         public static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,
             IReadOnlyList<BuildingInventorySaveData> buildingInventories,
-            IReadOnlyList<ActorSaveData> actorData) Load()
+            IReadOnlyList<ActorSaveData> actorData,
+            IReadOnlyList<(int ItemId, int Count)> globalStorageItems) Load()
         {
             if (!WorldExists())
                 throw new FileNotFoundException("No saved world found", WorldPath);
@@ -119,13 +133,45 @@ namespace Voxel
             using var reader = new BinaryReader(gzip);
             int version = reader.ReadInt32();
 
+            if (version >= 4)
+                return LoadV4(reader);
             if (version == 3)
-                return LoadV3(reader);
+            {
+                var (g, p, b, a) = LoadV3(reader);
+                return (g, p, b, a, new List<(int, int)>());
+            }
             if (version < 100)
-                return LoadV2(reader);
+            {
+                var (g, p) = LoadV2Core(reader);
+                return (g, p, new List<BuildingInventorySaveData>(), new List<ActorSaveData>(), new List<(int, int)>());
+            }
 
             var (grid, placedObjects) = LoadV1(reader, version);
-            return (grid, placedObjects, new List<BuildingInventorySaveData>(), new List<ActorSaveData>());
+            return (grid, placedObjects, new List<BuildingInventorySaveData>(), new List<ActorSaveData>(), new List<(int, int)>());
+        }
+
+        private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,
+            IReadOnlyList<BuildingInventorySaveData> buildingInventories,
+            IReadOnlyList<ActorSaveData> actorData,
+            IReadOnlyList<(int ItemId, int Count)> globalStorageItems) LoadV4(BinaryReader reader)
+        {
+            var (grid, placedObjects, buildingInventories, actorData) = LoadV3(reader);
+            var globalStorageItems = new List<(int ItemId, int Count)>();
+            try
+            {
+                int globalCount = reader.ReadInt32();
+                if (globalCount > 0 && globalCount < 100000)
+                {
+                    for (int i = 0; i < globalCount; i++)
+                    {
+                        globalStorageItems.Add((reader.ReadInt32(), reader.ReadInt32()));
+                    }
+                }
+            }
+            catch (EndOfStreamException)
+            {
+            }
+            return (grid, placedObjects, buildingInventories, actorData, globalStorageItems);
         }
 
         private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,

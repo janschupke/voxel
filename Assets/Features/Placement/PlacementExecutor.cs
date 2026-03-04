@@ -209,7 +209,7 @@ namespace Voxel
 
         private static void TryAddBuildingInventory(GameObject instance, PlacedObjectEntry entry)
         {
-            if (entry == null || entry.InventoryCapacity <= 0) return;
+            if (entry == null || entry.InventoryCapacity <= 0 || entry.UsesGlobalStorage) return;
             var inv = instance.GetComponent<BuildingInventory>();
             if (inv == null) inv = instance.AddComponent<BuildingInventory>();
             inv.Initialize(entry.Name, entry.InventoryCapacity);

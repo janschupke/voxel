@@ -199,6 +199,13 @@ namespace Voxel
                 _selectionDetail.RemoveFromClassList("hidden");
             if (_selectionName != null)
                 _selectionName.text = name;
+            if (_inventorySection != null)
+            {
+                if (name == "Warehouse")
+                    _inventorySection.AddToClassList("hidden");
+                else
+                    _inventorySection.RemoveFromClassList("hidden");
+            }
             _inventoryRefreshTimer = 0f;
             RefreshInventoryDisplay();
             UpdateClearInventoryButtonVisibility();

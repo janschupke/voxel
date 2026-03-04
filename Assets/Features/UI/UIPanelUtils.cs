@@ -22,8 +22,11 @@ namespace Voxel
 
             var topPanel = doc.rootVisualElement.Q("TopPanel");
             var sidebar = doc.rootVisualElement.Q("Sidebar");
+            var inventoryPanel = doc.rootVisualElement.Q("InventoryPanel");
             return (topPanel != null && (picked == topPanel || topPanel.Contains(picked))) ||
-                   (sidebar != null && (picked == sidebar || sidebar.Contains(picked)));
+                   (sidebar != null && (picked == sidebar || sidebar.Contains(picked))) ||
+                   (inventoryPanel != null && !inventoryPanel.ClassListContains("hidden") &&
+                    (picked == inventoryPanel || inventoryPanel.Contains(picked)));
         }
 
         /// <summary>Shows or hides elements with class "debug-only" based on show flag.</summary>

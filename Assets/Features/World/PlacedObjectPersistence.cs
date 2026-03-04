@@ -41,6 +41,7 @@ namespace Voxel
 
         public static List<BuildingInventorySaveData> CollectBuildingInventoriesForSave(
             IReadOnlyDictionary<string, Transform> parentsByEntryName,
+            PlacedObjectRegistry registry,
             WorldParameters worldParameters)
         {
             var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
@@ -49,6 +50,8 @@ namespace Voxel
             foreach (var kv in parentsByEntryName)
             {
                 if (kv.Value == null || kv.Key == "Road") continue;
+                var entry = registry?.GetByName(kv.Key);
+                if (entry != null && entry.UsesGlobalStorage) continue;
                 for (int i = 0; i < kv.Value.childCount; i++)
                 {
                     var child = kv.Value.GetChild(i);
@@ -114,7 +117,7 @@ namespace Voxel
                 var instance = Object.Instantiate(prefab, p.ToWorldPosition(worldScale), p.ToRotation(), parent);
                 instance.name = prefab.name;
                 instance.transform.localScale = scale;
-                if (entry != null && entry.InventoryCapacity > 0)
+                if (entry != null && entry.InventoryCapacity > 0 && !entry.UsesGlobalStorage)
                 {
                     var inv = instance.GetComponent<BuildingInventory>();
                     if (inv == null) inv = instance.AddComponent<BuildingInventory>();

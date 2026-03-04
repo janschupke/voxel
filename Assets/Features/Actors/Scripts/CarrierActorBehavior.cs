@@ -12,7 +12,6 @@ namespace Voxel
     /// </summary>
     public class CarrierActorBehavior : ActorBehavior
     {
-        private IBuildingInventory _cachedInventory;
         private IBuildingInventory _cachedSourceInventory;
         private Transform _sourceBuilding;
         private Item? _carriedItem;
@@ -24,11 +23,9 @@ namespace Voxel
             _carriedItem = item;
         }
 
-        private IBuildingInventory GetHomeInventory()
+        private IStorageInventory GetStorageInventory()
         {
-            if (_cachedInventory == null && HomeBuilding != null)
-                _cachedInventory = HomeBuilding.GetComponent<BuildingInventory>();
-            return _cachedInventory;
+            return WorldBootstrap?.StorageInventory;
         }
 
         protected override bool SkipWorkOutside => true;
@@ -74,7 +71,7 @@ namespace Voxel
             var candidates = new List<Transform>();
             foreach (var entry in registry.Entries)
             {
-                if (entry == null || entry.InventoryCapacity <= 0) continue;
+                if (entry == null || entry.InventoryCapacity <= 0 || entry.UsesGlobalStorage) continue;
                 if (entry.Name == homeEntryName) continue;
 
                 var parent = WorldBootstrap.GetParentByEntryName(entry.Name);
@@ -120,18 +117,18 @@ namespace Voxel
 
         protected override void OnWorkCompletedInside()
         {
-            var inventory = GetHomeInventory();
-            if (inventory != null && _carriedItem.HasValue && inventory.HasSpaceFor(1))
+            var storage = GetStorageInventory();
+            if (storage != null && _carriedItem.HasValue && storage.HasSpaceFor(_carriedItem.Value, 1))
             {
-                inventory.AddItem(_carriedItem.Value, 1, emitUnitProduced: false);
+                storage.AddItem(_carriedItem.Value, 1);
             }
             _carriedItem = null;
         }
 
         protected override bool IsBuildingInventoryFull()
         {
-            var inventory = GetHomeInventory();
-            return inventory != null && !inventory.HasSpaceFor(1);
+            var storage = GetStorageInventory();
+            return storage != null && _carriedItem.HasValue && !storage.HasSpaceFor(_carriedItem.Value, 1);
         }
 
     }

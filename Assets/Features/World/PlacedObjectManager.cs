@@ -187,7 +187,7 @@ namespace Voxel
 
         public List<BuildingInventorySaveData> CollectBuildingInventoriesForSave()
         {
-            return PlacedObjectPersistence.CollectBuildingInventoriesForSave(_parentsByEntryName, _worldParameters);
+            return PlacedObjectPersistence.CollectBuildingInventoriesForSave(_parentsByEntryName, _registry, _worldParameters);
         }
 
         public void LoadPlacedObjects(IReadOnlyList<PlacedObjectData> placedObjects, VoxelGrid grid, TerrainGenerationMode terrainMode,

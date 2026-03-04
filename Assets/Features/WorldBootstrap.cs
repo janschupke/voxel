@@ -27,9 +27,14 @@ namespace Voxel
         [Tooltip("When false, hides debug controls (Clear Inventory, Clear All Inventories) in the sidebar.")]
         [SerializeField] private bool showDebugControls = true;
 
+        [Header("Storage")]
+        [Tooltip("Per-item capacity for global storage. Used when no Warehouse entry defines it.")]
+        [SerializeField] private int storagePerItemCapacity = 100;
+
         private VoxelGrid _grid;
         private VoxelGridRenderer _renderer;
         private PlacedObjectManager _placedObjectManager;
+        private StorageInventory _storageInventory;
 
         private void Start()
         {
@@ -41,12 +46,26 @@ namespace Voxel
             _placedObjectManager = new PlacedObjectManager(transform);
             _placedObjectManager.Initialize(placedObjectRegistry, worldParameters, islandPipelineConfig, waterConfig);
 
+            EnsureStorageInventory();
+
             if (WorldPersistenceService.WorldExists())
             {
-                var (grid, placedObjects, buildingInventories, actorData) = WorldPersistenceService.Load();
+                var (grid, placedObjects, buildingInventories, actorData, globalStorageItems) = WorldPersistenceService.Load();
                 _grid = grid;
                 var inventoryLookup = BuildInventoryLookup(buildingInventories);
                 _placedObjectManager.LoadPlacedObjects(placedObjects, _grid, terrainMode, inventoryLookup);
+                if (globalStorageItems != null && globalStorageItems.Count > 0)
+                {
+                    var items = new List<(Item, int)>();
+                    foreach (var (itemId, count) in globalStorageItems)
+                    {
+                        if (count <= 0) continue;
+                        if (itemId >= 0 && Enum.IsDefined(typeof(Item), itemId))
+                            items.Add(((Item)itemId, count));
+                    }
+                    if (items.Count > 0)
+                        _storageInventory.LoadFrom(items);
+                }
                 if (actorSpawner != null)
                     actorSpawner.SetSavedActorData(actorData);
             }
@@ -114,12 +133,39 @@ namespace Voxel
         {
             if (_grid != null)
             {
+                var globalStorageItems = CollectGlobalStorageForSave();
                 WorldPersistenceService.Save(
                     _grid,
                     _placedObjectManager.CollectPlacedObjectsForSave(),
                     _placedObjectManager.CollectBuildingInventoriesForSave(),
-                    CollectActorDataForSave());
+                    CollectActorDataForSave(),
+                    globalStorageItems);
             }
+        }
+
+        private void EnsureStorageInventory()
+        {
+            if (_storageInventory != null) return;
+            _storageInventory = GetComponent<StorageInventory>();
+            if (_storageInventory == null)
+                _storageInventory = gameObject.AddComponent<StorageInventory>();
+            int capacity = storagePerItemCapacity;
+            var warehouseEntry = placedObjectRegistry?.GetByName("Warehouse");
+            if (warehouseEntry != null && warehouseEntry.InventoryCapacity > 0)
+                capacity = warehouseEntry.InventoryCapacity;
+            _storageInventory.Initialize(capacity);
+        }
+
+        private List<(int ItemId, int Count)> CollectGlobalStorageForSave()
+        {
+            var list = new List<(int ItemId, int Count)>();
+            if (_storageInventory == null) return list;
+            foreach (var (item, count) in _storageInventory.GetAllItems())
+            {
+                if (count > 0)
+                    list.Add(((int)item, count));
+            }
+            return list;
         }
 
         private static Dictionary<(string, int, int, int), List<(Item, int)>> BuildInventoryLookup(
@@ -182,6 +228,7 @@ namespace Voxel
         public void RegenerateWorld()
         {
             WorldPersistenceService.DeleteWorld();
+            _storageInventory?.Clear();
             _grid = CreateNewWorld();
             SaveWorld();
             var mountainMaterial = terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null
@@ -256,5 +303,6 @@ namespace Voxel
         public WaterConfig WaterConfig => waterConfig;
         public WorldParameters WorldParameters => worldParameters;
         public bool ShowDebugControls => showDebugControls;
+        public IStorageInventory StorageInventory => _storageInventory;
     }
 }

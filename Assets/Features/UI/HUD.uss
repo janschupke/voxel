@@ -161,3 +161,35 @@ Button.placing {
 .log-error {
     color: rgba(255, 120, 120, 0.95);
 }
+
+#InventoryPanel {
+    position: absolute;
+    left: 0;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.5);
+}
+
+#InventoryPanelContent {
+    flex-direction: column;
+    background-color: rgba(0, 0, 0, 0.7);
+    padding: 15px;
+    border-radius: 10px;
+    min-width: 200px;
+    max-height: 70%;
+}
+
+#InventoryPanelTitle {
+    color: white;
+    font-size: 12px;
+    padding-bottom: 10px;
+}
+
+#InventoryPanelList {
+    flex-grow: 1;
+    max-height: 300px;
+}
