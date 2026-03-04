@@ -174,8 +174,7 @@ namespace Voxel
             }
 
             int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
-            bool isBlockValid(int x, int y, int z) =>
-                !worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
+            var isBlockValid = PlacementValidator.CreateBlockValidator(worldBootstrap);
 
             if (_activeEntry.Prefab == null) { _preview?.Clear(); _preview = null; _previewBlock = null; return; }
             float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
@@ -221,8 +220,7 @@ namespace Voxel
             {
                 if (PlacementUtility.TryRaycastTopSurface(cam, Grid, WorldScale, waterLevelY, out var block, out bool valid))
                 {
-                    bool placeValid = valid && !worldBootstrap.HasBlockingObjectAtBlock(block.bx, block.by, block.bz)
-                        && (_activeEntry.CanReplaceTrees || !worldBootstrap.HasEntryAtBlock("Tree", block.bx, block.by, block.bz));
+                    bool placeValid = valid && PlacementValidator.IsBlockValidForPlacement(worldBootstrap, block.bx, block.by, block.bz, _activeEntry);
 
                     if (!_previewBlock.HasValue || _previewBlock.Value != block || _previewValid != placeValid)
                     {
@@ -313,8 +311,7 @@ namespace Voxel
         private void PlaceInLine((int x, int z) start, (int x, int z) end)
         {
             int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
-            bool isBlockValid(int x, int y, int z) =>
-                !worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
+            var isBlockValid = PlacementValidator.CreateBlockValidator(worldBootstrap);
 
             var graph = new SurfacePathGraph(Grid, waterLevelY, isBlockValid);
             var path = PathBuilder.BuildPath(graph, new GridNode(start.x, start.z), new GridNode(end.x, end.z));

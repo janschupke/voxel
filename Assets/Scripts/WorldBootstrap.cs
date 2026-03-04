@@ -1,4 +1,3 @@
-using System.Collections.Generic;
 using UnityEngine;
 using Voxel.Core;
 
@@ -17,15 +16,14 @@ namespace Voxel
         [SerializeField] private Camera mainCamera;
         [SerializeField] private TopDownCamera topDownCamera;
 
-        private VoxelGrid _grid;
-        private VoxelGridRenderer _renderer;
-        private readonly Dictionary<string, Transform> _parentsByEntryName = new Dictionary<string, Transform>();
-        private readonly RoadOverlay _roadOverlay = new RoadOverlay();
-
         [SerializeField] private PlacedObjectRegistry placedObjectRegistry;
         [SerializeField] private ItemRegistry itemRegistry;
         [SerializeField] private RoadConfig roadConfig;
         [SerializeField] private ActorSpawner actorSpawner;
+
+        private VoxelGrid _grid;
+        private VoxelGridRenderer _renderer;
+        private PlacedObjectManager _placedObjectManager;
 
         private void Start()
         {
@@ -34,16 +32,19 @@ namespace Voxel
             if (actorSpawner == null)
                 actorSpawner = gameObject.AddComponent<ActorSpawner>();
 
+            _placedObjectManager = new PlacedObjectManager(transform);
+            _placedObjectManager.Initialize(placedObjectRegistry, worldParameters, islandPipelineConfig, waterConfig);
+
             if (WorldPersistenceService.WorldExists())
             {
                 var (grid, placedObjects) = WorldPersistenceService.Load();
                 _grid = grid;
-                LoadPlacedObjects(placedObjects);
+                _placedObjectManager.LoadPlacedObjects(placedObjects, _grid, terrainMode);
             }
             else
             {
                 _grid = CreateNewWorld();
-                WorldPersistenceService.Save(_grid, CollectPlacedObjectsForSave());
+                WorldPersistenceService.Save(_grid, _placedObjectManager.CollectPlacedObjectsForSave());
             }
 
             _renderer = GetComponent<VoxelGridRenderer>();
@@ -53,7 +54,7 @@ namespace Voxel
             var mountainMaterial = terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null
                 ? islandPipelineConfig.MountainStageConfig?.Material
                 : null;
-            _renderer.Initialize(_grid, worldParameters, mountainMaterial, _roadOverlay, roadConfig);
+            _renderer.Initialize(_grid, worldParameters, mountainMaterial, _placedObjectManager.RoadOverlay, roadConfig);
 
             SetupCamera(restoreCamera: true);
         }
@@ -69,54 +70,11 @@ namespace Voxel
 
         private VoxelGrid CreateNewWorld()
         {
-            _roadOverlay.Clear();
-            foreach (var kv in _parentsByEntryName)
-            {
-                if (kv.Value != null)
-                    Destroy(kv.Value.gameObject);
-            }
-            _parentsByEntryName.Clear();
-
-            int width = worldParameters != null ? worldParameters.Width : 1000;
-            int depth = worldParameters != null ? worldParameters.Depth : 1000;
-            int height = worldParameters != null ? worldParameters.Height : 50;
-
-            var grid = new VoxelGrid(width, depth, height);
-
-            if (terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null)
-            {
-                int waterLevelY = waterConfig != null
-                    ? waterConfig.GetWaterLevelY(height)
-                    : Mathf.Clamp(15, 0, height - 1);
-
-                var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-                var treesParent = GetOrCreateParentForEntry("Tree");
-
-                var heightBuffer = new HeightBuffer(width, depth);
-                var context = new TerrainPipelineContext(heightBuffer, grid, waterLevelY, islandPipelineConfig.MasterSeed);
-                var stages = islandPipelineConfig.BuildStages(treesParent, worldScale);
-
-                if (stages != null && stages.Count > 0)
-                    TerrainPipeline.Execute(stages, context);
-            }
-            else
-            {
-                float heightScale = worldParameters != null ? worldParameters.HeightScale : 1f;
-                float heightOffset = worldParameters != null ? worldParameters.HeightOffset : 0f;
-                byte blockType = worldParameters != null ? worldParameters.BlockType : BlockType.Ground;
-
-                int seed = noiseParameters != null ? noiseParameters.Seed : 12345;
-                float frequency = noiseParameters != null ? noiseParameters.Frequency : 0.04f;
-                int octaves = noiseParameters != null ? noiseParameters.Octaves : 5;
-                float lacunarity = noiseParameters != null ? noiseParameters.Lacunarity : 2f;
-                float persistence = noiseParameters != null ? noiseParameters.Persistence : 0.5f;
-
-                var fractalNoise = new FractalNoise(frequency, octaves, lacunarity, persistence, seed);
-                var terrainGen = new TerrainGenerator(grid, fractalNoise, heightScale, heightOffset, blockType);
-                terrainGen.Generate();
-            }
-
-            return grid;
+            _placedObjectManager.Clear();
+            var treeParent = _placedObjectManager.GetOrCreateParentForEntry("Tree");
+            return WorldCreationService.CreateNewWorld(
+                terrainMode, worldParameters, noiseParameters,
+                islandPipelineConfig, waterConfig, treeParent);
         }
 
         private void SetupCamera(bool restoreCamera = false)
@@ -139,7 +97,7 @@ namespace Voxel
         public void SaveWorld()
         {
             if (_grid != null)
-                WorldPersistenceService.Save(_grid, CollectPlacedObjectsForSave());
+                WorldPersistenceService.Save(_grid, _placedObjectManager.CollectPlacedObjectsForSave());
         }
 
         public void SpawnActorsForBuildings()
@@ -152,11 +110,11 @@ namespace Voxel
         {
             WorldPersistenceService.DeleteWorld();
             _grid = CreateNewWorld();
-            WorldPersistenceService.Save(_grid, CollectPlacedObjectsForSave());
+            WorldPersistenceService.Save(_grid, _placedObjectManager.CollectPlacedObjectsForSave());
             var mountainMaterial = terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null
                 ? islandPipelineConfig.MountainStageConfig?.Material
                 : null;
-            _renderer.Initialize(_grid, worldParameters, mountainMaterial, _roadOverlay, roadConfig);
+            _renderer.Initialize(_grid, worldParameters, mountainMaterial, _placedObjectManager.RoadOverlay, roadConfig);
             SetupCamera(restoreCamera: false);
         }
 
@@ -165,7 +123,6 @@ namespace Voxel
         public PlacedObjectRegistry PlacedObjectRegistry => placedObjectRegistry;
         public ItemRegistry ItemRegistry => itemRegistry;
         public IslandPipelineConfig IslandPipelineConfig => islandPipelineConfig;
-
         public TopDownCamera TopDownCamera => topDownCamera;
 
         public void CenterCameraOnPosition(Vector3 worldPosition)
@@ -177,175 +134,27 @@ namespace Voxel
         public Transform GetParentForEntry(PlacedObjectEntry entry)
         {
             if (entry == null || string.IsNullOrEmpty(entry.Name)) return null;
-            return GetOrCreateParentForEntry(entry.Name);
+            return _placedObjectManager.GetOrCreateParentForEntry(entry.Name);
         }
 
-        public Transform GetOrCreateParentForEntry(string entryName)
-        {
-            if (string.IsNullOrEmpty(entryName)) return null;
-            if (entryName == "Road") return null;
-            if (_parentsByEntryName.TryGetValue(entryName, out var parent) && parent != null)
-                return parent;
-            var go = new GameObject(entryName + "s");
-            go.transform.SetParent(transform);
-            _parentsByEntryName[entryName] = go.transform;
-            return go.transform;
-        }
+        public Transform GetOrCreateParentForEntry(string entryName) =>
+            _placedObjectManager.GetOrCreateParentForEntry(entryName);
 
-        public void AddRoadAt(int x, int y, int z)
-        {
-            _roadOverlay.Add(x, y, z);
-        }
+        public void AddRoadAt(int x, int y, int z) => _placedObjectManager.AddRoadAt(x, y, z);
+        public void RemoveRoadAt(int x, int y, int z) => _placedObjectManager.RemoveRoadAt(x, y, z);
+        public bool HasRoadAt(int x, int y, int z) => _placedObjectManager.HasRoadAt(x, y, z);
+        public RoadOverlay GetRoadOverlay() => _placedObjectManager.RoadOverlay;
 
-        public void RemoveRoadAt(int x, int y, int z)
-        {
-            _roadOverlay.Remove(x, y, z);
-        }
+        public bool HasBlockingObjectAtBlock(int bx, int by, int bz) =>
+            _placedObjectManager.HasBlockingObjectAtBlock(bx, by, bz);
 
-        public bool HasRoadAt(int x, int y, int z)
-        {
-            return _roadOverlay.Contains(x, y, z);
-        }
+        public bool HasEntryAtBlock(string entryName, int bx, int by, int bz) =>
+            _placedObjectManager.HasEntryAtBlock(entryName, bx, by, bz);
 
-        public RoadOverlay GetRoadOverlay()
-        {
-            return _roadOverlay;
-        }
-
-        public bool HasBlockingObjectAtBlock(int bx, int by, int bz)
-        {
-            if (_roadOverlay.Contains(bx, by, bz)) return true;
-            if (placedObjectRegistry == null) return false;
-            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-            foreach (var entry in placedObjectRegistry.Entries)
-            {
-                if (entry == null || !entry.IsBlocking) continue;
-                if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
-                for (int i = 0; i < parent.childCount; i++)
-                {
-                    var (hx, hy, hz) = worldScale.WorldToBlock(parent.GetChild(i).position);
-                    if (hx == bx && hy == by && hz == bz) return true;
-                }
-            }
-            return false;
-        }
-
-        public bool HasEntryAtBlock(string entryName, int bx, int by, int bz)
-        {
-            if (string.IsNullOrEmpty(entryName)) return false;
-            if (entryName == "Road") return _roadOverlay.Contains(bx, by, bz);
-            if (!_parentsByEntryName.TryGetValue(entryName, out var parent) || parent == null)
-                return false;
-            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-            for (int i = 0; i < parent.childCount; i++)
-            {
-                var (hx, hy, hz) = worldScale.WorldToBlock(parent.GetChild(i).position);
-                if (hx == bx && hy == by && hz == bz) return true;
-            }
-            return false;
-        }
-
-        public Transform GetParentByEntryName(string entryName)
-        {
-            return _parentsByEntryName.TryGetValue(entryName ?? "", out var p) ? p : null;
-        }
+        public Transform GetParentByEntryName(string entryName) =>
+            _placedObjectManager.GetParentByEntryName(entryName);
 
         public WaterConfig WaterConfig => waterConfig;
         public WorldParameters WorldParameters => worldParameters;
-
-        private List<PlacedObjectData> CollectPlacedObjectsForSave()
-        {
-            if (placedObjectRegistry == null) return null;
-
-            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-            var list = new List<PlacedObjectData>();
-
-            foreach (var kv in _parentsByEntryName)
-            {
-                if (kv.Value == null) continue;
-                for (int i = 0; i < kv.Value.childCount; i++)
-                {
-                    var child = kv.Value.GetChild(i);
-                    var (bx, by, bz) = worldScale.WorldToBlock(child.position);
-                    list.Add(new PlacedObjectData(kv.Key, bx, by, bz, child.eulerAngles.y));
-                }
-            }
-
-            foreach (var (x, y, z) in _roadOverlay.GetAllBlocks())
-            {
-                list.Add(new PlacedObjectData("Road", x, y, z, 0f));
-            }
-
-            return list.Count > 0 ? list : null;
-        }
-
-        private void LoadPlacedObjects(IReadOnlyList<PlacedObjectData> placedObjects)
-        {
-            if (placedObjectRegistry == null || placedObjects == null || placedObjects.Count == 0)
-            {
-                if (terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null)
-                    RunTreePlacement();
-                return;
-            }
-
-            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-
-            foreach (var p in placedObjects)
-            {
-                if (p.EntryName == "Road")
-                {
-                    _roadOverlay.Add(p.BlockX, p.BlockY, p.BlockZ);
-                    continue;
-                }
-
-                var entry = placedObjectRegistry.GetByName(p.EntryName);
-                var prefab = entry?.Prefab ?? (p.EntryName == "Tree" ? islandPipelineConfig?.TreeScatterConfig?.TreePrefab : null);
-                if (prefab == null) continue;
-
-                var parent = GetOrCreateParentForEntry(p.EntryName);
-                if (parent == null) continue;
-
-                float prefabHeight = entry != null && entry.PrefabHeightInUnits > 0 ? entry.PrefabHeightInUnits : 2f;
-                float scaleMult = entry != null && entry.ScaleMultiplier > 0 ? entry.ScaleMultiplier : 1f;
-                var scale = worldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
-
-                var instance = Object.Instantiate(prefab, p.ToWorldPosition(worldScale), p.ToRotation(), parent);
-                instance.name = prefab.name;
-                instance.transform.localScale = scale;
-                if (entry != null && entry.InventoryCapacity > 0)
-                {
-                    var inv = instance.GetComponent<BuildingInventory>();
-                    if (inv == null) inv = instance.AddComponent<BuildingInventory>();
-                    inv.Initialize(p.EntryName, entry.InventoryCapacity);
-                }
-            }
-
-            if (terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null)
-            {
-                var treeParent = GetParentByEntryName("Tree");
-                if (treeParent == null || treeParent.childCount == 0)
-                    RunTreePlacement();
-            }
-        }
-
-        private void RunTreePlacement()
-        {
-            if (terrainMode != TerrainGenerationMode.IslandPipeline || islandPipelineConfig == null)
-                return;
-
-            var treeConfig = islandPipelineConfig.TreeScatterConfig;
-            if (treeConfig == null || treeConfig.TreePrefab == null)
-                return;
-
-            int height = _grid.Height;
-            int waterLevelY = waterConfig != null ? waterConfig.GetWaterLevelY(height) : Mathf.Clamp(15, 0, height - 1);
-            var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
-
-            var treeParent = GetOrCreateParentForEntry("Tree");
-            var heightBuffer = new HeightBuffer(_grid.Width, _grid.Depth);
-            var context = new TerrainPipelineContext(heightBuffer, _grid, waterLevelY, islandPipelineConfig.MasterSeed);
-            var stage = new TreeScatterStage(treeConfig, treeParent, worldScale);
-            stage.Execute(context);
-        }
     }
 }
