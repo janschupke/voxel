@@ -30,6 +30,7 @@ namespace Voxel
         private Transform _lastHoveredObject;
         private Transform _lastSelectedObject;
         private ObjectPlacementController _placementController;
+        private RemovalController _removalController;
 
         private SelectionOutlineRenderer _outlineRenderer;
         private SelectionRaycaster _raycaster;
@@ -43,6 +44,7 @@ namespace Voxel
             if (registry == null && worldBootstrap != null)
                 registry = worldBootstrap.PlacedObjectRegistry;
             _placementController = FindAnyObjectByType<ObjectPlacementController>();
+            _removalController = FindAnyObjectByType<RemovalController>();
 
             _outlineRenderer = new SelectionOutlineRenderer();
             _raycaster = new SelectionRaycaster(worldBootstrap, registry);
@@ -98,6 +100,8 @@ namespace Voxel
         {
             if (_placementController != null && _placementController.IsPlacementModeActive)
                 return;
+            if (_removalController != null && _removalController.IsRemovalModeActive)
+                return;
 
             if (_lastHoveredObject != _hoveredObject && _lastHoveredObject != _selectedObject)
                 _outlineRenderer?.ClearHighlight(_lastHoveredObject);
@@ -128,6 +132,11 @@ namespace Voxel
         {
             if (worldBootstrap == null || registry == null || _raycaster == null) return;
             if (_placementController != null && _placementController.IsPlacementModeActive)
+            {
+                ClearHoverHighlight();
+                return;
+            }
+            if (_removalController != null && _removalController.IsRemovalModeActive)
             {
                 ClearHoverHighlight();
                 return;

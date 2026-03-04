@@ -17,6 +17,8 @@ public class HUDController : MonoBehaviour
 
     private ObjectPlacementController _placementController;
     private SelectionController _selectionController;
+    private RemovalController _removalController;
+    private Button _removeButton;
     private Label _fpsLabel;
     private Button _debugButton;
     private float _fpsAccumulator;
@@ -36,8 +38,21 @@ public class HUDController : MonoBehaviour
             var worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
             _placementController = FindAnyObjectByType<ObjectPlacementController>();
             _selectionController = FindAnyObjectByType<SelectionController>();
+            _removalController = FindAnyObjectByType<RemovalController>();
+            if (_removalController == null && _placementController != null)
+                _removalController = _placementController.gameObject.AddComponent<RemovalController>();
 
             SetupDebugControls(uiDocument.rootVisualElement, worldBootstrap);
+
+            _removeButton = uiDocument.rootVisualElement.Q<Button>("Remove");
+            if (_removeButton != null && _removalController != null)
+            {
+                _removeButton.clicked += () =>
+                {
+                    _removalController.ToggleRemovalMode();
+                    UpdateRemoveButtonState();
+                };
+            }
 
             var generateButton = uiDocument.rootVisualElement.Q<Button>("Generate");
             if (generateButton != null && worldBootstrap != null)
@@ -147,6 +162,17 @@ public class HUDController : MonoBehaviour
         _selectionController?.RefreshSelectionDisplay();
     }
 
+    private void UpdateRemoveButtonState()
+    {
+        if (_removeButton != null && _removalController != null)
+        {
+            if (_removalController.IsRemovalModeActive)
+                _removeButton.AddToClassList("placing");
+            else
+                _removeButton.RemoveFromClassList("placing");
+        }
+    }
+
     private void UpdateDebugButtonText()
     {
         if (_debugButton != null)
@@ -200,7 +226,9 @@ public class HUDController : MonoBehaviour
         if (Keyboard.current != null && Keyboard.current.escapeKey.wasPressedThisFrame)
         {
             _placementController?.CancelPlacementMode();
+            _removalController?.CancelRemovalMode();
             _selectionController?.ClearSelection();
+            UpdateRemoveButtonState();
         }
 
         if (Keyboard.current != null && Keyboard.current.f2Key.wasPressedThisFrame)

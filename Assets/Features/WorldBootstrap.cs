@@ -147,6 +147,29 @@ namespace Voxel
         public void AddRoadAt(int x, int y, int z) => _placedObjectManager.AddRoadAt(x, y, z);
         public void RemoveRoadAt(int x, int y, int z) => _placedObjectManager.RemoveRoadAt(x, y, z);
         public bool HasRoadAt(int x, int y, int z) => _placedObjectManager.HasRoadAt(x, y, z);
+
+        /// <summary>Removes all placed objects and roads at the block. Call SaveAndRefresh after batch operations.</summary>
+        public bool RemoveAtBlock(int bx, int by, int bz)
+        {
+            bool hadRoad = _placedObjectManager.HasRoadAt(bx, by, bz);
+            bool removed = _placedObjectManager.RemoveAtBlock(bx, by, bz);
+            if (removed && hadRoad)
+                Renderer?.InvalidateChunkAt(bx, by - 1, bz);
+            return removed;
+        }
+
+        /// <summary>Call after removal operations to persist and refresh actors.</summary>
+        public void SaveAndRefreshAfterRemoval()
+        {
+            SaveWorld();
+            SpawnActorsForBuildings();
+        }
+
+        public void GetTransformsAtBlock(int bx, int by, int bz, System.Collections.Generic.List<Transform> outTransforms) =>
+            _placedObjectManager.GetTransformsAtBlock(bx, by, bz, outTransforms);
+
+        public bool HasRemovableAtBlock(int bx, int by, int bz) =>
+            _placedObjectManager.HasRemovableAtBlock(bx, by, bz);
         public RoadOverlay GetRoadOverlay() => _placedObjectManager.RoadOverlay;
 
         public bool HasBlockingObjectAtBlock(int bx, int by, int bz) =>

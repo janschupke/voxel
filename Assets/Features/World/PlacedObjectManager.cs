@@ -80,6 +80,73 @@ namespace Voxel
         public void RemoveRoadAt(int x, int y, int z) => _roadOverlay.Remove(x, y, z);
         public bool HasRoadAt(int x, int y, int z) => _roadOverlay.Contains(x, y, z);
 
+        /// <summary>Removes all placed objects and roads at the given block. Returns true if anything was removed.</summary>
+        public bool RemoveAtBlock(int bx, int by, int bz)
+        {
+            bool removed = false;
+            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            foreach (var kv in _parentsByEntryName)
+            {
+                if (kv.Value == null) continue;
+                var toRemove = new List<Transform>();
+                for (int i = 0; i < kv.Value.childCount; i++)
+                {
+                    var child = kv.Value.GetChild(i);
+                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
+                    if (hx == bx && hy == by && hz == bz)
+                        toRemove.Add(child);
+                }
+                foreach (var t in toRemove)
+                {
+                    Object.Destroy(t.gameObject);
+                    removed = true;
+                }
+            }
+            if (_roadOverlay.Contains(bx, by, bz))
+            {
+                _roadOverlay.Remove(bx, by, bz);
+                removed = true;
+            }
+            return removed;
+        }
+
+        /// <summary>Returns all placed object transforms at the given block (buildings, trees). Does not include roads.</summary>
+        public void GetTransformsAtBlock(int bx, int by, int bz, List<Transform> outTransforms)
+        {
+            outTransforms.Clear();
+            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            foreach (var kv in _parentsByEntryName)
+            {
+                if (kv.Value == null) continue;
+                for (int i = 0; i < kv.Value.childCount; i++)
+                {
+                    var child = kv.Value.GetChild(i);
+                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
+                    if (hx == bx && hy == by && hz == bz)
+                        outTransforms.Add(child);
+                }
+            }
+        }
+
+        /// <summary>Returns true if there is anything removable at the block (building, tree, or road).</summary>
+        public bool HasRemovableAtBlock(int bx, int by, int bz)
+        {
+            if (_roadOverlay.Contains(bx, by, bz)) return true;
+            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            foreach (var kv in _parentsByEntryName)
+            {
+                if (kv.Value == null) continue;
+                for (int i = 0; i < kv.Value.childCount; i++)
+                {
+                    var child = kv.Value.GetChild(i);
+                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
+                    if (hx == bx && hy == by && hz == bz)
+                        return true;
+                }
+            }
+            return false;
+        }
+
         public bool HasBlockingObjectAtBlock(int bx, int by, int bz)
         {
             if (_roadOverlay.Contains(bx, by, bz)) return true;
