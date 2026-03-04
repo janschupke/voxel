@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Voxel.Debug;
 using Voxel.Pure;
 using Voxel.Pathfinding;
 
@@ -20,7 +21,11 @@ namespace Voxel
 
         public void PlaceSingle((int x, int y, int z) block, PlacedObjectEntry entry, float rotationY)
         {
-            if (_worldBootstrap == null || entry == null) return;
+            if (_worldBootstrap == null || entry == null)
+            {
+                GameDebugLogger.Log($"[PlacementExecutor] PlaceSingle skipped: worldBootstrap={_worldBootstrap != null}, entry={entry != null}");
+                return;
+            }
 
             if (entry.IsSurfaceOverlay)
             {
@@ -33,7 +38,11 @@ namespace Voxel
             }
 
             var parent = _worldBootstrap.GetParentForEntry(entry);
-            if (parent == null || entry.Prefab == null) return;
+            if (parent == null || entry.Prefab == null)
+            {
+                GameDebugLogger.Log($"[PlacementExecutor] PlaceSingle skipped at {block}: parent={parent != null}, prefab={entry.Prefab != null}");
+                return;
+            }
 
             if (entry.CanReplaceEnvironment)
                 _worldBootstrap.RemoveEnvironmentAtBlock(block.x, block.y, block.z);
@@ -52,6 +61,7 @@ namespace Voxel
 
             _worldBootstrap.SaveWorld();
             _worldBootstrap.SpawnActorsForBuildings();
+            GameDebugLogger.Log($"[PlacementExecutor] PlaceSingle OK: '{entry.Name}' at {block}");
         }
 
         public void PlaceInLine((int x, int z) start, (int x, int z) end, PlacedObjectEntry entry)

@@ -26,6 +26,7 @@ namespace Voxel
                 for (int i = 0; i < kv.Value.childCount; i++)
                 {
                     var child = kv.Value.GetChild(i);
+                    if (child == null) continue;
                     var (bx, by, bz) = worldScale.WorldToBlock(child.position);
                     list.Add(new PlacedObjectData(kv.Key, bx, by, bz, child.eulerAngles.y));
                 }
@@ -55,6 +56,7 @@ namespace Voxel
                 for (int i = 0; i < kv.Value.childCount; i++)
                 {
                     var child = kv.Value.GetChild(i);
+                    if (child == null) continue;
                     var inv = child.GetComponent<BuildingInventory>();
                     if (inv == null || inv.GetTotalCount() <= 0) continue;
 

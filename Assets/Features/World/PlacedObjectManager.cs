@@ -92,13 +92,14 @@ namespace Voxel
                 for (int i = 0; i < kv.Value.childCount; i++)
                 {
                     var child = kv.Value.GetChild(i);
+                    if (child == null) continue;
                     var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
                     if (hx == bx && hy == by && hz == bz)
                         toRemove.Add(child);
                 }
                 foreach (var t in toRemove)
                 {
-                    Object.Destroy(t.gameObject);
+                    Object.DestroyImmediate(t.gameObject);
                     removed = true;
                 }
             }
@@ -121,6 +122,7 @@ namespace Voxel
                 for (int i = 0; i < kv.Value.childCount; i++)
                 {
                     var child = kv.Value.GetChild(i);
+                    if (child == null) continue;
                     var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
                     if (hx == bx && hy == by && hz == bz)
                         outTransforms.Add(child);
@@ -139,6 +141,7 @@ namespace Voxel
                 for (int i = 0; i < kv.Value.childCount; i++)
                 {
                     var child = kv.Value.GetChild(i);
+                    if (child == null) continue;
                     var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
                     if (hx == bx && hy == by && hz == bz)
                         return true;
@@ -161,7 +164,9 @@ namespace Voxel
                 if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
                 for (int i = 0; i < parent.childCount; i++)
                 {
-                    var (hx, hy, hz) = worldScale.WorldToBlock(parent.GetChild(i).position);
+                    var child = parent.GetChild(i);
+                    if (child == null) continue;
+                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
                     if (hx == bx && hy == by && hz == bz) return true;
                 }
             }
@@ -179,7 +184,9 @@ namespace Voxel
                 if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
                 for (int i = 0; i < parent.childCount; i++)
                 {
-                    var (hx, hy, hz) = worldScale.WorldToBlock(parent.GetChild(i).position);
+                    var child = parent.GetChild(i);
+                    if (child == null) continue;
+                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
                     if (hx == bx && hy == by && hz == bz) return true;
                 }
             }
@@ -197,7 +204,9 @@ namespace Voxel
                 if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
                 for (int i = 0; i < parent.childCount; i++)
                 {
-                    var (hx, hy, hz) = worldScale.WorldToBlock(parent.GetChild(i).position);
+                    var child = parent.GetChild(i);
+                    if (child == null) continue;
+                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
                     if (hx == bx && hy == by && hz == bz) return true;
                 }
             }
@@ -217,12 +226,13 @@ namespace Voxel
                 for (int i = 0; i < parent.childCount; i++)
                 {
                     var child = parent.GetChild(i);
+                    if (child == null) continue;
                     var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
                     if (hx == bx && hy == by && hz == bz)
                         toRemove.Add(child);
                 }
                 foreach (var t in toRemove)
-                    Object.Destroy(t.gameObject);
+                    Object.DestroyImmediate(t.gameObject);
             }
         }
 
@@ -235,8 +245,11 @@ namespace Voxel
             var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
             for (int i = 0; i < parent.childCount; i++)
             {
-                var (hx, hy, hz) = worldScale.WorldToBlock(parent.GetChild(i).position);
-                if (hx == bx && hy == by && hz == bz) return true;
+                var child = parent.GetChild(i);
+                if (child == null) continue;
+                var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
+                if (hx == bx && hy == by && hz == bz)
+                    return true;
             }
             return false;
         }

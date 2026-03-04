@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using UnityEngine;
+using Voxel.Debug;
 using Voxel.Pure;
 
 namespace Voxel
@@ -19,7 +20,11 @@ namespace Voxel
             if (_worldBootstrap == null) return false;
             bool removed = _worldBootstrap.RemoveAtBlock(bx, by, bz);
             if (removed)
+            {
+                GameDebugLogger.Log($"[Removal] Removed at block ({bx},{by},{bz}), calling DestroyOrphanedActors and SaveAndRefreshAfterRemoval");
+                _worldBootstrap.DestroyOrphanedActors();
                 _worldBootstrap.SaveAndRefreshAfterRemoval();
+            }
             return removed;
         }
 
@@ -38,7 +43,11 @@ namespace Voxel
             }
 
             if (removed > 0)
+            {
+                GameDebugLogger.Log($"[Removal] Removed {removed} blocks in area, calling DestroyOrphanedActors and SaveAndRefreshAfterRemoval");
+                _worldBootstrap.DestroyOrphanedActors();
                 _worldBootstrap.SaveAndRefreshAfterRemoval();
+            }
 
             return removed;
         }

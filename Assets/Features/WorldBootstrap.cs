@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using UnityEngine;
+using Voxel.Debug;
 using Voxel.Pure;
 
 namespace Voxel
@@ -274,9 +275,17 @@ namespace Voxel
             return removed;
         }
 
+        /// <summary>Destroys actors whose home building was removed. Call before SaveAndRefreshAfterRemoval.</summary>
+        public void DestroyOrphanedActors()
+        {
+            if (actorSpawner != null)
+                actorSpawner.DestroyOrphanedActors();
+        }
+
         /// <summary>Call after removal operations to persist and refresh actors.</summary>
         public void SaveAndRefreshAfterRemoval()
         {
+            GameDebugLogger.Log("[WorldBootstrap] SaveAndRefreshAfterRemoval: SaveWorld + SpawnActorsForBuildings");
             SaveWorld();
             SpawnActorsForBuildings();
         }

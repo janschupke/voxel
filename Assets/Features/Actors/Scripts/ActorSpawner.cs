@@ -43,6 +43,22 @@ namespace Voxel
             SpawnActorsForBuildings();
         }
 
+        public void DestroyOrphanedActors()
+        {
+            if (worldBootstrap == null) return;
+            var actorsParent = worldBootstrap.GetParentByEntryName("Actors");
+            if (actorsParent == null) return;
+
+            var toDestroy = new System.Collections.Generic.List<GameObject>();
+            foreach (var ab in actorsParent.GetComponentsInChildren<ActorBehavior>(includeInactive: true))
+            {
+                if (ab != null && ab.HomeBuildingTransform == null)
+                    toDestroy.Add(ab.gameObject);
+            }
+            foreach (var go in toDestroy)
+                UnityEngine.Object.DestroyImmediate(go);
+        }
+
         public void SpawnActorsForBuildings()
         {
             var registry = worldBootstrap.PlacedObjectRegistry;

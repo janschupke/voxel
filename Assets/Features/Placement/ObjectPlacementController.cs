@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
+using Voxel.Debug;
 using Voxel.Pure;
 
 namespace Voxel
@@ -168,6 +169,12 @@ namespace Voxel
                 {
                     if (_previewBlock.HasValue && _previewValid && _executor != null)
                         _executor.PlaceSingle(_previewBlock.Value, _activeEntry, _rotationY);
+                    else if (_previewBlock.HasValue && !_previewValid)
+                        GameDebugLogger.Log($"[Placement] Click blocked: block {_previewBlock.Value} invalid for '{_activeEntry?.Name}' (previewValid=false)");
+                    else if (!_previewBlock.HasValue)
+                        GameDebugLogger.Log("[Placement] Click blocked: no preview block under cursor");
+                    else if (_executor == null)
+                        GameDebugLogger.Log("[Placement] Click blocked: executor is null");
                     return;
                 }
             }

@@ -1,3 +1,4 @@
+using Voxel.Debug;
 using Voxel.Pure;
 
 namespace Voxel
@@ -12,11 +13,21 @@ namespace Voxel
             int x, int y, int z,
             PlacedObjectEntry entry)
         {
-            if (worldBootstrap == null) return false;
-            if (worldBootstrap.HasBlockingObjectAtBlock(x, y, z)) return false;
-            // Environment and roads cannot be placed over existing environment; only buildings can replace.
-            if (entry != null && !entry.CanReplaceEnvironment && worldBootstrap.HasEnvironmentAtBlock(x, y, z))
+            if (worldBootstrap == null)
+            {
+                GameDebugLogger.Log($"[PlacementValidator] Block ({x},{y},{z}) INVALID: worldBootstrap is null");
                 return false;
+            }
+            if (worldBootstrap.HasBlockingObjectAtBlock(x, y, z))
+            {
+                GameDebugLogger.Log($"[PlacementValidator] Block ({x},{y},{z}) INVALID: HasBlockingObjectAtBlock (road or building)");
+                return false;
+            }
+            if (entry != null && !entry.CanReplaceEnvironment && worldBootstrap.HasEnvironmentAtBlock(x, y, z))
+            {
+                GameDebugLogger.Log($"[PlacementValidator] Block ({x},{y},{z}) INVALID: HasEnvironmentAtBlock and entry '{entry?.Name}' cannot replace");
+                return false;
+            }
             return true;
         }
 
