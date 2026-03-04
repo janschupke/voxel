@@ -10,9 +10,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 65640b8dfe739431d96432b68804acb1, type: 3}
-  m_Name: Warehouse
+  m_Name: Woodchuck
   m_EditorClassIdentifier: 
-  Name: Warehouse
+  Name: House
   Prefab: {fileID: 3532374132240110004, guid: e4869eb4234ab4317b9c3f5a9b040066, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
@@ -22,4 +22,4 @@ MonoBehaviour:
   ScaleMultiplier: 1
   RandomRotation: 0
   IsSelectable: 1
-  OperationalRangeInBlocks: 5
+  OperationalRangeInBlocks: 4

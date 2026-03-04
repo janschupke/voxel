@@ -11,6 +11,7 @@ namespace Voxel
     {
         [SerializeField] private WorldBootstrap worldBootstrap;
         [SerializeField] private PlacedObjectRegistry registry;
+        [SerializeField] private UIDocument uiDocument;
 
         private bool _placementModeActive;
         private PlacedObjectEntry _activeEntry;
@@ -34,6 +35,8 @@ namespace Voxel
                 worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
             if (registry == null && worldBootstrap != null)
                 registry = worldBootstrap.PlacedObjectRegistry;
+            if (uiDocument == null)
+                uiDocument = FindAnyObjectByType<UIDocument>();
         }
 
         public bool IsPlacementModeActive => _placementModeActive;
@@ -88,6 +91,14 @@ namespace Voxel
         private void Update()
         {
             if (!_placementModeActive || worldBootstrap == null || _activeEntry == null) return;
+
+            if (UIPanelUtils.IsPointerOverBlockingUI(uiDocument))
+            {
+                if (Mouse.current != null && (Mouse.current.leftButton.wasPressedThisFrame || Mouse.current.leftButton.wasReleasedThisFrame))
+                    _dragStartBlock = null;
+                _preview?.Clear();
+                return;
+            }
 
             if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
             {

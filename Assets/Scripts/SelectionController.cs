@@ -176,7 +176,8 @@ namespace Voxel
             if (cam != null && Mouse.current != null)
             {
                 Ray ray = cam.ScreenPointToRay(Mouse.current.position.ReadValue());
-                bool overUI = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+                bool overUI = (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) ||
+                             UIPanelUtils.IsPointerOverBlockingUI(uiDocument);
 
                 if (!overUI && TryGetSelectableAtRay(ray, out Transform hitTransform, out _))
                     _hoveredObject = hitTransform;
@@ -192,8 +193,9 @@ namespace Voxel
 
             if (Mouse.current != null && Mouse.current.leftButton.wasPressedThisFrame)
             {
-                if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject())
-                    return;
+                bool overUI = (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) ||
+                              UIPanelUtils.IsPointerOverBlockingUI(uiDocument);
+                if (overUI) return;
 
                 if (cam == null) return;
 
