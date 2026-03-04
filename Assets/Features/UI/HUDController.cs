@@ -34,8 +34,8 @@ public class HUDController : MonoBehaviour
     private DebugLogService _debugLogService;
     private VisualElement _inventoryPanel;
     private ScrollView _inventoryPanelList;
-    private Func<bool> _escapeHandlerInventory;
-    private Func<bool> _escapeHandlerLogPanel;
+    private Func<bool> _escapeHandlerGoBack;
+    private Func<bool> _escapeHandlerOpenMenu;
     private Func<bool> _hotkeyHandlerI;
     private Func<bool> _hotkeyHandlerL;
     private Func<bool> _hotkeyHandlerF2;
@@ -52,6 +52,8 @@ public class HUDController : MonoBehaviour
             gameObject.AddComponent<PanelManager>();
         if (GetComponent<HotkeysPanelController>() == null)
             gameObject.AddComponent<HotkeysPanelController>();
+        if (GetComponent<MenuPanelController>() == null)
+            gameObject.AddComponent<MenuPanelController>();
 
         if (uiDocument == null)
             uiDocument = GetComponent<UIDocument>();
@@ -76,24 +78,9 @@ public class HUDController : MonoBehaviour
                 _removeButton.clicked += () => _removalController.ToggleRemovalMode();
             }
 
-            var generateButton = uiDocument.rootVisualElement.Q<Button>("Generate");
-            if (generateButton != null && worldBootstrap != null)
-                generateButton.clicked += worldBootstrap.RegenerateWorld;
-
-            var saveButton = uiDocument.rootVisualElement.Q<Button>("Save");
-            if (saveButton != null && worldBootstrap != null)
-                saveButton.clicked += worldBootstrap.SaveWorld;
-
-            var exitButton = uiDocument.rootVisualElement.Q<Button>("Exit");
-            if (exitButton != null)
-                exitButton.clicked += () =>
-                {
-#if UNITY_EDITOR
-                    EditorApplication.ExitPlaymode();
-#else
-                    Application.Quit();
-#endif
-                };
+            var menuButton = uiDocument.rootVisualElement.Q<Button>("Menu");
+            if (menuButton != null)
+                menuButton.clicked += () => PanelManager.Instance?.OpenPanel(PanelManager.PanelMenu);
 
             _debugButton = uiDocument.rootVisualElement.Q<Button>("Debug");
             if (_debugButton != null)
@@ -163,10 +150,10 @@ public class HUDController : MonoBehaviour
             if (storage != null)
                 storage.StorageChanged += OnStorageChanged;
 
-            _escapeHandlerInventory = TryCloseInventoryPanel;
-            _escapeHandlerLogPanel = TryCloseLogPanel;
-            HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Close inventory", null, _escapeHandlerInventory, HotkeyManager.PriorityUiOverlay);
-            HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Close log panel", null, _escapeHandlerLogPanel, HotkeyManager.PriorityUiOverlay + 2);
+            _escapeHandlerGoBack = TryGoBack;
+            _escapeHandlerOpenMenu = TryOpenMenu;
+            HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Go back / close panel", null, _escapeHandlerGoBack, HotkeyManager.PriorityUiOverlay + 10);
+            HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Open menu", null, _escapeHandlerOpenMenu, HotkeyManager.PriorityDeselect - 10);
 
             _hotkeyHandlerI = () => { ToggleInventoryPanel(); return true; };
             _hotkeyHandlerL = () => { ToggleLogPanel(); return true; };
@@ -190,19 +177,20 @@ public class HUDController : MonoBehaviour
         }
     }
 
-    private bool TryCloseInventoryPanel()
+    private bool TryGoBack()
     {
-        if (PanelManager.Instance == null || !PanelManager.Instance.IsPanelOpen(PanelManager.PanelInventory))
-            return false;
-        PanelManager.Instance.ClosePanel(PanelManager.PanelInventory);
-        return true;
+        return PanelManager.Instance != null && PanelManager.Instance.GoBack();
     }
 
-    private bool TryCloseLogPanel()
+    private bool TryOpenMenu()
     {
-        if (PanelManager.Instance == null || !PanelManager.Instance.IsPanelOpen(PanelManager.PanelLog))
+        if (PanelManager.Instance == null) return false;
+        if (PanelManager.Instance.IsPanelOpen(PanelManager.PanelInventory) ||
+            PanelManager.Instance.IsPanelOpen(PanelManager.PanelLog) ||
+            PanelManager.Instance.IsPanelOpen(PanelManager.PanelHotkeys) ||
+            PanelManager.Instance.IsPanelOpen(PanelManager.PanelMenu))
             return false;
-        PanelManager.Instance.ClosePanel(PanelManager.PanelLog);
+        PanelManager.Instance.OpenPanel(PanelManager.PanelMenu);
         return true;
     }
 
@@ -356,10 +344,10 @@ public class HUDController : MonoBehaviour
         var storage = worldBootstrap?.StorageInventory;
         if (storage != null)
             storage.StorageChanged -= OnStorageChanged;
-        if (_escapeHandlerInventory != null)
-            HotkeyManager.Instance?.Unregister(_escapeHandlerInventory);
-        if (_escapeHandlerLogPanel != null)
-            HotkeyManager.Instance?.Unregister(_escapeHandlerLogPanel);
+        if (_escapeHandlerGoBack != null)
+            HotkeyManager.Instance?.Unregister(_escapeHandlerGoBack);
+        if (_escapeHandlerOpenMenu != null)
+            HotkeyManager.Instance?.Unregister(_escapeHandlerOpenMenu);
         if (_hotkeyHandlerI != null)
             HotkeyManager.Instance?.Unregister(_hotkeyHandlerI);
         if (_hotkeyHandlerL != null)

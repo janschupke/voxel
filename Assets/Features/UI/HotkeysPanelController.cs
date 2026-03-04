@@ -15,7 +15,6 @@ namespace Voxel
 
         private VisualElement _hotkeysPanel;
         private ScrollView _hotkeysPanelList;
-        private Func<bool> _escapeHandler;
         private Func<bool> _f1Handler;
         private Func<bool> _hHandler;
 
@@ -29,32 +28,21 @@ namespace Voxel
             _hotkeysPanel = uiDocument.rootVisualElement.Q<VisualElement>("HotkeysPanel");
             _hotkeysPanelList = uiDocument.rootVisualElement.Q<ScrollView>("HotkeysPanelList");
 
-            var hotkeysButton = uiDocument.rootVisualElement.Q<Button>("Hotkeys");
-            if (hotkeysButton != null)
-                hotkeysButton.clicked += ToggleHotkeysPanel;
+            var backButton = uiDocument.rootVisualElement.Q<Button>("HotkeysPanelBack");
+            if (backButton != null)
+                backButton.clicked += () => PanelManager.Instance?.GoBack();
 
             if (PanelManager.Instance != null && _hotkeysPanel != null)
                 PanelManager.Instance.RegisterPanel(PanelManager.PanelHotkeys, _hotkeysPanel, RefreshBindings, null);
 
             if (HotkeyManager.Instance != null)
             {
-                _escapeHandler = TryCloseHotkeysPanel;
-                HotkeyManager.Instance.Register(Key.Escape, "ESC", "Close hotkeys panel", null, _escapeHandler, HotkeyManager.PriorityUiOverlay + 1);
-
                 _f1Handler = TryOpenHotkeysPanel;
                 HotkeyManager.Instance.Register(Key.F1, "F1", "Show hotkeys", null, _f1Handler);
 
                 _hHandler = ToggleHotkeysPanelHandler;
                 HotkeyManager.Instance.Register(Key.H, "H", "Toggle hotkeys panel", null, _hHandler);
             }
-        }
-
-        private bool TryCloseHotkeysPanel()
-        {
-            if (PanelManager.Instance == null || !PanelManager.Instance.IsPanelOpen(PanelManager.PanelHotkeys))
-                return false;
-            PanelManager.Instance.ClosePanel(PanelManager.PanelHotkeys);
-            return true;
         }
 
         private bool TryOpenHotkeysPanel()
@@ -69,8 +57,6 @@ namespace Voxel
 
         private void OnDestroy()
         {
-            if (_escapeHandler != null)
-                HotkeyManager.Instance?.Unregister(_escapeHandler);
             if (_f1Handler != null)
                 HotkeyManager.Instance?.Unregister(_f1Handler);
             if (_hHandler != null)

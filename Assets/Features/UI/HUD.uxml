@@ -7,14 +7,11 @@
         <ui:VisualElement name="CentralContainer">
             <ui:VisualElement name="Sidebar">
                 <ui:VisualElement name="Menu">
-                    <ui:Button text="Generate" name="Generate" focusable="false"/>
-                    <ui:Button text="Save" name="Save" focusable="false"/>
+                    <ui:Button text="Menu" name="Menu" focusable="false"/>
                     <ui:Button text="Remove" name="Remove" focusable="false"/>
-                    <ui:Button text="Exit" name="Exit" focusable="false"/>
                     <ui:Button text="Debug On" name="Debug" focusable="false"/>
                     <ui:Button text="Inventory" name="Inventory" focusable="false"/>
                     <ui:Button text="Log" name="Log" focusable="false"/>
-                    <ui:Button text="Hotkeys" name="Hotkeys" focusable="false"/>
                     <ui:Button text="Clear All Inventories" name="ClearAllInventories" class="debug-only" focusable="false"/>
                 </ui:VisualElement>
                 <ui:VisualElement name="PlacementButtons"/>
@@ -30,6 +27,15 @@
             </ui:VisualElement>
             <ui:VisualElement name="MessageLog" class="blocks-zoom"/>
         </ui:VisualElement>
+        <ui:VisualElement name="MenuPanel" class="hidden blocks-zoom">
+            <ui:VisualElement name="MenuPanelContent">
+                <ui:Label name="MenuPanelTitle" text="Menu"/>
+                <ui:Button text="Generate" name="MenuGenerate" focusable="false"/>
+                <ui:Button text="Save" name="MenuSave" focusable="false"/>
+                <ui:Button text="Exit" name="MenuExit" focusable="false"/>
+                <ui:Button text="Hotkeys" name="MenuHotkeys" focusable="false"/>
+            </ui:VisualElement>
+        </ui:VisualElement>
         <ui:VisualElement name="InventoryPanel" class="hidden blocks-zoom">
             <ui:VisualElement name="InventoryPanelContent">
                 <ui:Label name="InventoryPanelTitle" text="Storage"/>
@@ -40,6 +46,7 @@
             <ui:VisualElement name="HotkeysPanelContent">
                 <ui:Label name="HotkeysPanelTitle" text="Hotkeys"/>
                 <ui:ScrollView name="HotkeysPanelList"/>
+                <ui:Button text="Back" name="HotkeysPanelBack" focusable="false"/>
             </ui:VisualElement>
         </ui:VisualElement>
         <ui:VisualElement name="LogPanel" class="hidden blocks-zoom">

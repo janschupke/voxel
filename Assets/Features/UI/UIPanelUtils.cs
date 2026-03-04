@@ -10,7 +10,7 @@ namespace Voxel
     {
         private const string BlocksZoomClass = "blocks-zoom";
 
-        /// <summary>Returns true if the pointer is over TopPanel, Sidebar, or a visible overlay panel (Inventory, Hotkeys, Log), blocking world interaction.</summary>
+        /// <summary>Returns true if the pointer is over TopPanel, Sidebar, or a visible overlay panel (Menu, Inventory, Hotkeys, Log), blocking world interaction.</summary>
         public static bool IsPointerOverBlockingUI(UIDocument doc)
         {
             if (doc == null || doc.rootVisualElement?.panel == null) return false;
@@ -24,11 +24,14 @@ namespace Voxel
 
             var topPanel = doc.rootVisualElement.Q("TopPanel");
             var sidebar = doc.rootVisualElement.Q("Sidebar");
+            var menuPanel = doc.rootVisualElement.Q("MenuPanel");
             var inventoryPanel = doc.rootVisualElement.Q("InventoryPanel");
             var hotkeysPanel = doc.rootVisualElement.Q("HotkeysPanel");
             var logPanel = doc.rootVisualElement.Q("LogPanel");
             return (topPanel != null && (picked == topPanel || topPanel.Contains(picked))) ||
                    (sidebar != null && (picked == sidebar || sidebar.Contains(picked))) ||
+                   (menuPanel != null && !menuPanel.ClassListContains("hidden") &&
+                    (picked == menuPanel || menuPanel.Contains(picked))) ||
                    (inventoryPanel != null && !inventoryPanel.ClassListContains("hidden") &&
                     (picked == inventoryPanel || inventoryPanel.Contains(picked))) ||
                    (hotkeysPanel != null && !hotkeysPanel.ClassListContains("hidden") &&
