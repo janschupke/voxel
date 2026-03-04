@@ -15,6 +15,7 @@ namespace Voxel
         private IBuildingInventory _cachedSourceInventory;
         private Transform _sourceBuilding;
         private Item? _carriedItem;
+        private readonly List<Transform> _candidatesBuffer = new List<Transform>(32);
 
         public Item? CarriedItem => _carriedItem;
 
@@ -68,7 +69,7 @@ namespace Voxel
             var worldScale = WorldScale;
             var (hx, hy, hz) = worldScale.WorldToBlock(HomeBuilding.position);
 
-            var candidates = new List<Transform>();
+            _candidatesBuffer.Clear();
             foreach (var entry in registry.Entries)
             {
                 if (entry == null || entry.InventoryCapacity <= 0 || entry.UsesGlobalStorage) continue;
@@ -87,19 +88,19 @@ namespace Voxel
 
                     var (bx, _, bz) = worldScale.WorldToBlock(building.position);
                     if (OperationalRange.IsCellInRange(hx, hz, bx, bz, RangeCells, RangeType))
-                        candidates.Add(building);
+                        _candidatesBuffer.Add(building);
                 }
             }
 
-            if (candidates.Count == 0)
+            if (_candidatesBuffer.Count == 0)
             {
                 GameDebugLogger.Log($"[Carrier] {gameObject.name} TryGetTarget: no buildings with items in range");
                 return (null, false);
             }
 
-            candidates.Shuffle();
+            _candidatesBuffer.Shuffle();
 
-            foreach (var building in candidates)
+            foreach (var building in _candidatesBuffer)
             {
                 var path = BuildPathTo(HomeBuilding.position, building.position, fromIsBuilding: true, toIsBuilding: false);
                 if (path != null && path.Count > 0)
@@ -111,7 +112,7 @@ namespace Voxel
                 }
             }
 
-            GameDebugLogger.Log($"[Carrier] {gameObject.name} TryGetTarget: {candidates.Count} buildings in range but no valid path");
+            GameDebugLogger.Log($"[Carrier] {gameObject.name} TryGetTarget: {_candidatesBuffer.Count} buildings in range but no valid path");
             return (null, true);
         }
 

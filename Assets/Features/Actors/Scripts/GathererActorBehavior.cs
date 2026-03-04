@@ -14,6 +14,7 @@ namespace Voxel
     public abstract class GathererActorBehavior : ActorBehavior
     {
         private IBuildingInventory _cachedInventory;
+        private readonly List<Vector3> _candidatesBuffer = new List<Vector3>(32);
 
         /// <summary>Registry entry name for the objects to gather (e.g. "Tree", "Wheat").</summary>
         protected abstract string TargetEntryName { get; }
@@ -43,24 +44,24 @@ namespace Voxel
             var worldScale = WorldScale;
             var (hx, hy, hz) = worldScale.WorldToBlock(HomeBuilding.position);
 
-            var candidates = new List<Vector3>();
+            _candidatesBuffer.Clear();
             for (int i = 0; i < targetParent.childCount; i++)
             {
                 var target = targetParent.GetChild(i);
                 var (tx, ty, tz) = worldScale.WorldToBlock(target.position);
                 if (OperationalRange.IsCellInRange(hx, hz, tx, tz, RangeCells, RangeType))
-                    candidates.Add(target.position);
+                    _candidatesBuffer.Add(target.position);
             }
 
-            if (candidates.Count == 0)
+            if (_candidatesBuffer.Count == 0)
             {
                 GameDebugLogger.Log($"[{GathererName}] {gameObject.name} TryGetTarget: {targetParent.childCount} {TargetEntryName}s total, 0 in range (home=({hx},{hz}) range={RangeCells} cells)");
                 return (null, false);
             }
 
-            candidates.Shuffle();
+            _candidatesBuffer.Shuffle();
 
-            foreach (var targetPos in candidates)
+            foreach (var targetPos in _candidatesBuffer)
             {
                 var path = BuildPathTo(HomeBuilding.position, targetPos, fromIsBuilding: true, toIsBuilding: false);
                 if (path != null && path.Count > 0)
@@ -70,7 +71,7 @@ namespace Voxel
                 }
             }
 
-            GameDebugLogger.Log($"[{GathererName}] {gameObject.name} TryGetTarget: {candidates.Count} {TargetEntryName}s in range but no valid path to any");
+            GameDebugLogger.Log($"[{GathererName}] {gameObject.name} TryGetTarget: {_candidatesBuffer.Count} {TargetEntryName}s in range but no valid path to any");
             return (null, true);
         }
 

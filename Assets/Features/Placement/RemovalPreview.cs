@@ -14,6 +14,8 @@ namespace Voxel
         private readonly List<GameObject> _roadOverlays = new();
         private readonly List<Transform> _transformsBuffer = new(32);
         private readonly HashSet<Transform> _outlinedSet = new();
+        private Material _roadOverlayMaterial;
+        private Shader _defaultShader;
         private static readonly Color RemovalColor = new Color(1f, 0.2f, 0.2f, 0.6f);
         private const float OutlineWidth = 4f;
 
@@ -68,6 +70,17 @@ namespace Voxel
             _roadOverlays.Clear();
         }
 
+        /// <summary>Releases cached resources. Call when RemovalController is destroyed.</summary>
+        public void Release()
+        {
+            Clear();
+            if (_roadOverlayMaterial != null)
+            {
+                Object.Destroy(_roadOverlayMaterial);
+                _roadOverlayMaterial = null;
+            }
+        }
+
         private GameObject CreateRoadOverlayQuad(int bx, int by, int bz)
         {
             var root = _worldBootstrap.transform;
@@ -84,9 +97,15 @@ namespace Voxel
             var renderer = go.GetComponent<Renderer>();
             if (renderer != null)
             {
-                var mat = new Material(Shader.Find("Sprites/Default"));
-                mat.color = RemovalColor;
-                renderer.sharedMaterial = mat;
+                if (_defaultShader == null)
+                    _defaultShader = Shader.Find("Sprites/Default");
+                if (_roadOverlayMaterial == null && _defaultShader != null)
+                {
+                    _roadOverlayMaterial = new Material(_defaultShader);
+                    _roadOverlayMaterial.color = RemovalColor;
+                }
+                if (_roadOverlayMaterial != null)
+                    renderer.sharedMaterial = _roadOverlayMaterial;
                 renderer.shadowCastingMode = UnityEngine.Rendering.ShadowCastingMode.Off;
                 renderer.receiveShadows = false;
             }

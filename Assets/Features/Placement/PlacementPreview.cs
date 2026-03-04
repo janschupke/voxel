@@ -16,6 +16,8 @@ namespace Voxel
         private readonly List<(int x, int y, int z)> _previewBlocks = new();
         private readonly Dictionary<Material, Material> _validMaterialCache = new();
         private readonly Dictionary<Material, Material> _invalidMaterialCache = new();
+        private readonly List<Collider> _collidersBuffer = new List<Collider>(16);
+        private readonly List<MeshRenderer> _renderersBuffer = new List<MeshRenderer>(16);
         private const int MaxAreaPreviews = 256;
 
         public GameObject Prefab => _prefab;
@@ -162,6 +164,24 @@ namespace Voxel
             _previewBlocks.Clear();
         }
 
+        /// <summary>Releases cached materials and clears instances. Call when discarding the preview (e.g. switching prefab).</summary>
+        public void Release()
+        {
+            Clear();
+            foreach (var mat in _validMaterialCache.Values)
+            {
+                if (mat != null)
+                    Object.Destroy(mat);
+            }
+            _validMaterialCache.Clear();
+            foreach (var mat in _invalidMaterialCache.Values)
+            {
+                if (mat != null)
+                    Object.Destroy(mat);
+            }
+            _invalidMaterialCache.Clear();
+        }
+
         private GameObject CreatePreviewInstance((int x, int y, int z) block, float rotationY, bool valid)
         {
             var instance = Object.Instantiate(_prefab);
@@ -176,7 +196,9 @@ namespace Voxel
 
             ApplyPreviewMaterials(instance, valid);
 
-            foreach (var col in instance.GetComponentsInChildren<Collider>())
+            _collidersBuffer.Clear();
+            instance.GetComponentsInChildren(false, _collidersBuffer);
+            foreach (var col in _collidersBuffer)
                 col.enabled = false;
 
             return instance;
@@ -187,7 +209,9 @@ namespace Voxel
             var cache = valid ? _validMaterialCache : _invalidMaterialCache;
             Color tint = valid ? new Color(0.5f, 1f, 0.5f, 0.5f) : new Color(1f, 0.4f, 0.4f, 0.5f);
 
-            foreach (var mr in go.GetComponentsInChildren<MeshRenderer>())
+            _renderersBuffer.Clear();
+            go.GetComponentsInChildren(false, _renderersBuffer);
+            foreach (var mr in _renderersBuffer)
             {
                 var source = mr.sharedMaterial;
                 if (source == null) continue;
@@ -216,7 +240,9 @@ namespace Voxel
             foreach (var go in _instances)
             {
                 if (go == null) continue;
-                foreach (var mr in go.GetComponentsInChildren<MeshRenderer>())
+                _renderersBuffer.Clear();
+                go.GetComponentsInChildren(false, _renderersBuffer);
+                foreach (var mr in _renderersBuffer)
                 {
                     var mat = mr.sharedMaterial;
                     if (mat == null) continue;

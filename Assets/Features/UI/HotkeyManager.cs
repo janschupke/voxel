@@ -44,6 +44,8 @@ namespace Voxel
         public const int PriorityDefault = 0;
 
         private readonly List<Binding> _bindings = new();
+        private readonly HashSet<string> _seenSet = new HashSet<string>();
+        private readonly List<HotkeyDisplayInfo> _resultList = new List<HotkeyDisplayInfo>();
 
         private struct Binding
         {
@@ -103,16 +105,16 @@ namespace Voxel
         /// <summary>Returns all bindings for UI display (no action delegates). Excludes ESC. Deduplicated by key+description+context.</summary>
         public IReadOnlyList<HotkeyDisplayInfo> GetAllBindings()
         {
-            var seen = new HashSet<string>();
-            var result = new List<HotkeyDisplayInfo>();
+            _seenSet.Clear();
+            _resultList.Clear();
             foreach (var b in _bindings.OrderByDescending(x => x.Priority).ThenBy(x => x.Key.ToString()))
             {
                 if (b.Key == Key.Escape) continue;
                 var key = $"{b.Key}|{b.Description}|{b.Context}";
-                if (seen.Add(key))
-                    result.Add(new HotkeyDisplayInfo(b.DisplayKey, b.Description, string.IsNullOrEmpty(b.Context) ? null : b.Context));
+                if (_seenSet.Add(key))
+                    _resultList.Add(new HotkeyDisplayInfo(b.DisplayKey, b.Description, string.IsNullOrEmpty(b.Context) ? null : b.Context));
             }
-            return result;
+            return _resultList;
         }
 
         private void Update()

@@ -29,6 +29,7 @@ namespace Voxel
         private PlacementExecutor _executor;
         private PlacementPreviewUpdater _previewUpdater;
         private Camera _cachedCamera;
+        private readonly List<Transform> _transformsBuffer = new List<Transform>(8);
         private Func<bool> _escapeHandler;
         private Func<bool> _rotateHandler;
 
@@ -114,7 +115,7 @@ namespace Voxel
             _rotationY = 0f;
             _dragStartBlock = null;
             RestoreHiddenEnvironment();
-            _preview?.Clear();
+            _preview?.Release();
             _preview = null;
             _previewBlock = null;
         }
@@ -203,12 +204,12 @@ namespace Voxel
             if (_cachedCamera == null) { _preview?.Clear(); _previewBlock = null; return; }
             if (_previewUpdater == null) _previewUpdater = new PlacementPreviewUpdater(worldBootstrap, _cachedCamera);
 
-            if (_activeEntry.Prefab == null) { _preview?.Clear(); _preview = null; _previewBlock = null; return; }
+            if (_activeEntry.Prefab == null) { _preview?.Release(); _preview = null; _previewBlock = null; return; }
             float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
             float scaleMult = _activeEntry.ScaleMultiplier > 0 ? _activeEntry.ScaleMultiplier : 1f;
             if (_preview == null || _preview.Prefab != _activeEntry.Prefab)
             {
-                _preview?.Clear();
+                _preview?.Release();
                 _preview = new PlacementPreview(_activeEntry.Prefab, WorldScale, prefabHeight, scaleMult);
             }
 
@@ -242,9 +243,9 @@ namespace Voxel
         private void HideEnvironmentAtBlock((int x, int y, int z) block)
         {
             if (worldBootstrap == null || registry == null) return;
-            var transforms = new List<Transform>();
-            worldBootstrap.GetTransformsAtBlock(block.x, block.y, block.z, transforms);
-            foreach (var child in transforms)
+            _transformsBuffer.Clear();
+            worldBootstrap.GetTransformsAtBlock(block.x, block.y, block.z, _transformsBuffer);
+            foreach (var child in _transformsBuffer)
             {
                 var entryName = worldBootstrap.GetEntryNameForTransform(child);
                 var entry = string.IsNullOrEmpty(entryName) ? null : registry.GetByName(entryName);

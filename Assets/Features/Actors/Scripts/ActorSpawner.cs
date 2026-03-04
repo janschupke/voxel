@@ -16,6 +16,7 @@ namespace Voxel
         [SerializeField] private WorldBootstrap worldBootstrap;
 
         private IReadOnlyList<ActorSaveData> _savedActorData;
+        private readonly List<ActorBehavior> _actorsBuffer = new List<ActorBehavior>(64);
 
         public void SetSavedActorData(IReadOnlyList<ActorSaveData> data)
         {
@@ -49,14 +50,13 @@ namespace Voxel
             var actorsParent = worldBootstrap.GetParentByEntryName("Actors");
             if (actorsParent == null) return;
 
-            var toDestroy = new System.Collections.Generic.List<GameObject>();
-            foreach (var ab in actorsParent.GetComponentsInChildren<ActorBehavior>(includeInactive: true))
+            _actorsBuffer.Clear();
+            actorsParent.GetComponentsInChildren(true, _actorsBuffer);
+            foreach (var ab in _actorsBuffer)
             {
                 if (ab != null && ab.HomeBuildingTransform == null)
-                    toDestroy.Add(ab.gameObject);
+                    Object.Destroy(ab.gameObject);
             }
-            foreach (var go in toDestroy)
-                UnityEngine.Object.DestroyImmediate(go);
         }
 
         /// <summary>Spawns an actor for a single building if it has AssignedActor and no actor yet. Use after placing one building.</summary>
@@ -192,9 +192,11 @@ namespace Voxel
             var actorsParent = worldBootstrap.GetParentByEntryName("Actors");
             if (actorsParent == null) return false;
 
-            foreach (var ab in actorsParent.GetComponentsInChildren<ActorBehavior>(includeInactive: true))
+            _actorsBuffer.Clear();
+            actorsParent.GetComponentsInChildren(true, _actorsBuffer);
+            foreach (var ab in _actorsBuffer)
             {
-                if (ab.HomeBuildingTransform == building)
+                if (ab != null && ab.HomeBuildingTransform == building)
                     return true;
             }
             return false;

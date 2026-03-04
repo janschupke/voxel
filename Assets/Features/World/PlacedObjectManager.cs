@@ -118,7 +118,7 @@ namespace Voxel
                 foreach (var t in list)
                 {
                     if (t != null)
-                        Object.DestroyImmediate(t.gameObject);
+                        Object.Destroy(t.gameObject);
                     removed = true;
                 }
                 _blockToTransforms.Remove(key);
@@ -214,7 +214,7 @@ namespace Voxel
             foreach (var t in toRemove)
             {
                 UnregisterTransformAtBlock(bx, by, bz, t);
-                Object.DestroyImmediate(t.gameObject);
+                Object.Destroy(t.gameObject);
             }
         }
 

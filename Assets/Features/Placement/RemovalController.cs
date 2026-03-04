@@ -186,6 +186,7 @@ namespace Voxel
         {
             if (_escapeHandler != null)
                 HotkeyManager.Instance?.Unregister(_escapeHandler);
+            _preview?.Release();
         }
     }
 }

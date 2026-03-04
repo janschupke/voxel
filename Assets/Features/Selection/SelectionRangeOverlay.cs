@@ -15,6 +15,8 @@ namespace Voxel
 
         private GameObject _overlayRoot;
         private LineRenderer _lineRenderer;
+        private Shader _rangeOverlayShader;
+        private Shader _fallbackShader;
         private readonly List<Vector3> _positionsBuffer = new List<Vector3>(256);
         private Vector3[] _positionsArray;
         private Vector3 _lastCachedCenter;
@@ -124,8 +126,12 @@ namespace Voxel
             _lineRenderer.loop = true;
             _lineRenderer.startWidth = lineWidth;
             _lineRenderer.endWidth = lineWidth;
-            var shader = Shader.Find("Voxel/RangeOverlay");
-            _lineRenderer.material = new Material(shader != null ? shader : Shader.Find("Sprites/Default"));
+            if (_rangeOverlayShader == null)
+                _rangeOverlayShader = Shader.Find("Voxel/RangeOverlay");
+            if (_fallbackShader == null)
+                _fallbackShader = Shader.Find("Sprites/Default");
+            var shader = _rangeOverlayShader != null ? _rangeOverlayShader : _fallbackShader;
+            _lineRenderer.material = new Material(shader != null ? shader : _fallbackShader);
             if (_lineRenderer.material.HasProperty("_Color"))
                 _lineRenderer.material.SetColor("_Color", rangeColor);
             else
@@ -138,6 +144,14 @@ namespace Voxel
         {
             if (_overlayRoot != null)
                 _overlayRoot.SetActive(false);
+        }
+
+        private void OnDestroy()
+        {
+            if (_lineRenderer != null && _lineRenderer.material != null)
+            {
+                Destroy(_lineRenderer.material);
+            }
         }
     }
 }
