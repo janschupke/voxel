@@ -25,6 +25,7 @@ namespace Voxel
         private float _rotationY;
         private readonly Dictionary<string, Button> _buttonsByType = new();
         private PlacementExecutor _executor;
+        private PlacementPreviewUpdater _previewUpdater;
         private Camera _cachedCamera;
 
         private VoxelGrid Grid => worldBootstrap?.Grid;
@@ -42,6 +43,7 @@ namespace Voxel
                 uiDocument = FindAnyObjectByType<UIDocument>();
             _cachedCamera = Camera.main;
             _executor = worldBootstrap != null ? new PlacementExecutor(worldBootstrap) : null;
+            _previewUpdater = worldBootstrap != null && _cachedCamera != null ? new PlacementPreviewUpdater(worldBootstrap, _cachedCamera) : null;
         }
 
         public bool IsPlacementModeActive => _placementModeActive;
@@ -171,16 +173,8 @@ namespace Voxel
             }
 
             if (_cachedCamera == null) _cachedCamera = Camera.main;
-            var cam = _cachedCamera;
-            if (cam == null)
-            {
-                _preview?.Clear();
-                _previewBlock = null;
-                return;
-            }
-
-            int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
-            var isBlockValid = PlacementValidator.GetBlockValidatorForPlacement(worldBootstrap, _activeEntry);
+            if (_cachedCamera == null) { _preview?.Clear(); _previewBlock = null; return; }
+            if (_previewUpdater == null) _previewUpdater = new PlacementPreviewUpdater(worldBootstrap, _cachedCamera);
 
             if (_activeEntry.Prefab == null) { _preview?.Clear(); _preview = null; _previewBlock = null; return; }
             float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
@@ -191,65 +185,21 @@ namespace Voxel
                 _preview = new PlacementPreview(_activeEntry.Prefab, WorldScale, prefabHeight, scaleMult);
             }
 
-            if (_activeEntry.PlacementMode == PlacementMode.Area || _activeEntry.PlacementMode == PlacementMode.Line)
-            {
-                if (_dragStartBlock.HasValue)
-                {
-                    var endBlock = GetBlockUnderMouse();
-                    if (endBlock.HasValue)
-                    {
-                        if (_activeEntry.PlacementMode == PlacementMode.Line)
-                        {
-                            var skipPreview = PlacementValidator.ShouldSkipPreviewOnExistingRoads(_activeEntry)
-                                ? (System.Func<int, int, int, bool>)((x, y, z) => worldBootstrap.HasRoadAt(x, y, z))
-                                : null;
-                            _preview.SetLine(_dragStartBlock.Value, endBlock.Value, Grid, waterLevelY, isBlockValid, skipPreview);
-                        }
-                        else
-                            _preview.SetAreaWithValidity(_dragStartBlock.Value, endBlock.Value, Grid, waterLevelY,
-                                isBlockValid, _activeEntry.RandomRotation);
-                    }
-                    else
-                    {
-                        _preview.Clear();
-                    }
-                }
-                else
-                {
-                    if (PlacementUtility.TryRaycastTopSurface(cam, Grid, WorldScale, waterLevelY, out var block, out bool valid))
-                    {
-                        bool treeValid = valid && isBlockValid(block.bx, block.by, block.bz);
-                        _preview.SetSingle(block, 0f, treeValid);
-                    }
-                    else
-                    {
-                        _preview.Clear();
-                    }
-                }
-            }
-            else
-            {
-                if (PlacementUtility.TryRaycastTopSurface(cam, Grid, WorldScale, waterLevelY, out var block, out bool valid))
-                {
-                    bool placeValid = valid && PlacementValidator.IsBlockValidForPlacement(worldBootstrap, block.bx, block.by, block.bz, _activeEntry);
+            var dragStart = _activeEntry.PlacementMode == PlacementMode.Area || _activeEntry.PlacementMode == PlacementMode.Line
+                ? _dragStartBlock
+                : null;
 
-                    if (!_previewBlock.HasValue || _previewBlock.Value != block || _previewValid != placeValid)
-                    {
-                        _previewBlock = block;
-                        _previewValid = placeValid;
-                        RestoreHiddenTrees();
-                        if (placeValid && _activeEntry.CanReplaceTrees)
-                            HideReplaceableAtBlock(block);
-                    }
+            _previewUpdater.Update(_activeEntry, _preview, dragStart, _rotationY, out var newBlock, out var newValid);
 
-                    _preview.SetSingle(block, _rotationY, placeValid);
-                }
-                else
+            if (_activeEntry.PlacementMode != PlacementMode.Area && _activeEntry.PlacementMode != PlacementMode.Line)
+            {
+                if (!_previewBlock.HasValue || _previewBlock.Value != newBlock || _previewValid != newValid)
                 {
-                    _previewBlock = null;
-                    _previewValid = false;
+                    _previewBlock = newBlock;
+                    _previewValid = newValid;
                     RestoreHiddenTrees();
-                    _preview?.Clear();
+                    if (newValid && newBlock.HasValue && _activeEntry.CanReplaceTrees)
+                        HideReplaceableAtBlock(newBlock.Value);
                 }
             }
         }

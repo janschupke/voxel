@@ -185,6 +185,13 @@ The following audit items have been implemented:
 - **SelectionController:** Use `IBuildingInventory` for `_cachedInventory`; use `IItemRegistry` for `RefreshInventoryDisplay`.
 - **SelectionRangeOverlay:** Cache last center/range params; skip `ShowOverlay` when selection unchanged.
 
+**Low-priority splits (completed):**
+- **ActorBehavior:** Extracted `ActorPathfindingService` (pathfinding logic) and `ActorVisibilityHelper` (visibility toggle).
+- **ChunkMeshBuilder:** Extracted `ChunkMeshBuilderWater` and `ChunkMeshBuilderRoad` for water/road mesh collection.
+- **PlacedObjectManager:** Extracted `PlacedObjectPersistence` static class for CollectPlacedObjectsForSave, CollectBuildingInventoriesForSave, LoadPlacedObjects.
+- **ObjectPlacementController:** Extracted `PlacementPreviewUpdater` for preview update logic.
+- **SelectionController:** SelectionOutlineRenderer and SelectionRaycaster already extracted; no further split needed.
+
 ---
 
 ## References

@@ -81,7 +81,7 @@ namespace Voxel.Rendering
                 var waterVertices = new List<Vector3>();
                 var waterNormals = new List<Vector3>();
                 var waterTriangles = new List<int>();
-                CollectWaterFaces(grid, ox, oy, oz, waterConfig, voxelScale,
+                ChunkMeshBuilderWater.CollectWaterFaces(grid, ox, oy, oz, waterConfig, voxelScale,
                     waterVertices, waterNormals, waterTriangles);
                 Mesh waterMesh = waterTriangles.Count > 0
                     ? CreateMesh(waterVertices, waterNormals, waterTriangles)
@@ -100,7 +100,7 @@ namespace Voxel.Rendering
                 var roadUVs = new List<Vector2>();
                 var roadColors = new List<Color>();
                 var roadTriangles = new List<int>();
-                CollectRoadFaces(grid, roadOverlay, roadConfig, ox, oy, oz, voxelScale,
+                ChunkMeshBuilderRoad.CollectRoadFaces(grid, roadOverlay, roadConfig, ox, oy, oz, voxelScale,
                     roadVertices, roadNormals, roadUVs, roadColors, roadTriangles);
                 Mesh roadMesh = roadTriangles.Count > 0
                     ? CreateMeshWithUVsAndColors(roadVertices, roadNormals, roadUVs, roadColors, roadTriangles)
@@ -203,7 +203,7 @@ namespace Voxel.Rendering
         /// Triangle winding is reversed so the front face (outside the block) is visible with Unity's CW culling.
         /// </summary>
         /// <param name="yOffset">Optional Y offset in blocks (e.g. 0.5 to raise water surface).</param>
-        private static void AddFaceToBand(
+        internal static void AddFaceToBand(
             int x, int y, int z, int face, float voxelScale,
             List<Vector3> vertices, List<Vector3> normals, List<int> triangles,
             float yOffset = 0f)
@@ -281,74 +281,11 @@ namespace Voxel.Rendering
         }
 
         /// <summary>
-        /// Collects road overlay quads for top faces of solid blocks where a road exists.
-        /// Road at (wx, wy+1, wz) means road on top face of block (wx, wy, wz).
-        /// </summary>
-        private static void CollectRoadFaces(
-            VoxelGrid grid, RoadOverlay roadOverlay, RoadConfig roadConfig,
-            int ox, int oy, int oz, float voxelScale,
-            List<Vector3> vertices, List<Vector3> normals, List<Vector2> uvs, List<Color> colors, List<int> triangles)
-        {
-            const float roadYOffset = 0.01f;
-            const float uvScale = 0.25f;
-            Color tintGround = roadConfig.TintForGround;
-            Color tintStone = roadConfig.TintForStone;
-
-            for (int x = 0; x < ChunkSize; x++)
-            {
-                for (int y = 0; y < ChunkSize; y++)
-                {
-                    for (int z = 0; z < ChunkSize; z++)
-                    {
-                        int wx = ox + x;
-                        int wy = oy + y;
-                        int wz = oz + z;
-
-                        if (!grid.IsSolid(wx, wy, wz))
-                            continue;
-                        if (!IsFaceVisible(grid, wx, wy, wz, 5))
-                            continue;
-
-                        int surfaceY = wy + 1;
-                        if (!roadOverlay.Contains(wx, surfaceY, wz))
-                            continue;
-
-                        byte blockType = grid.GetBlock(wx, wy, wz);
-                        Color tint = blockType == BlockType.Stone ? tintStone : tintGround;
-
-                        int baseIndex = vertices.Count;
-                        var faceVertIndices = CubeFaces[5];
-                        var normal = FaceNormals[5];
-
-                        foreach (int vi in faceVertIndices)
-                        {
-                            var cv = CubeVertices[vi];
-                            vertices.Add(new Vector3(
-                                (x + cv.x) * voxelScale,
-                                (y + cv.y + roadYOffset) * voxelScale,
-                                (z + cv.z) * voxelScale));
-                            normals.Add(normal);
-                            uvs.Add(new Vector2((wx + cv.x) * uvScale, (wz + cv.z) * uvScale));
-                            colors.Add(tint);
-                        }
-
-                        triangles.Add(baseIndex);
-                        triangles.Add(baseIndex + 2);
-                        triangles.Add(baseIndex + 1);
-                        triangles.Add(baseIndex);
-                        triangles.Add(baseIndex + 3);
-                        triangles.Add(baseIndex + 2);
-                    }
-                }
-            }
-        }
-
-        /// <summary>
         /// Returns true if the face should be rendered. A face is visible only when the adjacent
         /// block is air (or out of bounds), so we don't draw interior faces between solid blocks.
         /// </summary>
         /// <param name="face">0=-Z, 1=+Z, 2=-X, 3=+X, 4=-Y, 5=+Y</param>
-        private static bool IsFaceVisible(VoxelGrid grid, int x, int y, int z, int face)
+        internal static bool IsFaceVisible(VoxelGrid grid, int x, int y, int z, int face)
         {
             return face switch
             {
@@ -362,79 +299,5 @@ namespace Voxel.Rendering
             };
         }
 
-        /// <summary>
-        /// Collects water faces for air voxels below water level. When surfaceOnly is true,
-        /// only the +Y face is added (Minecraft-style). Otherwise all visible faces are added.
-        /// </summary>
-        private static void CollectWaterFaces(
-            VoxelGrid grid, int ox, int oy, int oz, WaterConfig waterConfig, float voxelScale,
-            List<Vector3> vertices, List<Vector3> normals, List<int> triangles)
-        {
-            int waterLevelY = waterConfig.GetWaterLevelY(grid.Height);
-            bool surfaceOnly = waterConfig.SurfaceOnly;
-
-            for (int x = 0; x < ChunkSize; x++)
-            {
-                for (int y = 0; y < ChunkSize; y++)
-                {
-                    for (int z = 0; z < ChunkSize; z++)
-                    {
-                        int wx = ox + x;
-                        int wy = oy + y;
-                        int wz = oz + z;
-
-                        if (grid.IsSolid(wx, wy, wz))
-                            continue;
-                        if (wy > waterLevelY)
-                            continue;
-
-                        const float waterSurfaceOffset = -0.5f;
-                        if (surfaceOnly)
-                        {
-                            if (!IsWaterFaceVisible(grid, wx, wy, wz, 5, waterLevelY))
-                                continue;
-                            AddFaceToBand(x, y, z, 5, voxelScale, vertices, normals, triangles, waterSurfaceOffset);
-                        }
-                        else
-                        {
-                            for (int face = 0; face < 6; face++)
-                            {
-                                if (!IsWaterFaceVisible(grid, wx, wy, wz, face, waterLevelY))
-                                    continue;
-                                AddFaceToBand(x, y, z, face, voxelScale, vertices, normals, triangles, waterSurfaceOffset);
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// Returns true if a water face should be rendered. A face is visible when the adjacent
-        /// voxel is not water (i.e. solid, or air above water level, or out of bounds).
-        /// </summary>
-        /// <param name="face">0=-Z, 1=+Z, 2=-X, 3=+X, 4=-Y, 5=+Y</param>
-        private static bool IsWaterFaceVisible(VoxelGrid grid, int x, int y, int z, int face, int waterLevelY)
-        {
-            (int nx, int ny, int nz) = face switch
-            {
-                0 => (x, y, z - 1),
-                1 => (x, y, z + 1),
-                2 => (x - 1, y, z),
-                3 => (x + 1, y, z),
-                4 => (x, y - 1, z),
-                5 => (x, y + 1, z),
-                _ => (x, y, z)
-            };
-
-            if (nx < 0 || nx >= grid.Width || ny < 0 || ny >= grid.Height || nz < 0 || nz >= grid.Depth)
-                return true;
-
-            if (grid.IsSolid(nx, ny, nz))
-                return true;
-            if (ny > waterLevelY)
-                return true;
-            return false;
-        }
     }
 }

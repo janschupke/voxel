@@ -28,6 +28,7 @@ namespace Voxel
         private ActorState _prevState = ActorState.Idle;
         private Vector3 _targetWorld;
         private Renderer[] _cachedRenderers;
+        private ActorPathfindingService _pathfinding;
         private IReadOnlyList<GridNode> _path;
         private int _pathIndex;
         private float _workTimer;
@@ -50,6 +51,7 @@ namespace Voxel
             RangeBlocks = rangeBlocks;
             RangeType = rangeType;
             WorldScale = new WorldScale(bootstrap.WorldParameters != null ? bootstrap.WorldParameters.BlockScale : 1f);
+            _pathfinding = bootstrap != null ? new ActorPathfindingService(bootstrap) : null;
             transform.position = homeBuilding.position;
         }
 
@@ -113,11 +115,7 @@ namespace Voxel
                 _cachedRenderers = GetComponentsInChildren<Renderer>(includeInactive: true);
 
             bool visible = _state == ActorState.GoingToTarget || _state == ActorState.WorkingOutside || _state == ActorState.Returning || _state == ActorState.ReturningToBlocked;
-            foreach (var r in _cachedRenderers)
-            {
-                if (r != null && r.enabled != visible)
-                    r.enabled = visible;
-            }
+            ActorVisibilityHelper.UpdateVisibility(_cachedRenderers, visible);
         }
 
         private void UpdateIdle()
@@ -130,7 +128,7 @@ namespace Voxel
             if (target.HasValue)
             {
                 _targetWorld = target.Value;
-                _path = BuildPathTo(HomeBuilding.position, target.Value, fromIsBuilding: true, toIsBuilding: false);
+                _path = _pathfinding?.BuildPathTo(HomeBuilding.position, target.Value, WorldScale, Definition, fromIsBuilding: true, toIsBuilding: false);
                 if (_path != null && _path.Count > 0)
                 {
                     _pathIndex = 0;
@@ -168,7 +166,7 @@ namespace Voxel
                 if (SkipWorkOutside)
                 {
                     OnArrivedAtTarget();
-                    _path = BuildPathTo(transform.position, HomeBuilding.position, fromIsBuilding: false, toIsBuilding: true);
+                    _path = _pathfinding?.BuildPathTo(transform.position, HomeBuilding.position, WorldScale, Definition, fromIsBuilding: false, toIsBuilding: true);
                     _pathIndex = 0;
                     _state = ActorState.Returning;
                 }
@@ -181,14 +179,10 @@ namespace Voxel
             }
 
             var node = _path[_pathIndex];
-            if (Definition.PathingMode == ActorPathingMode.Road)
+            if (Definition.PathingMode == ActorPathingMode.Road && _pathfinding != null && !_pathfinding.IsNodeWalkable(node, Definition))
             {
-                var graph = GetPathGraph();
-                if (!graph.IsWalkable(node))
-                {
-                    TryRecoverFromInvalidPath(wasGoingToTarget: true);
-                    return;
-                }
+                TryRecoverFromInvalidPath(wasGoingToTarget: true);
+                return;
             }
             if (UpdateMovementAlongPath())
                 _pathIndex++;
@@ -199,7 +193,7 @@ namespace Voxel
             _workTimer -= Time.deltaTime;
             if (_workTimer <= 0f)
             {
-                _path = BuildPathTo(transform.position, HomeBuilding.position, fromIsBuilding: false, toIsBuilding: true);
+                _path = _pathfinding?.BuildPathTo(transform.position, HomeBuilding.position, WorldScale, Definition, fromIsBuilding: false, toIsBuilding: true);
                 _pathIndex = 0;
                 _state = ActorState.Returning;
             }
@@ -224,14 +218,10 @@ namespace Voxel
             }
 
             var node = _path[_pathIndex];
-            if (Definition.PathingMode == ActorPathingMode.Road)
+            if (Definition.PathingMode == ActorPathingMode.Road && _pathfinding != null && !_pathfinding.IsNodeWalkable(node, Definition))
             {
-                var graph = GetPathGraph();
-                if (!graph.IsWalkable(node))
-                {
-                    TryRecoverFromInvalidPath(wasGoingToTarget: _state == ActorState.GoingToTarget || _state == ActorState.ReturningToBlocked);
-                    return;
-                }
+                TryRecoverFromInvalidPath(wasGoingToTarget: _state == ActorState.GoingToTarget || _state == ActorState.ReturningToBlocked);
+                return;
             }
             if (UpdateMovementAlongPath())
                 _pathIndex++;
@@ -313,136 +303,20 @@ namespace Voxel
         /// </summary>
         protected IReadOnlyList<GridNode> BuildPathTo(Vector3 fromWorld, Vector3 toWorld, bool fromIsBuilding = false, bool toIsBuilding = false)
         {
-            return BuildPathToInternal(fromWorld, toWorld, fromIsBuilding, toIsBuilding, GetPathGraph());
-        }
-
-        /// <summary>
-        /// Build path home with fallback. ONLY used when actor was on road and path became invalid mid-path.
-        /// Tries Road first, then Smart (road-preferring land) for Road mode.
-        /// </summary>
-        private IReadOnlyList<GridNode> BuildPathToHomeWithFallback()
-        {
-            var path = BuildPathToInternal(transform.position, HomeBuilding.position, fromIsBuilding: false, toIsBuilding: true, GetPathGraph());
-            if (path != null && path.Count > 0) return path;
-            if (Definition.PathingMode == ActorPathingMode.Road)
-            {
-                path = BuildPathToInternal(transform.position, HomeBuilding.position, fromIsBuilding: false, toIsBuilding: true, GetFallbackPathGraph());
-                if (path != null && path.Count > 0)
-                    GameDebugLogger.Log($"[Actor] {gameObject.name} path invalid on road, using Smart fallback for return home");
-            }
-            return path;
-        }
-
-        private IReadOnlyList<GridNode> BuildPathToInternal(Vector3 fromWorld, Vector3 toWorld, bool fromIsBuilding, bool toIsBuilding, IGridGraph<GridNode> graph)
-        {
-            if (graph == null) return null;
-
-            var (fx, _, fz) = WorldScale.WorldToBlock(fromWorld);
-            var (tx, _, tz) = WorldScale.WorldToBlock(toWorld);
-
-            var start = fromIsBuilding ? FindOptimalWalkableAdjacentCardinal(fx, fz, graph, tx, tz) : FindWalkableAdjacent(fx, fz, graph);
-            var goal = toIsBuilding ? FindOptimalWalkableAdjacentCardinal(tx, tz, graph, fx, fz) : FindWalkableAdjacent(tx, tz, graph);
-
-            if (!start.HasValue)
-            {
-                GameDebugLogger.Log($"[Actor] {gameObject.name} BuildPath: no walkable block adjacent to start ({fx},{fz})");
-                return null;
-            }
-            if (!goal.HasValue)
-            {
-                GameDebugLogger.Log($"[Actor] {gameObject.name} BuildPath: no walkable block adjacent to goal ({tx},{tz})");
-                return null;
-            }
-
-            return AStarPathfinder.FindPath(graph, start.Value, goal.Value);
-        }
-
-        /// <summary>Returns the first walkable block at or adjacent to (bx,bz). Used for targets (tree, building).</summary>
-        private GridNode? FindWalkableAdjacent(int bx, int bz, IGridGraph<GridNode> graph)
-        {
-            var node = new GridNode(bx, bz);
-            if (graph.IsWalkable(node))
-                return node;
-
-            for (int dx = -1; dx <= 1; dx++)
-            {
-                for (int dz = -1; dz <= 1; dz++)
-                {
-                    if (dx == 0 && dz == 0) continue;
-                    var n = new GridNode(bx + dx, bz + dz);
-                    if (graph.IsWalkable(n))
-                        return n;
-                }
-            }
-            return null;
-        }
-
-        /// <summary>Returns the walkable block in a cardinal direction from (bx,bz) that is closest to (targetBx, targetBz). Used for buildings.</summary>
-        private GridNode? FindOptimalWalkableAdjacentCardinal(int bx, int bz, IGridGraph<GridNode> graph, int targetBx, int targetBz)
-        {
-            GridNode? best = null;
-            float bestDistSq = float.MaxValue;
-
-            foreach (var (dx, dz) in new[] { (0, 0), (1, 0), (-1, 0), (0, 1), (0, -1) })
-            {
-                var n = new GridNode(bx + dx, bz + dz);
-                if (!graph.IsWalkable(n)) continue;
-
-                int dx2 = (bx + dx) - targetBx;
-                int dz2 = (bz + dz) - targetBz;
-                float distSq = dx2 * dx2 + dz2 * dz2;
-                if (distSq < bestDistSq)
-                {
-                    bestDistSq = distSq;
-                    best = n;
-                }
-            }
-            return best;
-        }
-
-        private IGridGraph<GridNode> GetPathGraph()
-        {
-            var grid = worldBootstrap.Grid;
-            var roadOverlay = worldBootstrap.GetRoadOverlay();
-            int waterLevelY = worldBootstrap.WaterConfig != null
-                ? worldBootstrap.WaterConfig.GetWaterLevelY(grid.Height)
-                : 0;
-
-            bool isBlockValid(int x, int y, int z) =>
-                !worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
-
-            return Definition.PathingMode switch
-            {
-                ActorPathingMode.Road => new RoadPathGraph(grid, waterLevelY, roadOverlay),
-                ActorPathingMode.Free => new SurfacePathGraph(grid, waterLevelY, isBlockValid),
-                ActorPathingMode.Smart => new SmartSurfacePathGraph(grid, waterLevelY, roadOverlay, isBlockValid),
-                _ => new SurfacePathGraph(grid, waterLevelY, isBlockValid)
-            };
-        }
-
-        /// <summary>Fallback graph for Road mode when roads become unavailable. Uses Smart (road-preferring land).</summary>
-        private IGridGraph<GridNode> GetFallbackPathGraph()
-        {
-            var grid = worldBootstrap.Grid;
-            var roadOverlay = worldBootstrap.GetRoadOverlay();
-            int waterLevelY = worldBootstrap.WaterConfig != null
-                ? worldBootstrap.WaterConfig.GetWaterLevelY(grid.Height)
-                : 0;
-            bool isBlockValid(int x, int y, int z) =>
-                !worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
-            return new SmartSurfacePathGraph(grid, waterLevelY, roadOverlay, isBlockValid);
+            return _pathfinding?.BuildPathTo(fromWorld, toWorld, WorldScale, Definition, fromIsBuilding, toIsBuilding);
         }
 
         /// <summary>Path node became unwalkable while actor on road. Try path home with fallback; if exists, return home (Blocked on arrival if was GoingToTarget). Else go Blocked.</summary>
         private void TryRecoverFromInvalidPath(bool wasGoingToTarget)
         {
-            var pathHome = BuildPathToHomeWithFallback();
+            var pathHome = _pathfinding?.BuildPathToHomeWithFallback(transform.position, HomeBuilding.position, WorldScale, Definition);
             if (pathHome != null && pathHome.Count > 0)
             {
                 _path = pathHome;
                 _pathIndex = 0;
                 _state = wasGoingToTarget ? ActorState.ReturningToBlocked : ActorState.Returning;
-                GameDebugLogger.Log($"[Actor] {gameObject.name} path invalid, recalculated path home (wasGoingToTarget={wasGoingToTarget})");
+                if (Definition.PathingMode == ActorPathingMode.Road)
+                    GameDebugLogger.Log($"[Actor] {gameObject.name} path invalid, using Smart fallback for return home");
             }
             else
             {

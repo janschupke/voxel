@@ -5,6 +5,11 @@ namespace Voxel
     /// </summary>
     public enum Item
     {
+        Bread,
+        Flour,
+        Fruit,
+        Stone,
+        Wheat,
         Wood
     }
 }
