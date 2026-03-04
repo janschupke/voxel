@@ -12,6 +12,10 @@ namespace Voxel
         private readonly WorldBootstrap _worldBootstrap;
         private readonly Camera _camera;
         private readonly WorldScale _worldScale;
+        private (int x, int z)? _lastLineStart;
+        private (int x, int z)? _lastLineEnd;
+        private (int x, int z)? _lastAreaStart;
+        private (int x, int z)? _lastAreaEnd;
 
         public PlacementPreviewUpdater(WorldBootstrap worldBootstrap, Camera camera)
         {
@@ -42,24 +46,36 @@ namespace Voxel
                     {
                         if (activeEntry.PlacementMode == PlacementMode.Line)
                         {
-                            var skipPreview = PlacementValidator.ShouldSkipPreviewOnExistingRoads(activeEntry)
-                                ? (System.Func<int, int, int, bool>)((x, y, z) => _worldBootstrap.HasRoadAt(x, y, z))
-                                : null;
-                            preview.SetLine(dragStartBlock.Value, endBlock.Value, grid, waterLevelY, isBlockValid, skipPreview);
+                            if (_lastLineStart != dragStartBlock.Value || _lastLineEnd != endBlock.Value)
+                            {
+                                _lastLineStart = dragStartBlock.Value;
+                                _lastLineEnd = endBlock.Value;
+                                var skipPreview = PlacementValidator.ShouldSkipPreviewOnExistingRoads(activeEntry)
+                                    ? (System.Func<int, int, int, bool>)((x, y, z) => _worldBootstrap.HasRoadAt(x, y, z))
+                                    : null;
+                                preview.SetLine(dragStartBlock.Value, endBlock.Value, grid, waterLevelY, isBlockValid, skipPreview);
+                            }
                         }
                         else
                         {
-                            preview.SetAreaWithValidity(dragStartBlock.Value, endBlock.Value, grid, waterLevelY,
-                                isBlockValid, activeEntry.RandomRotation);
+                            if (_lastAreaStart != dragStartBlock.Value || _lastAreaEnd != endBlock.Value)
+                            {
+                                _lastAreaStart = dragStartBlock.Value;
+                                _lastAreaEnd = endBlock.Value;
+                                preview.SetAreaWithValidity(dragStartBlock.Value, endBlock.Value, grid, waterLevelY,
+                                    isBlockValid, activeEntry.RandomRotation);
+                            }
                         }
                     }
                     else
                     {
+                        _lastLineStart = _lastLineEnd = _lastAreaStart = _lastAreaEnd = null;
                         preview.Clear();
                     }
                 }
                 else
                 {
+                    _lastLineStart = _lastLineEnd = _lastAreaStart = _lastAreaEnd = null;
                     if (PlacementUtility.TryRaycastTopSurface(_camera, grid, _worldScale, waterLevelY, out var block, out bool valid))
                     {
                         bool treeValid = valid && isBlockValid(block.bx, block.by, block.bz);

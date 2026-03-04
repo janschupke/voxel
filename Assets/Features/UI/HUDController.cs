@@ -78,6 +78,10 @@ public class HUDController : MonoBehaviour
             if (generateButton != null && worldBootstrap != null)
                 generateButton.clicked += worldBootstrap.RegenerateWorld;
 
+            var saveButton = uiDocument.rootVisualElement.Q<Button>("Save");
+            if (saveButton != null && worldBootstrap != null)
+                saveButton.clicked += worldBootstrap.SaveWorld;
+
             var exitButton = uiDocument.rootVisualElement.Q<Button>("Exit");
             if (exitButton != null)
                 exitButton.clicked += () =>

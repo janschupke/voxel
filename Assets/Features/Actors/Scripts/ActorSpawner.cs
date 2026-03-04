@@ -59,6 +59,15 @@ namespace Voxel
                 UnityEngine.Object.DestroyImmediate(go);
         }
 
+        /// <summary>Spawns an actor for a single building if it has AssignedActor and no actor yet. Use after placing one building.</summary>
+        public void SpawnActorForBuildingIfNeeded(PlacedObjectEntry entry, Transform building)
+        {
+            if (entry == null || building == null || worldBootstrap == null) return;
+            if (entry.AssignedActor == null || entry.AssignedActor.Prefab == null) return;
+            if (!entry.HasOperationalRange) return;
+            SpawnActorForBuilding(entry, building);
+        }
+
         public void SpawnActorsForBuildings()
         {
             var registry = worldBootstrap.PlacedObjectRegistry;

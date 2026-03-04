@@ -14,6 +14,8 @@ namespace Voxel
         private readonly float _scaleMultiplier;
         private readonly List<GameObject> _instances = new();
         private readonly List<(int x, int y, int z)> _previewBlocks = new();
+        private readonly Dictionary<Material, Material> _validMaterialCache = new();
+        private readonly Dictionary<Material, Material> _invalidMaterialCache = new();
         private const int MaxAreaPreviews = 256;
 
         public GameObject Prefab => _prefab;
@@ -180,22 +182,28 @@ namespace Voxel
             return instance;
         }
 
-        private static void ApplyPreviewMaterials(GameObject go, bool valid)
+        private void ApplyPreviewMaterials(GameObject go, bool valid)
         {
+            var cache = valid ? _validMaterialCache : _invalidMaterialCache;
             Color tint = valid ? new Color(0.5f, 1f, 0.5f, 0.5f) : new Color(1f, 0.4f, 0.4f, 0.5f);
 
             foreach (var mr in go.GetComponentsInChildren<MeshRenderer>())
             {
-                if (mr.sharedMaterial == null) continue;
-                var mat = new Material(mr.sharedMaterial);
+                var source = mr.sharedMaterial;
+                if (source == null) continue;
+                if (!cache.TryGetValue(source, out var mat))
+                {
+                    mat = new Material(source);
+                    if (mat.HasProperty("_BaseColor"))
+                        mat.SetColor("_BaseColor", tint);
+                    else
+                        mat.color = tint;
+                    mat.renderQueue = 3000;
+                    if (mat.HasProperty("_Surface"))
+                        mat.SetFloat("_Surface", 1f);
+                    cache[source] = mat;
+                }
                 mr.sharedMaterial = mat;
-                if (mat.HasProperty("_BaseColor"))
-                    mat.SetColor("_BaseColor", tint);
-                else
-                    mat.color = tint;
-                mat.renderQueue = 3000;
-                if (mat.HasProperty("_Surface"))
-                    mat.SetFloat("_Surface", 1f);
             }
         }
 

@@ -32,7 +32,6 @@ namespace Voxel
                 if (entry.CanReplaceEnvironment)
                     _worldBootstrap.RemoveEnvironmentAtBlock(block.x, block.y, block.z);
                 _worldBootstrap.AddRoadAt(block.x, block.y, block.z);
-                _worldBootstrap.SaveWorld();
                 _worldBootstrap.Renderer?.InvalidateChunkAt(block.x, block.y - 1, block.z);
                 return;
             }
@@ -58,9 +57,9 @@ namespace Voxel
             instance.name = entry.Prefab.name;
             instance.transform.localScale = scale;
             TryAddBuildingInventory(instance, entry);
+            _worldBootstrap.NotifyObjectPlaced(entry.Name, instance.transform);
 
-            _worldBootstrap.SaveWorld();
-            _worldBootstrap.SpawnActorsForBuildings();
+            _worldBootstrap.SpawnActorForBuildingIfNeeded(entry, instance.transform);
             GameDebugLogger.Log($"[PlacementExecutor] PlaceSingle OK: '{entry.Name}' at {block}");
         }
 
@@ -98,8 +97,6 @@ namespace Voxel
                     _worldBootstrap.Renderer?.InvalidateChunkAt(node.X, topY, node.Z);
                     roadPlaced++;
                 }
-                if (roadPlaced > 0)
-                    _worldBootstrap.SaveWorld();
                 return;
             }
 
@@ -132,12 +129,9 @@ namespace Voxel
                 instance.name = entry.Prefab.name;
                 instance.transform.localScale = scale;
                 TryAddBuildingInventory(instance, entry);
+                _worldBootstrap.NotifyObjectPlaced(entry.Name, instance.transform);
+                _worldBootstrap.SpawnActorForBuildingIfNeeded(entry, instance.transform);
                 placed++;
-            }
-            if (placed > 0)
-            {
-                _worldBootstrap.SaveWorld();
-                _worldBootstrap.SpawnActorsForBuildings();
             }
         }
 
@@ -166,8 +160,6 @@ namespace Voxel
                     roadPlaced++;
                 }
 
-                if (roadPlaced > 0)
-                    _worldBootstrap.SaveWorld();
                 return;
             }
 
@@ -197,13 +189,9 @@ namespace Voxel
                 instance.name = entry.Prefab.name;
                 instance.transform.localScale = scale;
                 TryAddBuildingInventory(instance, entry);
+                _worldBootstrap.NotifyObjectPlaced(entry.Name, instance.transform);
+                _worldBootstrap.SpawnActorForBuildingIfNeeded(entry, instance.transform);
                 placed++;
-            }
-
-            if (placed > 0)
-            {
-                _worldBootstrap.SaveWorld();
-                _worldBootstrap.SpawnActorsForBuildings();
             }
         }
 

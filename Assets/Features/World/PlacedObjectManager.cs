@@ -12,6 +12,7 @@ namespace Voxel
         private readonly Transform _root;
         private readonly Dictionary<string, Transform> _parentsByEntryName = new Dictionary<string, Transform>();
         private readonly RoadOverlay _roadOverlay = new RoadOverlay();
+        private readonly Dictionary<(int x, int y, int z), List<Transform>> _blockToTransforms = new Dictionary<(int x, int y, int z), List<Transform>>();
 
         private PlacedObjectRegistry _registry;
         private WorldParameters _worldParameters;
@@ -37,12 +38,39 @@ namespace Voxel
         public void Clear()
         {
             _roadOverlay.Clear();
+            _blockToTransforms.Clear();
             foreach (var kv in _parentsByEntryName)
             {
                 if (kv.Value != null)
                     Object.Destroy(kv.Value.gameObject);
             }
             _parentsByEntryName.Clear();
+        }
+
+        /// <summary>Registers a placed object in the block spatial index. Call after instantiating.</summary>
+        public void RegisterPlacedObject(string entryName, Transform transform)
+        {
+            if (transform == null || string.IsNullOrEmpty(entryName) || entryName == "Road") return;
+            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            var (bx, by, bz) = worldScale.WorldToBlock(transform.position);
+            var key = (bx, by, bz);
+            if (!_blockToTransforms.TryGetValue(key, out var list))
+            {
+                list = new List<Transform>();
+                _blockToTransforms[key] = list;
+            }
+            list.Add(transform);
+        }
+
+        private void UnregisterTransformAtBlock(int bx, int by, int bz, Transform transform)
+        {
+            var key = (bx, by, bz);
+            if (_blockToTransforms.TryGetValue(key, out var list))
+            {
+                list.Remove(transform);
+                if (list.Count == 0)
+                    _blockToTransforms.Remove(key);
+            }
         }
 
         public Transform GetOrCreateParentForEntry(string entryName)
@@ -84,24 +112,16 @@ namespace Voxel
         public bool RemoveAtBlock(int bx, int by, int bz)
         {
             bool removed = false;
-            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            foreach (var kv in _parentsByEntryName)
+            var key = (bx, by, bz);
+            if (_blockToTransforms.TryGetValue(key, out var list))
             {
-                if (kv.Value == null) continue;
-                var toRemove = new List<Transform>();
-                for (int i = 0; i < kv.Value.childCount; i++)
+                foreach (var t in list)
                 {
-                    var child = kv.Value.GetChild(i);
-                    if (child == null) continue;
-                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
-                    if (hx == bx && hy == by && hz == bz)
-                        toRemove.Add(child);
-                }
-                foreach (var t in toRemove)
-                {
-                    Object.DestroyImmediate(t.gameObject);
+                    if (t != null)
+                        Object.DestroyImmediate(t.gameObject);
                     removed = true;
                 }
+                _blockToTransforms.Remove(key);
             }
             if (_roadOverlay.Contains(bx, by, bz))
             {
@@ -115,17 +135,12 @@ namespace Voxel
         public void GetTransformsAtBlock(int bx, int by, int bz, List<Transform> outTransforms)
         {
             outTransforms.Clear();
-            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            foreach (var kv in _parentsByEntryName)
+            if (_blockToTransforms.TryGetValue((bx, by, bz), out var list))
             {
-                if (kv.Value == null) continue;
-                for (int i = 0; i < kv.Value.childCount; i++)
+                foreach (var t in list)
                 {
-                    var child = kv.Value.GetChild(i);
-                    if (child == null) continue;
-                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
-                    if (hx == bx && hy == by && hz == bz)
-                        outTransforms.Add(child);
+                    if (t != null)
+                        outTransforms.Add(t);
                 }
             }
         }
@@ -134,41 +149,21 @@ namespace Voxel
         public bool HasRemovableAtBlock(int bx, int by, int bz)
         {
             if (_roadOverlay.Contains(bx, by, bz)) return true;
-            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            foreach (var kv in _parentsByEntryName)
-            {
-                if (kv.Value == null) continue;
-                for (int i = 0; i < kv.Value.childCount; i++)
-                {
-                    var child = kv.Value.GetChild(i);
-                    if (child == null) continue;
-                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
-                    if (hx == bx && hy == by && hz == bz)
-                        return true;
-                }
-            }
-            return false;
+            return _blockToTransforms.TryGetValue((bx, by, bz), out var list) && list.Count > 0;
         }
 
         /// <summary>Returns true if placement is blocked (road or building). Used for placement validation.</summary>
         public bool HasBlockingObjectAtBlock(int bx, int by, int bz)
         {
             if (_roadOverlay.Contains(bx, by, bz)) return true;
-            if (_registry == null) return false;
-            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            foreach (var entry in _registry.Entries)
+            if (_registry == null || !_blockToTransforms.TryGetValue((bx, by, bz), out var list)) return false;
+            foreach (var t in list)
             {
-                if (entry == null) continue;
-                if (entry.StructureType == Pure.StructureType.Road) continue; // Road is in overlay, not parents
-                if (!entry.BlocksPlacement && !entry.IsBlocking) continue; // Backward compat: IsBlocking
-                if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
-                for (int i = 0; i < parent.childCount; i++)
-                {
-                    var child = parent.GetChild(i);
-                    if (child == null) continue;
-                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
-                    if (hx == bx && hy == by && hz == bz) return true;
-                }
+                if (t == null) continue;
+                var entryName = GetEntryNameForTransform(t);
+                var entry = string.IsNullOrEmpty(entryName) ? null : _registry.GetByName(entryName);
+                if (entry != null && (entry.BlocksPlacement || entry.IsBlocking))
+                    return true;
             }
             return false;
         }
@@ -176,19 +171,14 @@ namespace Voxel
         /// <summary>Returns true if actor pathing is blocked. Only buildings block; roads and environment are walkable.</summary>
         public bool BlocksPathingAtBlock(int bx, int by, int bz)
         {
-            if (_registry == null) return false;
-            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            foreach (var entry in _registry.Entries)
+            if (_registry == null || !_blockToTransforms.TryGetValue((bx, by, bz), out var list)) return false;
+            foreach (var t in list)
             {
-                if (entry == null || !entry.BlocksPathing) continue;
-                if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
-                for (int i = 0; i < parent.childCount; i++)
-                {
-                    var child = parent.GetChild(i);
-                    if (child == null) continue;
-                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
-                    if (hx == bx && hy == by && hz == bz) return true;
-                }
+                if (t == null) continue;
+                var entryName = GetEntryNameForTransform(t);
+                var entry = string.IsNullOrEmpty(entryName) ? null : _registry.GetByName(entryName);
+                if (entry != null && entry.BlocksPathing)
+                    return true;
             }
             return false;
         }
@@ -196,19 +186,14 @@ namespace Voxel
         /// <summary>Returns true if any environment object (Tree, Wheat, etc.) is at the block.</summary>
         public bool HasEnvironmentAtBlock(int bx, int by, int bz)
         {
-            if (_registry == null) return false;
-            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            foreach (var entry in _registry.Entries)
+            if (_registry == null || !_blockToTransforms.TryGetValue((bx, by, bz), out var list)) return false;
+            foreach (var t in list)
             {
-                if (entry == null || entry.StructureType != Pure.StructureType.Environment) continue;
-                if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
-                for (int i = 0; i < parent.childCount; i++)
-                {
-                    var child = parent.GetChild(i);
-                    if (child == null) continue;
-                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
-                    if (hx == bx && hy == by && hz == bz) return true;
-                }
+                if (t == null) continue;
+                var entryName = GetEntryNameForTransform(t);
+                var entry = string.IsNullOrEmpty(entryName) ? null : _registry.GetByName(entryName);
+                if (entry != null && entry.StructureType == Pure.StructureType.Environment)
+                    return true;
             }
             return false;
         }
@@ -216,23 +201,20 @@ namespace Voxel
         /// <summary>Removes all environment objects at the block. Used when placing over environment.</summary>
         public void RemoveEnvironmentAtBlock(int bx, int by, int bz)
         {
-            if (_registry == null) return;
-            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            foreach (var entry in _registry.Entries)
+            if (_registry == null || !_blockToTransforms.TryGetValue((bx, by, bz), out var list)) return;
+            var toRemove = new List<Transform>();
+            foreach (var t in list)
             {
-                if (entry == null || entry.StructureType != Pure.StructureType.Environment) continue;
-                if (!_parentsByEntryName.TryGetValue(entry.Name, out var parent) || parent == null) continue;
-                var toRemove = new List<Transform>();
-                for (int i = 0; i < parent.childCount; i++)
-                {
-                    var child = parent.GetChild(i);
-                    if (child == null) continue;
-                    var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
-                    if (hx == bx && hy == by && hz == bz)
-                        toRemove.Add(child);
-                }
-                foreach (var t in toRemove)
-                    Object.DestroyImmediate(t.gameObject);
+                if (t == null) continue;
+                var entryName = GetEntryNameForTransform(t);
+                var entry = string.IsNullOrEmpty(entryName) ? null : _registry.GetByName(entryName);
+                if (entry != null && entry.StructureType == Pure.StructureType.Environment)
+                    toRemove.Add(t);
+            }
+            foreach (var t in toRemove)
+            {
+                UnregisterTransformAtBlock(bx, by, bz, t);
+                Object.DestroyImmediate(t.gameObject);
             }
         }
 
@@ -240,15 +222,11 @@ namespace Voxel
         {
             if (string.IsNullOrEmpty(entryName)) return false;
             if (entryName == "Road") return _roadOverlay.Contains(bx, by, bz);
-            if (!_parentsByEntryName.TryGetValue(entryName, out var parent) || parent == null)
-                return false;
-            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            for (int i = 0; i < parent.childCount; i++)
+            if (!_blockToTransforms.TryGetValue((bx, by, bz), out var list)) return false;
+            foreach (var t in list)
             {
-                var child = parent.GetChild(i);
-                if (child == null) continue;
-                var (hx, hy, hz) = worldScale.WorldToBlock(child.position);
-                if (hx == bx && hy == by && hz == bz)
+                if (t == null) continue;
+                if (GetEntryNameForTransform(t) == entryName)
                     return true;
             }
             return false;
@@ -273,6 +251,23 @@ namespace Voxel
                 GetOrCreateParentForEntry, GetParentByEntryName,
                 (x, y, z) => _roadOverlay.Add(x, y, z),
                 RunTreePlacement);
+            RebuildBlockIndex();
+        }
+
+        private void RebuildBlockIndex()
+        {
+            _blockToTransforms.Clear();
+            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            foreach (var kv in _parentsByEntryName)
+            {
+                if (kv.Value == null) continue;
+                for (int i = 0; i < kv.Value.childCount; i++)
+                {
+                    var child = kv.Value.GetChild(i);
+                    if (child == null) continue;
+                    RegisterPlacedObject(kv.Key, child);
+                }
+            }
         }
 
         private void RunTreePlacement(VoxelGrid grid)

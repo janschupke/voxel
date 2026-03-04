@@ -226,6 +226,12 @@ namespace Voxel
                 actorSpawner.SpawnActorsForBuildings();
         }
 
+        public void SpawnActorForBuildingIfNeeded(PlacedObjectEntry entry, Transform building)
+        {
+            if (actorSpawner != null)
+                actorSpawner.SpawnActorForBuildingIfNeeded(entry, building);
+        }
+
         public void RegenerateWorld()
         {
             WorldPersistenceService.DeleteWorld();
@@ -258,6 +264,12 @@ namespace Voxel
             return _placedObjectManager.GetOrCreateParentForEntry(entry.Name);
         }
 
+        /// <summary>Registers a placed object in the spatial index. Call after instantiating.</summary>
+        public void NotifyObjectPlaced(string entryName, Transform transform)
+        {
+            _placedObjectManager?.RegisterPlacedObject(entryName, transform);
+        }
+
         public Transform GetOrCreateParentForEntry(string entryName) =>
             _placedObjectManager.GetOrCreateParentForEntry(entryName);
 
@@ -282,11 +294,10 @@ namespace Voxel
                 actorSpawner.DestroyOrphanedActors();
         }
 
-        /// <summary>Call after removal operations to persist and refresh actors.</summary>
+        /// <summary>Call after removal operations to refresh actors. Does not save; use Save button or exit to persist.</summary>
         public void SaveAndRefreshAfterRemoval()
         {
-            GameDebugLogger.Log("[WorldBootstrap] SaveAndRefreshAfterRemoval: SaveWorld + SpawnActorsForBuildings");
-            SaveWorld();
+            GameDebugLogger.Log("[WorldBootstrap] SaveAndRefreshAfterRemoval: SpawnActorsForBuildings");
             SpawnActorsForBuildings();
         }
 
