@@ -18,6 +18,7 @@ public class HUDController : MonoBehaviour
     private ObjectPlacementController _placementController;
     private SelectionController _selectionController;
     private Label _fpsLabel;
+    private Button _debugButton;
     private float _fpsAccumulator;
     private int _fpsFrameCount;
     private VisualElement _messageLog;
@@ -51,11 +52,15 @@ public class HUDController : MonoBehaviour
 #endif
                 };
 
-            var debugToggle = uiDocument.rootVisualElement.Q<Toggle>("Debug");
-            if (debugToggle != null)
+            _debugButton = uiDocument.rootVisualElement.Q<Button>("Debug");
+            if (_debugButton != null)
             {
-                debugToggle.SetValueWithoutNotify(GameDebugLogger.IsEnabled);
-                debugToggle.RegisterValueChangedCallback(evt => GameDebugLogger.SetEnabled(evt.newValue));
+                UpdateDebugButtonText();
+                _debugButton.clicked += () =>
+                {
+                    GameDebugLogger.SetEnabled(!GameDebugLogger.IsEnabled);
+                    UpdateDebugButtonText();
+                };
             }
 
             var placementContainer = uiDocument.rootVisualElement.Q<VisualElement>("PlacementButtons");
@@ -93,6 +98,12 @@ public class HUDController : MonoBehaviour
                 _debugLogService.LogReceived += OnLogReceived;
             }
         }
+    }
+
+    private void UpdateDebugButtonText()
+    {
+        if (_debugButton != null)
+            _debugButton.text = GameDebugLogger.IsEnabled ? "Debug On" : "Debug Off";
     }
 
     private void OnDestroy()
@@ -146,7 +157,10 @@ public class HUDController : MonoBehaviour
         }
 
         if (Keyboard.current != null && Keyboard.current.f2Key.wasPressedThisFrame)
+        {
             GameDebugLogger.SetEnabled(!GameDebugLogger.IsEnabled);
+            UpdateDebugButtonText();
+        }
 
         if (_fpsLabel == null) return;
 

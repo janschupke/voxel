@@ -71,7 +71,8 @@ namespace Voxel
         }
 
         public void SetLine((int x, int z) start, (int x, int z) end, VoxelGrid grid, int waterLevelY,
-            System.Func<int, int, int, bool> isBlockValid)
+            System.Func<int, int, int, bool> isBlockValid,
+            System.Func<int, int, int, bool> skipPreviewForBlock = null)
         {
             Clear();
             if (_prefab == null || grid == null) return;
@@ -89,6 +90,9 @@ namespace Voxel
                 if (topY < 0) continue;
 
                 int surfaceY = topY + 1;
+                if (skipPreviewForBlock != null && skipPreviewForBlock(node.X, surfaceY, node.Z))
+                    continue;
+
                 bool valid = topY >= waterLevelY && isBlockValid(node.X, surfaceY, node.Z);
 
                 var instance = CreatePreviewInstance((node.X, surfaceY, node.Z), 0f, valid);

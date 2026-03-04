@@ -9,7 +9,7 @@
                 <ui:VisualElement name="Menu">
                     <ui:Button text="Generate" name="Generate" focusable="false"/>
                     <ui:Button text="Exit" name="Exit" focusable="false"/>
-                    <ui:Toggle name="Debug" label="Debug" value="true" focusable="false"/>
+                    <ui:Button text="Debug On" name="Debug" focusable="false"/>
                 </ui:VisualElement>
                 <ui:VisualElement name="PlacementButtons"/>
                 <ui:VisualElement name="SelectionDetail" class="hidden">

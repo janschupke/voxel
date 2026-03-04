@@ -174,7 +174,7 @@ namespace Voxel
             }
 
             int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
-            var isBlockValid = PlacementValidator.CreateBlockValidator(worldBootstrap);
+            var isBlockValid = GetBlockValidatorForPlacement();
 
             if (_activeEntry.Prefab == null) { _preview?.Clear(); _preview = null; _previewBlock = null; return; }
             float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
@@ -193,7 +193,12 @@ namespace Voxel
                     if (endBlock.HasValue)
                     {
                         if (_activeEntry.PlacementMode == PlacementMode.Line)
-                            _preview.SetLine(_dragStartBlock.Value, endBlock.Value, Grid, waterLevelY, isBlockValid);
+                        {
+                            var skipPreview = ShouldSkipPreviewOnExistingRoads()
+                                ? (System.Func<int, int, int, bool>)((x, y, z) => worldBootstrap.HasRoadAt(x, y, z))
+                                : null;
+                            _preview.SetLine(_dragStartBlock.Value, endBlock.Value, Grid, waterLevelY, isBlockValid, skipPreview);
+                        }
                         else
                             _preview.SetAreaWithValidity(_dragStartBlock.Value, endBlock.Value, Grid, waterLevelY,
                                 isBlockValid, _activeEntry.RandomRotation);
@@ -308,10 +313,22 @@ namespace Voxel
             inv.Initialize(entry.Name, entry.InventoryCapacity);
         }
 
+        private System.Func<int, int, int, bool> GetBlockValidatorForPlacement()
+        {
+            if (_activeEntry != null && _activeEntry.PlacementMode == PlacementMode.Line &&
+                _activeEntry.IsSurfaceOverlay && _activeEntry.LinePlacementExtendThroughExisting)
+                return PlacementValidator.CreateBlockValidatorForRoadExtend(worldBootstrap);
+            return PlacementValidator.CreateBlockValidator(worldBootstrap);
+        }
+
+        private bool ShouldSkipPreviewOnExistingRoads() =>
+            _activeEntry != null && _activeEntry.PlacementMode == PlacementMode.Line &&
+            _activeEntry.IsSurfaceOverlay && _activeEntry.LinePlacementExtendThroughExisting;
+
         private void PlaceInLine((int x, int z) start, (int x, int z) end)
         {
             int waterLevelY = WaterConfig.GetWaterLevelY(Grid.Height);
-            var isBlockValid = PlacementValidator.CreateBlockValidator(worldBootstrap);
+            var isBlockValid = GetBlockValidatorForPlacement();
 
             var graph = new SurfacePathGraph(Grid, waterLevelY, isBlockValid);
             var path = PathBuilder.BuildPath(graph, new GridNode(start.x, start.z), new GridNode(end.x, end.z));
@@ -319,6 +336,7 @@ namespace Voxel
 
             if (_activeEntry.IsSurfaceOverlay)
             {
+                bool skipExisting = ShouldSkipPreviewOnExistingRoads();
                 int roadPlaced = 0;
                 foreach (var node in path)
                 {
@@ -326,6 +344,7 @@ namespace Voxel
                     if (topY < 0 || topY < waterLevelY) continue;
 
                     int surfaceY = topY + 1;
+                    if (skipExisting && worldBootstrap.HasRoadAt(node.X, surfaceY, node.Z)) continue;
                     if (worldBootstrap.HasBlockingObjectAtBlock(node.X, surfaceY, node.Z)) continue;
 
                     if (_activeEntry.CanReplaceTrees)

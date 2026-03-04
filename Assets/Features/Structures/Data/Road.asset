@@ -18,6 +18,7 @@ MonoBehaviour:
   IsBlocking: 0
   IsSurfaceOverlay: 1
   PlacementMode: 2
+  LinePlacementExtendThroughExisting: 1
   PrefabHeightInUnits: 1
   ScaleMultiplier: 1
   RandomRotation: 0

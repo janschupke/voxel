@@ -23,5 +23,15 @@ namespace Voxel
         {
             return (x, y, z) => worldBootstrap != null && !worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
         }
+
+        /// <summary>
+        /// Validator for road line placement when extending through existing roads.
+        /// Allows path through blocks that already have roads; still blocks buildings.
+        /// </summary>
+        public static System.Func<int, int, int, bool> CreateBlockValidatorForRoadExtend(WorldBootstrap worldBootstrap)
+        {
+            return (x, y, z) => worldBootstrap != null &&
+                (!worldBootstrap.HasBlockingObjectAtBlock(x, y, z) || worldBootstrap.HasRoadAt(x, y, z));
+        }
     }
 }
