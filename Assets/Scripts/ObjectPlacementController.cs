@@ -296,9 +296,18 @@ namespace Voxel
             var instance = Instantiate(_activeEntry.Prefab, pos, rotation, parent);
             instance.name = _activeEntry.Prefab.name;
             instance.transform.localScale = scale;
+            TryAddBuildingInventory(instance, _activeEntry);
 
             worldBootstrap.SaveWorld();
             worldBootstrap.SpawnActorsForBuildings();
+        }
+
+        private void TryAddBuildingInventory(GameObject instance, PlacedObjectEntry entry)
+        {
+            if (entry == null || entry.InventoryCapacity <= 0) return;
+            var inv = instance.GetComponent<BuildingInventory>();
+            if (inv == null) inv = instance.AddComponent<BuildingInventory>();
+            inv.Initialize(entry.Name, entry.InventoryCapacity);
         }
 
         private void PlaceInLine((int x, int z) start, (int x, int z) end)
@@ -361,6 +370,7 @@ namespace Voxel
                 var instance = Instantiate(_activeEntry.Prefab, pos, rotation, parent);
                 instance.name = _activeEntry.Prefab.name;
                 instance.transform.localScale = scale;
+                TryAddBuildingInventory(instance, _activeEntry);
                 placed++;
             }
             if (placed > 0)
@@ -433,6 +443,7 @@ namespace Voxel
                     var instance = Instantiate(_activeEntry.Prefab, pos, rotation, parent);
                     instance.name = _activeEntry.Prefab.name;
                     instance.transform.localScale = scale;
+                    TryAddBuildingInventory(instance, _activeEntry);
                     placed++;
                 }
             }

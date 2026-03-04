@@ -13,6 +13,7 @@
                 <ui:VisualElement name="PlacementButtons"/>
                 <ui:VisualElement name="SelectionDetail" class="hidden">
                     <ui:Label name="SelectionName" text=""/>
+                    <ui:VisualElement name="InventorySection"/>
                     <ui:Button text="Locate" name="Locate" focusable="false"/>
                 </ui:VisualElement>
             </ui:VisualElement>

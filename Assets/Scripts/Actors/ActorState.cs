@@ -8,6 +8,7 @@ namespace Voxel
         WorkingInside,
         Collecting,
         Returning,
-        Blocked
+        Blocked,
+        Full
     }
 }

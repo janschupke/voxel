@@ -24,3 +24,4 @@ MonoBehaviour:
   IsSelectable: 1
   OperationalRangeInBlocks: 4
   AssignedActor: {fileID: 11400000, guid: 91859f1e98c7423c818068e74532c75c, type: 2}
+  InventoryCapacity: 3

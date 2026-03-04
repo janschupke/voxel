@@ -27,6 +27,7 @@ namespace Voxel
         private int _pathIndex;
         private float _workTimer;
         private float _blockedTimer;
+        private float _fullCheckTimer;
 
         public void Initialize(WorldBootstrap bootstrap, ActorDefinition definition, Transform homeBuilding, float rangeBlocks)
         {
@@ -68,6 +69,9 @@ namespace Voxel
                     break;
                 case ActorState.WorkingInside:
                     UpdateWorkingInside();
+                    break;
+                case ActorState.Full:
+                    UpdateFull();
                     break;
             }
 
@@ -192,7 +196,35 @@ namespace Voxel
         {
             _workTimer -= Time.deltaTime;
             if (_workTimer <= 0f)
-                _state = ActorState.Idle;
+            {
+                OnWorkCompletedInside();
+                _state = IsBuildingInventoryFull() ? ActorState.Full : ActorState.Idle;
+            }
+        }
+
+        private void UpdateFull()
+        {
+            _fullCheckTimer -= Time.deltaTime;
+            if (_fullCheckTimer <= 0f)
+            {
+                _fullCheckTimer = Definition.BlockedRetryDelaySeconds;
+                if (!IsBuildingInventoryFull())
+                    _state = ActorState.Idle;
+            }
+        }
+
+        /// <summary>
+        /// Called when the actor finishes working inside the building. Override to produce items, etc.
+        /// </summary>
+        protected virtual void OnWorkCompletedInside() { }
+
+        /// <summary>
+        /// Returns true when the building inventory is at capacity and the actor should stop working.
+        /// Override in subclasses that produce items (e.g. WoodchuckActorBehavior).
+        /// </summary>
+        protected virtual bool IsBuildingInventoryFull()
+        {
+            return false;
         }
 
         /// <summary>

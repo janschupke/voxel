@@ -20,6 +20,7 @@ namespace Voxel
         [SerializeField, Tooltip("Outline thickness in pixels")] private float selectedOutlineWidth = 6f;
 
         private VisualElement _selectionDetail;
+        private VisualElement _inventorySection;
         private Label _selectionName;
         private Button _locateButton;
         private Transform _selectedObject;
@@ -31,6 +32,7 @@ namespace Voxel
 
         private readonly Dictionary<Transform, GameObject> _outlineObjects = new Dictionary<Transform, GameObject>();
         private Shader _outlineShader;
+        private float _inventoryRefreshTimer;
         private static readonly int OutlineColorId = Shader.PropertyToID("_OutlineColor");
         private static readonly int OutlineWidthId = Shader.PropertyToID("_OutlineWidth");
 
@@ -47,6 +49,7 @@ namespace Voxel
             {
                 _selectionDetail = uiDocument.rootVisualElement.Q<VisualElement>("SelectionDetail");
                 _selectionName = uiDocument.rootVisualElement.Q<Label>("SelectionName");
+                _inventorySection = uiDocument.rootVisualElement.Q<VisualElement>("InventorySection");
                 _locateButton = uiDocument.rootVisualElement.Q<Button>("Locate");
 
                 if (_locateButton != null)
@@ -93,6 +96,16 @@ namespace Voxel
 
             _lastHoveredObject = _hoveredObject;
             _lastSelectedObject = _selectedObject;
+
+            if (_selectedObject != null && _selectedObject.GetComponent<BuildingInventory>() != null)
+            {
+                _inventoryRefreshTimer -= Time.deltaTime;
+                if (_inventoryRefreshTimer <= 0f)
+                {
+                    _inventoryRefreshTimer = 0.5f;
+                    RefreshInventoryDisplay();
+                }
+            }
         }
 
         private void ApplyOutlineHighlight(Transform t, Color color, float width)
@@ -342,6 +355,44 @@ namespace Voxel
             if (_selectionName != null)
             {
                 _selectionName.text = name;
+            }
+            _inventoryRefreshTimer = 0f;
+            RefreshInventoryDisplay();
+        }
+
+        private void RefreshInventoryDisplay()
+        {
+            if (_inventorySection == null) return;
+
+            _inventorySection.Clear();
+            var inventory = _selectedObject != null ? _selectedObject.GetComponent<BuildingInventory>() : null;
+            var itemRegistry = worldBootstrap?.ItemRegistry;
+            if (inventory != null && itemRegistry != null)
+            {
+                var capacityLabel = new Label($"{inventory.GetTotalCount()}/{inventory.MaxCapacity}");
+                capacityLabel.AddToClassList("inventory-count");
+                _inventorySection.Add(capacityLabel);
+
+                foreach (var (item, count) in inventory.GetAllItems())
+                {
+                    var def = itemRegistry.GetDefinition(item);
+                    if (def == null) continue;
+
+                    var row = new VisualElement();
+                    row.AddToClassList("inventory-row");
+
+                    var icon = new VisualElement();
+                    icon.AddToClassList("inventory-icon");
+                    if (def.Sprite != null)
+                        icon.style.backgroundImage = new StyleBackground(def.Sprite);
+
+                    var countLabel = new Label(count.ToString());
+                    countLabel.AddToClassList("inventory-count");
+
+                    row.Add(icon);
+                    row.Add(countLabel);
+                    _inventorySection.Add(row);
+                }
             }
         }
 

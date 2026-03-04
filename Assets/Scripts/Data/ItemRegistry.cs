@@ -1,0 +1,22 @@
+using System.Collections.Generic;
+using UnityEngine;
+
+namespace Voxel
+{
+    [CreateAssetMenu(fileName = "ItemRegistry", menuName = "Voxel/Item Registry")]
+    public class ItemRegistry : ScriptableObject
+    {
+        [SerializeField] private List<ItemDefinition> definitions = new();
+
+        public ItemDefinition GetDefinition(Item item)
+        {
+            if (definitions == null) return null;
+            foreach (var def in definitions)
+            {
+                if (def != null && def.ItemId == item)
+                    return def;
+            }
+            return null;
+        }
+    }
+}

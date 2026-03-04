@@ -23,6 +23,7 @@ namespace Voxel
         private readonly RoadOverlay _roadOverlay = new RoadOverlay();
 
         [SerializeField] private PlacedObjectRegistry placedObjectRegistry;
+        [SerializeField] private ItemRegistry itemRegistry;
         [SerializeField] private RoadConfig roadConfig;
         [SerializeField] private ActorSpawner actorSpawner;
 
@@ -162,6 +163,7 @@ namespace Voxel
         public VoxelGrid Grid => _grid;
         public VoxelGridRenderer Renderer => _renderer;
         public PlacedObjectRegistry PlacedObjectRegistry => placedObjectRegistry;
+        public ItemRegistry ItemRegistry => itemRegistry;
         public IslandPipelineConfig IslandPipelineConfig => islandPipelineConfig;
 
         public TopDownCamera TopDownCamera => topDownCamera;
@@ -310,6 +312,12 @@ namespace Voxel
                 var instance = Object.Instantiate(prefab, p.ToWorldPosition(worldScale), p.ToRotation(), parent);
                 instance.name = prefab.name;
                 instance.transform.localScale = scale;
+                if (entry != null && entry.InventoryCapacity > 0)
+                {
+                    var inv = instance.GetComponent<BuildingInventory>();
+                    if (inv == null) inv = instance.AddComponent<BuildingInventory>();
+                    inv.Initialize(p.EntryName, entry.InventoryCapacity);
+                }
             }
 
             if (terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null)

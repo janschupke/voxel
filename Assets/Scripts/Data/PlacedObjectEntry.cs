@@ -52,5 +52,10 @@ namespace Voxel
         [Header("Actor")]
         [Tooltip("When set, an actor of this type operates within the building's operational range.")]
         public ActorDefinition AssignedActor;
+
+        [Header("Inventory")]
+        [Tooltip("Max items this building can hold. 0 = no inventory.")]
+        [Min(0)]
+        public int InventoryCapacity;
     }
 }

@@ -1,0 +1,16 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 9317a56a8c08b4d41ad570e411cc11fb, type: 3}
+  m_Name: ItemRegistry
+  m_EditorClassIdentifier: Assembly-CSharp::Voxel.ItemRegistry
+  definitions:
+  - {fileID: 11400000, guid: d28cd21dea3624df8a9a1c3b1796d01d, type: 2}

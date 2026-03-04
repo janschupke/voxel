@@ -55,6 +55,19 @@ namespace Voxel
             return (null, true);
         }
 
+        protected override void OnWorkCompletedInside()
+        {
+            var inventory = HomeBuilding != null ? HomeBuilding.GetComponent<BuildingInventory>() : null;
+            if (inventory != null && inventory.HasSpaceFor(1))
+                inventory.AddItem(Item.Wood, 1);
+        }
+
+        protected override bool IsBuildingInventoryFull()
+        {
+            var inventory = HomeBuilding != null ? HomeBuilding.GetComponent<BuildingInventory>() : null;
+            return inventory != null && !inventory.HasSpaceFor(1);
+        }
+
         private static void Shuffle<T>(List<T> list)
         {
             for (int i = list.Count - 1; i > 0; i--)
