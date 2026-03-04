@@ -8,9 +8,14 @@ namespace Voxel
 {
     public enum TerrainGenerationMode { PerlinNoise, IslandPipeline }
 
-    [DefaultExecutionOrder(-500)]
     public class WorldBootstrap : MonoBehaviour
     {
+        /// <summary>Fired when the world is fully initialized. Subscribe in Awake; handler runs when ready (or immediately if already ready).</summary>
+        public static event System.Action<WorldBootstrap> WorldReady;
+
+        /// <summary>Set when Start completes. Use to check if world is ready before WorldReady fires.</summary>
+        public static WorldBootstrap Instance { get; private set; }
+
         [SerializeField] private TerrainGenerationMode terrainMode = TerrainGenerationMode.PerlinNoise;
         [SerializeField] private NoiseParameters noiseParameters;
         [SerializeField] private IslandPipelineConfig islandPipelineConfig;
@@ -86,6 +91,16 @@ namespace Voxel
             _renderer.Initialize(_grid, worldParameters, waterConfig, mountainMaterial, _placedObjectManager.RoadOverlay, roadConfig);
 
             SetupCamera(restoreCamera: true);
+
+            Instance = this;
+            actorSpawner?.SpawnActorsForBuildings();
+            WorldReady?.Invoke(this);
+        }
+
+        private void OnDestroy()
+        {
+            if (Instance == this)
+                Instance = null;
         }
 
         private void OnApplicationQuit()

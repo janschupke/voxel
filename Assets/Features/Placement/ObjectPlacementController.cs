@@ -35,21 +35,30 @@ namespace Voxel
         private Func<bool> _rotateHandler;
 
         private VoxelGrid Grid => worldBootstrap?.Grid;
+
+        private void Awake()
+        {
+            WorldBootstrap.WorldReady += OnWorldReady;
+        }
+
+        private void OnWorldReady(WorldBootstrap wb)
+        {
+            WorldBootstrap.WorldReady -= OnWorldReady;
+            worldBootstrap = wb;
+            if (registry == null && wb != null)
+                registry = wb.PlacedObjectRegistry;
+            _cachedCamera = Camera.main;
+            _executor = wb != null ? new PlacementExecutor(wb) : null;
+            _previewUpdater = wb != null && _cachedCamera != null ? new PlacementPreviewUpdater(wb, _cachedCamera) : null;
+        }
         private WaterConfig WaterConfig => worldBootstrap?.WaterConfig;
         private WorldParameters WorldParameters => worldBootstrap?.WorldParameters;
         private WorldScale WorldScale => new WorldScale(WorldParameters != null ? WorldParameters.BlockScale : 1f);
 
         private void Start()
         {
-            if (worldBootstrap == null)
-                worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
-            if (registry == null && worldBootstrap != null)
-                registry = worldBootstrap.PlacedObjectRegistry;
             if (uiDocument == null)
                 uiDocument = FindAnyObjectByType<UIDocument>();
-            _cachedCamera = Camera.main;
-            _executor = worldBootstrap != null ? new PlacementExecutor(worldBootstrap) : null;
-            _previewUpdater = worldBootstrap != null && _cachedCamera != null ? new PlacementPreviewUpdater(worldBootstrap, _cachedCamera) : null;
 
             _escapeHandler = TryCancelPlacementMode;
             HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Cancel placement mode", "When placing", _escapeHandler, HotkeyManager.PriorityModeCancel);
@@ -276,6 +285,7 @@ namespace Voxel
 
         private void OnDestroy()
         {
+            WorldBootstrap.WorldReady -= OnWorldReady;
             if (_escapeHandler != null)
                 HotkeyManager.Instance?.Unregister(_escapeHandler);
             if (_rotateHandler != null)

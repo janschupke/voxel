@@ -7,10 +7,9 @@ using Voxel.Pure;
 namespace Voxel
 {
     /// <summary>
-    /// Spawns actors for buildings that have AssignedActor. Runs after WorldBootstrap loads the world.
+    /// Spawns actors for buildings that have AssignedActor. Invoked by WorldBootstrap after the world is loaded.
     /// </summary>
     [AddComponentMenu("Voxel/Actor Spawner")]
-    [DefaultExecutionOrder(100)]
     public class ActorSpawner : MonoBehaviour
     {
         [SerializeField] private WorldBootstrap worldBootstrap;
@@ -28,21 +27,7 @@ namespace Voxel
         {
             if (worldBootstrap == null)
                 worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
-
-            GameDebugLogger.Log("[ActorSpawner] Start - worldBootstrap=" + (worldBootstrap != null) + ", registry=" + (worldBootstrap?.PlacedObjectRegistry != null));
-
-            if (worldBootstrap == null)
-            {
-                GameDebugLogger.LogWarning("[ActorSpawner] WorldBootstrap not found, skipping actor spawn.");
-                return;
-            }
-            if (worldBootstrap.PlacedObjectRegistry == null)
-            {
-                GameDebugLogger.LogWarning("[ActorSpawner] PlacedObjectRegistry is null, skipping actor spawn.");
-                return;
-            }
-
-            SpawnActorsForBuildings();
+            // Initial spawn is invoked by WorldBootstrap at end of its Start()
         }
 
         public void DestroyOrphanedActors()

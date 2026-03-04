@@ -31,15 +31,25 @@ namespace Voxel
 
         public bool IsRemovalModeActive => _removalModeActive;
 
+        private void Awake()
+        {
+            WorldBootstrap.WorldReady += OnWorldReady;
+        }
+
+        private void OnWorldReady(WorldBootstrap wb)
+        {
+            WorldBootstrap.WorldReady -= OnWorldReady;
+            worldBootstrap = wb;
+            _executor = wb != null ? new RemovalExecutor(wb) : null;
+            _preview = wb != null ? new RemovalPreview(wb) : null;
+        }
+
         private void Start()
         {
-            if (worldBootstrap == null) worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
             if (uiDocument == null) uiDocument = FindAnyObjectByType<UIDocument>();
             if (placementController == null) placementController = FindAnyObjectByType<ObjectPlacementController>();
             if (selectionController == null) selectionController = FindAnyObjectByType<SelectionController>();
             _cachedCamera = Camera.main;
-            _executor = worldBootstrap != null ? new RemovalExecutor(worldBootstrap) : null;
-            _preview = worldBootstrap != null ? new RemovalPreview(worldBootstrap) : null;
 
             _escapeHandler = TryCancelRemovalMode;
             HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Cancel removal mode", "When removing", _escapeHandler, HotkeyManager.PriorityModeCancel);
@@ -184,6 +194,7 @@ namespace Voxel
 
         private void OnDestroy()
         {
+            WorldBootstrap.WorldReady -= OnWorldReady;
             if (_escapeHandler != null)
                 HotkeyManager.Instance?.Unregister(_escapeHandler);
             _preview?.Release();

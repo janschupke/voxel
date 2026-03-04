@@ -8,7 +8,6 @@ using Voxel.Debug;
 using UnityEditor;
 #endif
 
-[DefaultExecutionOrder(-300)]
 public class HUDController : MonoBehaviour
 {
     private const float LogDisplayDurationMs = 5000f;
@@ -44,17 +43,35 @@ public class HUDController : MonoBehaviour
     private VisualElement _logPanel;
     private ScrollView _logPanelList;
 
+    private void Awake()
+    {
+        WorldBootstrap.WorldReady += OnWorldReady;
+    }
+
+    private void OnWorldReady(WorldBootstrap wb)
+    {
+        WorldBootstrap.WorldReady -= OnWorldReady;
+        worldBootstrap = wb;
+        if (wb != null)
+        {
+            var storage = wb.StorageInventory;
+            if (storage != null)
+                storage.StorageChanged += OnStorageChanged;
+            if (uiDocument?.rootVisualElement != null)
+            {
+                SetupDebugControls(uiDocument.rootVisualElement, wb);
+                UpdateDebugControlsVisibility(uiDocument.rootVisualElement, wb);
+            }
+            var cam = wb.TopDownCamera ?? FindAnyObjectByType<TopDownCamera>();
+            var zoomBlockerComp = GetComponent<ZoomBlockerComponent>();
+            if (zoomBlockerComp == null)
+                zoomBlockerComp = gameObject.AddComponent<ZoomBlockerComponent>();
+            cam?.SetZoomBlocker(zoomBlockerComp);
+        }
+    }
+
     private void Start()
     {
-        if (GetComponent<HotkeyManager>() == null)
-            gameObject.AddComponent<HotkeyManager>();
-        if (GetComponent<PanelManager>() == null)
-            gameObject.AddComponent<PanelManager>();
-        if (GetComponent<HotkeysPanelController>() == null)
-            gameObject.AddComponent<HotkeysPanelController>();
-        if (GetComponent<MenuPanelController>() == null)
-            gameObject.AddComponent<MenuPanelController>();
-
         if (uiDocument == null)
             uiDocument = GetComponent<UIDocument>();
 
@@ -68,8 +85,6 @@ public class HUDController : MonoBehaviour
             _removalController = removalController ?? FindAnyObjectByType<RemovalController>();
             if (_removalController == null && _placementController != null)
                 _removalController = _placementController.gameObject.AddComponent<RemovalController>();
-
-            SetupDebugControls(uiDocument.rootVisualElement, worldBootstrap);
 
             _removeButton = uiDocument.rootVisualElement.Q<Button>("Remove");
             if (_removeButton != null && _removalController != null)
@@ -146,10 +161,6 @@ public class HUDController : MonoBehaviour
                 _debugLogService.LogReceived += OnLogReceived;
             }
 
-            var storage = worldBootstrap?.StorageInventory;
-            if (storage != null)
-                storage.StorageChanged += OnStorageChanged;
-
             _escapeHandlerGoBack = TryGoBack;
             _escapeHandlerOpenMenu = TryOpenMenu;
             HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Go back / close panel", null, _escapeHandlerGoBack, HotkeyManager.PriorityUiOverlay + 10);
@@ -169,11 +180,6 @@ public class HUDController : MonoBehaviour
             _hotkeyHandlerE = () => { (worldBootstrap?.TopDownCamera ?? FindAnyObjectByType<TopDownCamera>())?.RotateYawBy(90f); return true; };
             HotkeyManager.Instance?.Register(Key.E, "E", "Rotate camera right 90°", null, _hotkeyHandlerE);
 
-            var zoomBlockerComp = GetComponent<ZoomBlockerComponent>();
-            if (zoomBlockerComp == null)
-                zoomBlockerComp = gameObject.AddComponent<ZoomBlockerComponent>();
-            var cam = worldBootstrap?.TopDownCamera ?? FindAnyObjectByType<TopDownCamera>();
-            cam?.SetZoomBlocker(zoomBlockerComp);
         }
     }
 
@@ -339,6 +345,7 @@ public class HUDController : MonoBehaviour
 
     private void OnDestroy()
     {
+        WorldBootstrap.WorldReady -= OnWorldReady;
         if (_debugLogService != null)
             _debugLogService.LogReceived -= OnLogReceived;
         var storage = worldBootstrap?.StorageInventory;

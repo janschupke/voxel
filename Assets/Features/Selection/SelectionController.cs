@@ -41,17 +41,27 @@ namespace Voxel
         private Camera _cachedCamera;
         private Func<bool> _escapeHandler;
 
+        private void Awake()
+        {
+            WorldBootstrap.WorldReady += OnWorldReady;
+        }
+
+        private void OnWorldReady(WorldBootstrap wb)
+        {
+            WorldBootstrap.WorldReady -= OnWorldReady;
+            worldBootstrap = wb;
+            if (registry == null && wb != null)
+                registry = wb.PlacedObjectRegistry;
+            _outlineRenderer = new SelectionOutlineRenderer();
+            _raycaster = new SelectionRaycaster(wb, registry);
+            if (uiDocument?.rootVisualElement != null)
+                UIPanelUtils.UpdateDebugControlsVisibility(uiDocument.rootVisualElement, wb != null && wb.ShowDebugControls);
+        }
+
         private void Start()
         {
-            if (worldBootstrap == null)
-                worldBootstrap = FindAnyObjectByType<WorldBootstrap>();
-            if (registry == null && worldBootstrap != null)
-                registry = worldBootstrap.PlacedObjectRegistry;
             _placementController = placementController ?? FindAnyObjectByType<ObjectPlacementController>();
             _removalController = removalController ?? FindAnyObjectByType<RemovalController>();
-
-            _outlineRenderer = new SelectionOutlineRenderer();
-            _raycaster = new SelectionRaycaster(worldBootstrap, registry);
 
             if (uiDocument?.rootVisualElement != null)
             {
@@ -68,7 +78,8 @@ namespace Voxel
                     _clearInventoryButton.clicked += OnClearInventoryClicked;
 
                 _cachedCamera = Camera.main;
-                UIPanelUtils.UpdateDebugControlsVisibility(uiDocument.rootVisualElement, worldBootstrap != null && worldBootstrap.ShowDebugControls);
+                if (worldBootstrap != null)
+                    UIPanelUtils.UpdateDebugControlsVisibility(uiDocument.rootVisualElement, worldBootstrap.ShowDebugControls);
                 HideSelectionDetail();
             }
 
@@ -300,6 +311,7 @@ namespace Voxel
 
         private void OnDestroy()
         {
+            WorldBootstrap.WorldReady -= OnWorldReady;
             if (_escapeHandler != null)
                 HotkeyManager.Instance?.Unregister(_escapeHandler);
         }

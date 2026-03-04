@@ -69,6 +69,30 @@ public class InventoryService
 - **Interfaces for Unity types**: Define `IItemRegistry`, `IPlacedObjectRegistry` etc. so domain code depends on abstractions, not ScriptableObjects.
 - **Single responsibility**: Controllers handle input/Unity lifecycle; services handle business logic; data types are immutable where possible.
 
+## Initialization Order (Avoid DefaultExecutionOrder)
+
+**Do not use `[DefaultExecutionOrder]`.** Use explicit initialization instead:
+
+- **Pre-place managers**: Add singleton managers (HotkeyManager, PanelManager) to the scene so they `Awake` before any `Start`.
+- **Direct invocation**: When A must run before B, have A explicitly call B (e.g. WorldBootstrap calls `ActorSpawner.SpawnActorsForBuildings()` at end of its `Start`).
+- **WorldReady event**: For world-dependent setup, subscribe to `WorldBootstrap.WorldReady` in `Awake`; perform init in the handler. Unsubscribe in `OnDestroy`.
+- **Lazy init**: Defer creation until first use when the dependency is guaranteed ready by then.
+
+```csharp
+// ❌ BAD: Relies on script execution order
+[DefaultExecutionOrder(-300)]
+public class HUDController : MonoBehaviour { ... }
+
+// ✅ GOOD: Subscribe to WorldReady in Awake
+private void Awake() => WorldBootstrap.WorldReady += OnWorldReady;
+private void OnWorldReady(WorldBootstrap wb) {
+    WorldBootstrap.WorldReady -= OnWorldReady;
+    worldBootstrap = wb;
+    // ... world-dependent init
+}
+private void OnDestroy() => WorldBootstrap.WorldReady -= OnWorldReady;
+```
+
 ## Documentation & References
 
 - **Use current documentation**: When referencing Unity, C#, or third-party APIs, fetch and cite up-to-date docs (e.g. Unity 6.3 Manual).
