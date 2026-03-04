@@ -53,7 +53,7 @@ namespace Voxel
 
             if (_state != _prevState)
             {
-                GameDebugLogger.Log($"[Actor] {gameObject.name} state: {_prevState} -> {_state} (visible={_state == ActorState.GoingToTarget || _state == ActorState.WorkingOutside || _state == ActorState.Returning})");
+                GameDebugLogger.Log($"[Actor] {gameObject.name} state: {_prevState} -> {_state} (visible={_state == ActorState.GoingToTarget || _state == ActorState.WorkingOutside || _state == ActorState.Returning || _state == ActorState.ReturningToBlocked})");
                 _prevState = _state;
             }
 
@@ -72,6 +72,7 @@ namespace Voxel
                     UpdateWorkingOutside();
                     break;
                 case ActorState.Returning:
+                case ActorState.ReturningToBlocked:
                     UpdateReturning();
                     break;
                 case ActorState.WorkingInside:
@@ -90,7 +91,7 @@ namespace Voxel
             if (_cachedRenderers == null)
                 _cachedRenderers = GetComponentsInChildren<Renderer>(includeInactive: true);
 
-            bool visible = _state == ActorState.GoingToTarget || _state == ActorState.WorkingOutside || _state == ActorState.Returning;
+            bool visible = _state == ActorState.GoingToTarget || _state == ActorState.WorkingOutside || _state == ActorState.Returning || _state == ActorState.ReturningToBlocked;
             foreach (var r in _cachedRenderers)
             {
                 if (r != null && r.enabled != visible)
@@ -159,6 +160,11 @@ namespace Voxel
             }
 
             var node = _path[_pathIndex];
+            if (Definition.PathingMode == ActorPathingMode.Road && !IsPathNodeWalkable(node))
+            {
+                TryRecoverFromInvalidPath(wasGoingToTarget: true);
+                return;
+            }
             int topY = PlacementUtility.GetTopSolidY(worldBootstrap.Grid, node.X, node.Z, worldBootstrap.Grid.Height);
             if (topY < 0)
             {
@@ -192,12 +198,26 @@ namespace Voxel
         {
             if (_path == null || _pathIndex >= _path.Count)
             {
-                _state = ActorState.WorkingInside;
-                _workTimer = Definition.WorkDurationInside;
+                if (_state == ActorState.ReturningToBlocked)
+                {
+                    _state = ActorState.Blocked;
+                    _blockedTimer = Definition.BlockedRetryDelaySeconds;
+                    GameDebugLogger.Log($"[Actor] {gameObject.name} arrived home (no path to target) -> Blocked");
+                }
+                else
+                {
+                    _state = ActorState.WorkingInside;
+                    _workTimer = Definition.WorkDurationInside;
+                }
                 return;
             }
 
             var node = _path[_pathIndex];
+            if (Definition.PathingMode == ActorPathingMode.Road && !IsPathNodeWalkable(node))
+            {
+                TryRecoverFromInvalidPath(wasGoingToTarget: _state == ActorState.GoingToTarget || _state == ActorState.ReturningToBlocked);
+                return;
+            }
             int topY = PlacementUtility.GetTopSolidY(worldBootstrap.Grid, node.X, node.Z, worldBootstrap.Grid.Height);
             if (topY < 0)
             {
@@ -269,9 +289,33 @@ namespace Voxel
         /// </summary>
         protected abstract (Vector3? Target, bool HadCandidates) TryGetReachableTarget();
 
+        /// <summary>
+        /// Builds path from-to using the actor's pathing mode (Road/Free/Smart). No fallback.
+        /// </summary>
         protected IReadOnlyList<GridNode> BuildPathTo(Vector3 fromWorld, Vector3 toWorld, bool fromIsBuilding = false, bool toIsBuilding = false)
         {
-            var graph = GetPathGraph();
+            return BuildPathToInternal(fromWorld, toWorld, fromIsBuilding, toIsBuilding, GetPathGraph());
+        }
+
+        /// <summary>
+        /// Build path home with fallback. ONLY used when actor was on road and path became invalid mid-path.
+        /// Tries Road first, then Smart (road-preferring land) for Road mode.
+        /// </summary>
+        private IReadOnlyList<GridNode> BuildPathToHomeWithFallback()
+        {
+            var path = BuildPathToInternal(transform.position, HomeBuilding.position, fromIsBuilding: false, toIsBuilding: true, GetPathGraph());
+            if (path != null && path.Count > 0) return path;
+            if (Definition.PathingMode == ActorPathingMode.Road)
+            {
+                path = BuildPathToInternal(transform.position, HomeBuilding.position, fromIsBuilding: false, toIsBuilding: true, GetFallbackPathGraph());
+                if (path != null && path.Count > 0)
+                    GameDebugLogger.Log($"[Actor] {gameObject.name} path invalid on road, using Smart fallback for return home");
+            }
+            return path;
+        }
+
+        private IReadOnlyList<GridNode> BuildPathToInternal(Vector3 fromWorld, Vector3 toWorld, bool fromIsBuilding, bool toIsBuilding, IGridGraph<GridNode> graph)
+        {
             if (graph == null) return null;
 
             var (fx, _, fz) = WorldScale.WorldToBlock(fromWorld);
@@ -355,6 +399,45 @@ namespace Voxel
                 ActorPathingMode.Smart => new SmartSurfacePathGraph(grid, waterLevelY, roadOverlay, isBlockValid),
                 _ => new SurfacePathGraph(grid, waterLevelY, isBlockValid)
             };
+        }
+
+        /// <summary>Fallback graph for Road mode when roads become unavailable. Uses Smart (road-preferring land).</summary>
+        private IGridGraph<GridNode> GetFallbackPathGraph()
+        {
+            var grid = worldBootstrap.Grid;
+            var roadOverlay = worldBootstrap.GetRoadOverlay();
+            int waterLevelY = worldBootstrap.WaterConfig != null
+                ? worldBootstrap.WaterConfig.GetWaterLevelY(grid.Height)
+                : 0;
+            bool isBlockValid(int x, int y, int z) =>
+                !worldBootstrap.HasBlockingObjectAtBlock(x, y, z);
+            return new SmartSurfacePathGraph(grid, waterLevelY, roadOverlay, isBlockValid);
+        }
+
+        /// <summary>Check if path node is still valid. Uses same graph that built the path (Road checks road overlay; Smart/Free check blocking).</summary>
+        private bool IsPathNodeWalkable(GridNode node)
+        {
+            return GetPathGraph().IsWalkable(node);
+        }
+
+        /// <summary>Path node became unwalkable while actor on road. Try path home with fallback; if exists, return home (Blocked on arrival if was GoingToTarget). Else go Blocked.</summary>
+        private void TryRecoverFromInvalidPath(bool wasGoingToTarget)
+        {
+            var pathHome = BuildPathToHomeWithFallback();
+            if (pathHome != null && pathHome.Count > 0)
+            {
+                _path = pathHome;
+                _pathIndex = 0;
+                _state = wasGoingToTarget ? ActorState.ReturningToBlocked : ActorState.Returning;
+                GameDebugLogger.Log($"[Actor] {gameObject.name} path invalid, recalculated path home (wasGoingToTarget={wasGoingToTarget})");
+            }
+            else
+            {
+                _path = null;
+                _state = ActorState.Blocked;
+                _blockedTimer = Definition.BlockedRetryDelaySeconds;
+                GameDebugLogger.Log($"[Actor] {gameObject.name} path invalid, no path home -> Blocked");
+            }
         }
     }
 }
