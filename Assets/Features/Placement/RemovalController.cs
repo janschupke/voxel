@@ -33,7 +33,10 @@ namespace Voxel
 
         private void Awake()
         {
-            WorldBootstrap.WorldReady += OnWorldReady;
+            if (WorldBootstrap.Instance != null)
+                OnWorldReady(WorldBootstrap.Instance);
+            else
+                WorldBootstrap.WorldReady += OnWorldReady;
         }
 
         private void OnWorldReady(WorldBootstrap wb)
