@@ -1,8 +1,5 @@
 #Overlay {
     flex-grow: 1;
-    /* flex-direction: column-reverse; */
-    /* align-items: center; */
-    /* position: relative; */
 }
 
 #TopPanel {
@@ -31,16 +28,12 @@
     flex-shrink: 0;
     flex-direction: column;
     justify-content: flex-end;
-    /* background-color: rgba(0, 0, 0, 0.7); */
     width: 30%;
     min-width: 200px;
     height: 180px;
     overflow: hidden;
     padding: 10px;
     font-size: 8px;
-    /* color: white; */
-    /* border-radius: 10px; */
-    /* border: 1px solid rgba(255, 255, 255, 0.7); */
     position: absolute;
     bottom: 0px;
     left: 0px;
@@ -97,8 +90,6 @@
 }
 
 #Menu {
-    /* border-width: 1px; */
-    /* border-style: solid; */
     border-bottom-width: 1px;
     border-bottom-color: rgba(255, 255, 255, 0.3);
     padding-bottom: 5px;
@@ -106,11 +97,6 @@
 
 
 #FPS {
-    /* flex-grow: 0;
-    flex-shrink: 0; */
-    /* position: absolute;
-    top: 10px;
-    left: 10px; */
     color: white;
     font-size: 10px;
     margin: 0px;
@@ -137,10 +123,6 @@ Button.placing {
 
 .hidden {
     display: none;
-}
-
-/* Used by UIPanelUtils.IsPointerOverZoomBlockingUI - scroll over these elements does not zoom the world. */
-.blocks-zoom {
 }
 
 .log-entry {
