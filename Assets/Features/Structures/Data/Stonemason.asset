@@ -1,0 +1,31 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 65640b8dfe739431d96432b68804acb1, type: 3}
+  m_Name: Stonemason
+  m_EditorClassIdentifier: 
+  Name: Stonemason
+  Prefab: {fileID: 3532374132240110004, guid: 44e8a49684b6f45a088545a270b0c2ce, type: 3}
+  CanReplaceTrees: 1
+  IsBlocking: 1
+  StructureType: 0
+  IsSurfaceOverlay: 0
+  PlacementMode: 0
+  LinePlacementExtendThroughExisting: 0
+  PrefabHeightInUnits: 2
+  ScaleMultiplier: 1
+  RandomRotation: 0
+  IsSelectable: 1
+  OperationalRangeInBlocks: 3
+  OperationalRangeType: 0
+  AssignedActor: {fileID: 0}
+  InventoryCapacity: 0
+  UsesGlobalStorage: 0

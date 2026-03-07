@@ -5,10 +5,18 @@ namespace Voxel
     /// </summary>
     public enum Item
     {
+        Beer,
         Bread,
+        Brick,
+        Chicken,
         Flour,
         Fruit,
+        Hops,
+        IronBar,
+        IronOre,
+        Jelly,
         Stone,
+        Sword,
         Wheat,
         Wood
     }

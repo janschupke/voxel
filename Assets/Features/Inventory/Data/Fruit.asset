@@ -12,6 +12,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fca7d410b41ac495a91e607e8ee451d1, type: 3}
   m_Name: Fruit
   m_EditorClassIdentifier: 
-  ItemId: 2
+  ItemId: 5
   Name: Fruit
   Sprite: {fileID: 21300000, guid: 3856d5a24dbea4d76a764bc9beb4b60e, type: 3}

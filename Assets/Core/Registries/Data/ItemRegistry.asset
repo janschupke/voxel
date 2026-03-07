@@ -13,9 +13,17 @@ MonoBehaviour:
   m_Name: ItemRegistry
   m_EditorClassIdentifier: Assembly-CSharp::Voxel.ItemRegistry
   definitions:
+  - {fileID: 11400000, guid: b6dbfe5453ad24948a7cb4210afb5967, type: 2}
   - {fileID: 11400000, guid: 0d77fcc4226d142d8b716a537713305f, type: 2}
+  - {fileID: 11400000, guid: b579620cb3b8f4e62bf4ee5d284225a0, type: 2}
+  - {fileID: 11400000, guid: 59294833c10164633801c7c05d67af4a, type: 2}
   - {fileID: 11400000, guid: 4f3ca41746cce42a3914ce10519b1095, type: 2}
   - {fileID: 11400000, guid: a68540d9969bf4b75bc471231ac8e70a, type: 2}
+  - {fileID: 11400000, guid: c9c8cb9fb1dd84c1b8480b6a0d62afcf, type: 2}
+  - {fileID: 11400000, guid: 4992cd746879d413b887dae94654444c, type: 2}
+  - {fileID: 11400000, guid: b4121f84cb85f4f81be1e777da118f2d, type: 2}
+  - {fileID: 11400000, guid: 98a615e5f06184af48e23f1769ebc0da, type: 2}
   - {fileID: 11400000, guid: b1f055df4f0d74fad98322a08420b0dc, type: 2}
+  - {fileID: 11400000, guid: a969b5161fce14604b49586c747cc836, type: 2}
   - {fileID: 11400000, guid: 20460d29e0bfe4059b52e0bf1ac78a3c, type: 2}
   - {fileID: 11400000, guid: d28cd21dea3624df8a9a1c3b1796d01d, type: 2}

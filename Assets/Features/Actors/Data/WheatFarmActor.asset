@@ -12,9 +12,10 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4c04d44c9d54465ea43bef584bcac19c, type: 3}
   m_Name: WheatFarmActor
   m_EditorClassIdentifier: 
-  Name: Wheat Farm Actor
+  Name: Wheat Farmer
   Prefab: {fileID: 4839831951012057953, guid: 8681851548a564fbf9b16bd60858c4b8, type: 3}
   behaviorKind: 1
+  behaviorTypeName: 
   PathingMode: 1
   WorkDurationOutside: 3
   WorkDurationInside: 2
