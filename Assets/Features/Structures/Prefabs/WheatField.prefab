@@ -1,6 +1,6 @@
 %YAML 1.1
 %TAG !u! tag:unity3d.com,2011:
---- !u!1 &4056082060252207166
+--- !u!1 &7654914928539584141
 GameObject:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
@@ -8,10 +8,10 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 4974245986544257509}
-  - component: {fileID: 6127609452162543075}
-  - component: {fileID: 5433043816957741368}
-  - component: {fileID: 9139275567810889464}
+  - component: {fileID: 1415522243663725562}
+  - component: {fileID: 3383698092208275329}
+  - component: {fileID: 694305261752801897}
+  - component: {fileID: 8682909519269764365}
   m_Layer: 0
   m_Name: WheatField
   m_TagString: Untagged
@@ -19,36 +19,36 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!4 &4974245986544257509
+--- !u!4 &1415522243663725562
 Transform:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4056082060252207166}
+  m_GameObject: {fileID: 7654914928539584141}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: -0.64829, y: -0, z: -1.69448}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
---- !u!33 &6127609452162543075
+--- !u!33 &3383698092208275329
 MeshFilter:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4056082060252207166}
-  m_Mesh: {fileID: -2432090755550338912, guid: c188d4c7529fd46159e022ab642fa4ae, type: 3}
---- !u!23 &5433043816957741368
+  m_GameObject: {fileID: 7654914928539584141}
+  m_Mesh: {fileID: -2432090755550338912, guid: 611ea50974abb47a485fd4d48e976c63, type: 3}
+--- !u!23 &694305261752801897
 MeshRenderer:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4056082060252207166}
+  m_GameObject: {fileID: 7654914928539584141}
   m_Enabled: 1
   m_CastShadows: 1
   m_ReceiveShadows: 1
@@ -67,7 +67,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 8364728b67a0b4654ba4b0bcaaa87299, type: 2}
+  - {fileID: 2100000, guid: d60739a5141d94995adfff0a7867920e, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -91,13 +91,13 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!136 &9139275567810889464
+--- !u!136 &8682909519269764365
 CapsuleCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 4056082060252207166}
+  m_GameObject: {fileID: 7654914928539584141}
   m_Material: {fileID: 0}
   m_IncludeLayers:
     serializedVersion: 2
@@ -110,7 +110,7 @@ CapsuleCollider:
   m_ProvidesContacts: 0
   m_Enabled: 1
   serializedVersion: 2
-  m_Radius: 0.5
-  m_Height: 1
+  m_Radius: 1.6
+  m_Height: 1.6
   m_Direction: 1
-  m_Center: {x: 0, y: 0, z: 0}
+  m_Center: {x: 0, y: 0.8, z: 0}
