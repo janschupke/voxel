@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Market
   m_EditorClassIdentifier: 
   Name: Market
-  Prefab: {fileID: 3532374132240110004, guid: c8d6551cd425c4f20aaebf65d3678d62, type: 3}
+  Prefab: {fileID: 7668403618459068059, guid: 909748da5fdc64c2680681fe963c8b96, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0

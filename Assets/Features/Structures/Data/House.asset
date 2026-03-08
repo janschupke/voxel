@@ -13,13 +13,19 @@ MonoBehaviour:
   m_Name: House
   m_EditorClassIdentifier: 
   Name: House
-  Prefab: {fileID: 3532374132240110004, guid: e4869eb4234ab4317b9c3f5a9b040066, type: 3}
+  Prefab: {fileID: 9153237678879520839, guid: d484ef328cae347a38c4d0b570c6b534, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0
+  IsSurfaceOverlay: 0
   PlacementMode: 0
+  LinePlacementExtendThroughExisting: 0
   PrefabHeightInUnits: 2
   ScaleMultiplier: 1
   RandomRotation: 0
   IsSelectable: 1
   OperationalRangeInBlocks: 3
+  OperationalRangeType: 0
+  AssignedActor: {fileID: 0}
+  InventoryCapacity: 0
+  UsesGlobalStorage: 0

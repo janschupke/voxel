@@ -3,7 +3,8 @@
     "rootNamespace": "Voxel.Editor",
     "references": [
         "Assembly-CSharp",
-        "UnityEditor"
+        "UnityEditor",
+        "Voxel.Core"
     ],
     "includePlatforms": [
         "Editor"

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Blacksmith
   m_EditorClassIdentifier: 
   Name: Blacksmith
-  Prefab: {fileID: 3532374132240110004, guid: 503267d722bf94bb28feb5083568698e, type: 3}
+  Prefab: {fileID: 2596016795412231153, guid: f392af0d201ef4af8869cc9dea6b31c5, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0

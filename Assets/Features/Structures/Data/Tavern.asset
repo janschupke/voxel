@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Tavern
   m_EditorClassIdentifier: 
   Name: Tavern
-  Prefab: {fileID: 3532374132240110004, guid: b982ab26f632d4be6b6799eadcc5f961, type: 3}
+  Prefab: {fileID: 3021026794938050724, guid: 99ea1b8496d6d45c3bcbf7a1ee66aa98, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0

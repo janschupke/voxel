@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: FruitFarm
   m_EditorClassIdentifier: 
   Name: Fruit Farm
-  Prefab: {fileID: 3532374132240110004, guid: 73d66593abba44155b2e95db5d633af1, type: 3}
+  Prefab: {fileID: 6618851693266368802, guid: c6681af3707fb45dc9fbbfe5e67324f4, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0

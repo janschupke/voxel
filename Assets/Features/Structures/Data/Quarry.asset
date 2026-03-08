@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Quarry
   m_EditorClassIdentifier: 
   Name: Quarry
-  Prefab: {fileID: 3532374132240110004, guid: a7d024f308bd742d4996a04f443d0f37, type: 3}
+  Prefab: {fileID: 8733004461898785150, guid: 3f721d852fa0647caac6110e3961acf1, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: HopsFarm
   m_EditorClassIdentifier: 
   Name: Hops Farm
-  Prefab: {fileID: 3532374132240110004, guid: ab45525d19e7c46db93c1af12cbc09ec, type: 3}
+  Prefab: {fileID: 3049888146105738468, guid: 94c973c06353f4c1b8dcb75c1a0f6527, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0

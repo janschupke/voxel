@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Woodchuck
   m_EditorClassIdentifier: 
   Name: Woodchuck
-  Prefab: {fileID: 3532374132240110004, guid: 22cc4a53bf6c244b7bf109c8d5cdae70, type: 3}
+  Prefab: {fileID: 2173271080134177757, guid: 064681dfe2bcf4dbb8d7adb53321c6ab, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Warehouse
   m_EditorClassIdentifier: 
   Name: Warehouse
-  Prefab: {fileID: 3532374132240110004, guid: 0f6d7bd037c7c480aa380f3812faa57a, type: 3}
+  Prefab: {fileID: 2707083877788281487, guid: 910f3742a889d4f00b6307099eebb329, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0

@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: Breadery
   m_EditorClassIdentifier: 
   Name: Breadery
-  Prefab: {fileID: 3532374132240110004, guid: 49a92da45e8b249ccadb2d523944f174, type: 3}
+  Prefab: {fileID: 705533529897339205, guid: 53c42bdbe5ae54494ba01cbdb524b2b7, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0

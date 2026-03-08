@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: WheatField
   m_EditorClassIdentifier: 
   Name: Wheat Field
-  Prefab: {fileID: 4056082060252207166, guid: ea57df742875440449d51aa9ce9577c1, type: 3}
+  Prefab: {fileID: 4951944323688882176, guid: ca17206b299884fae956a6ddd807a6e3, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 0
   StructureType: 2

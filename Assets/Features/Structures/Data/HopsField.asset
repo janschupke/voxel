@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: HopsField
   m_EditorClassIdentifier: 
   Name: Hops Field
-  Prefab: {fileID: 3532374132240110004, guid: 40a2a46c0a7b54a5f8045ba59917f865, type: 3}
+  Prefab: {fileID: 1205678334650747276, guid: 455be06cd5bb14d73833012b13c80669, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 0
   StructureType: 2

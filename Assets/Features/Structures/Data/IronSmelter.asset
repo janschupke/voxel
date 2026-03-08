@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: IronSmelter
   m_EditorClassIdentifier: 
   Name: Iron Smelter
-  Prefab: {fileID: 3532374132240110004, guid: 2ecdb8ab0a77b4e3c974adb398b22a67, type: 3}
+  Prefab: {fileID: 3142619390166366800, guid: c954f386f256d4c3ea735bc69ace92e7, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0

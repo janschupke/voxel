@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: JellyFarm
   m_EditorClassIdentifier: 
   Name: Jelly Farm
-  Prefab: {fileID: 3532374132240110004, guid: 05731c0f271244234981132e134d5c86, type: 3}
+  Prefab: {fileID: 7233829174006877308, guid: 7e223ab30054848b9bd4a1df72b69d17, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0

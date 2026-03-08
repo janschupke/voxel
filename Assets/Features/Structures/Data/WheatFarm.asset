@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: WheatFarm
   m_EditorClassIdentifier: 
   Name: Wheat Farm
-  Prefab: {fileID: 3532374132240110004, guid: e7a44b82c113447c596521f996cdfd6f, type: 3}
+  Prefab: {fileID: 5546838727648343914, guid: abbf8ad50e9b7419896fb4218231a5ab, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0

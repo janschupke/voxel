@@ -13,7 +13,7 @@ MonoBehaviour:
   m_Name: JellyField
   m_EditorClassIdentifier: 
   Name: Jelly Field
-  Prefab: {fileID: 3532374132240110004, guid: 474c02aa3e1e24deaad8aa969f81569f, type: 3}
+  Prefab: {fileID: 4197964957895732239, guid: 4660b56cc05c64128b1b92cba6eed924, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 0
   StructureType: 2

@@ -13,13 +13,19 @@ MonoBehaviour:
   m_Name: Tree
   m_EditorClassIdentifier: 
   Name: Tree
-  Prefab: {fileID: 4056082060252207166, guid: 46ec642aae69b4fc6ae81977426efd4c, type: 3}
+  Prefab: {fileID: 1477076164812818489, guid: d0d55ca8d56e64895a4ce8ca8c61622c, type: 3}
   CanReplaceTrees: 0
   IsBlocking: 0
   StructureType: 2
+  IsSurfaceOverlay: 0
   PlacementMode: 1
+  LinePlacementExtendThroughExisting: 0
   PrefabHeightInUnits: 2
   ScaleMultiplier: 1.5
   RandomRotation: 1
   IsSelectable: 0
   OperationalRangeInBlocks: 0
+  OperationalRangeType: 0
+  AssignedActor: {fileID: 0}
+  InventoryCapacity: 0
+  UsesGlobalStorage: 0

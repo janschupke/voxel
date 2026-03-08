@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using UnityEditor;
 using UnityEngine;
+using Voxel;
 
 namespace Voxel.Editor
 {
@@ -98,13 +99,49 @@ namespace Voxel.Editor
                     shaderOverride = entry.ShaderOverride;
                 }
 
+                AssetDatabase.ImportAsset(assetPath, ImportAssetOptions.ForceUpdate);
+                string texPath = $"{ModelsPath}/{modelName}.png";
+                string texFullPath = Path.GetFullPath(Path.Combine(Application.dataPath, "..", texPath.Replace('/', Path.DirectorySeparatorChar)));
+                if (File.Exists(texFullPath))
+                    AssetDatabase.ImportAsset(texPath, ImportAssetOptions.ForceUpdate);
+
                 if (GeneratePrefab(assetPath, modelName, prefabName, shaderOverride))
                     count++;
             }
 
+            RepairPlacedObjectReferences();
+
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
             Debug.Log($"VoxelPrefabGenerator: Generated {count} prefab(s).");
+        }
+
+        private static void RepairPlacedObjectReferences()
+        {
+            var registry = AssetDatabase.LoadAssetAtPath<PlacedObjectRegistry>("Assets/Core/Registries/Data/PlacedObjectRegistry.asset");
+            if (registry == null) return;
+
+            foreach (var entry in registry.Entries)
+            {
+                if (entry == null || entry.Prefab != null) continue;
+
+                string prefabName = entry.Name?.Replace(" ", "") ?? "";
+                if (string.IsNullOrEmpty(prefabName)) continue;
+
+                var prefab = AssetDatabase.LoadAssetAtPath<GameObject>($"{PrefabsPath}/{prefabName}.prefab");
+                if (prefab != null)
+                {
+                    using (var so = new SerializedObject(entry))
+                    {
+                        var prefabProp = so.FindProperty("Prefab");
+                        if (prefabProp != null)
+                        {
+                            prefabProp.objectReferenceValue = prefab;
+                            so.ApplyModifiedPropertiesWithoutUndo();
+                        }
+                    }
+                }
+            }
         }
 
         private static bool GeneratePrefab(string objPath, string modelName, string prefabName, string shaderOverride)
@@ -123,7 +160,7 @@ namespace Voxel.Editor
                 return false;
             }
 
-            GameObject go = new GameObject(prefabName);
+            GameObject go = EditorUtility.CreateGameObjectWithHideFlags(prefabName, HideFlags.HideInHierarchy);
             var mf = go.AddComponent<MeshFilter>();
             mf.sharedMesh = mesh;
 
@@ -177,21 +214,24 @@ namespace Voxel.Editor
                 shader = Shader.Find("Universal Render Pipeline/Lit");
             }
 
+            bool useTexture = shaderOverride == null || shaderOverride == "Voxel/BaseVoxel";
+            string texPath = $"{ModelsPath}/{modelName}.png";
+            Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
+
             if (mat == null)
             {
                 mat = new Material(shader);
                 mat.name = $"{prefabName}Material";
+                if (useTexture && tex != null)
+                    mat.SetTexture("_BaseMap", tex);
                 if (!Directory.Exists(MaterialsPath))
                     Directory.CreateDirectory(MaterialsPath);
                 AssetDatabase.CreateAsset(mat, matPath);
-
-                if (shaderOverride == null || shaderOverride == "Voxel/BaseVoxel")
-                {
-                    string texPath = $"{ModelsPath}/{modelName}.png";
-                    Texture2D tex = AssetDatabase.LoadAssetAtPath<Texture2D>(texPath);
-                    if (tex != null)
-                        mat.SetTexture("_BaseMap", tex);
-                }
+            }
+            else if (useTexture && tex != null)
+            {
+                mat.SetTexture("_BaseMap", tex);
+                EditorUtility.SetDirty(mat);
             }
 
             return mat;
