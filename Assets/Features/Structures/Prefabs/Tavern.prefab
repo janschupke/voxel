@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 276459943213096692}
   - component: {fileID: 5353130331457150793}
   - component: {fileID: 1174618402427427125}
-  - component: {fileID: 7744126864960559224}
+  - component: {fileID: 1704509255532245085}
   m_Layer: 0
   m_Name: Tavern
   m_TagString: Untagged
@@ -91,8 +91,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &7744126864960559224
-MeshCollider:
+--- !u!65 &1704509255532245085
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -109,7 +109,6 @@ MeshCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: -2432090755550338912, guid: 5058b01a9e07c47e495ea1e12e969178, type: 3}
+  serializedVersion: 3
+  m_Size: {x: 4, y: 4, z: 4}
+  m_Center: {x: 0, y: 2, z: 0}

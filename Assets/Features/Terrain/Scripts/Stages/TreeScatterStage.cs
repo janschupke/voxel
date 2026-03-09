@@ -128,15 +128,18 @@ namespace Voxel
                 if (tooClose)
                     continue;
 
-                Vector3 worldPos = _worldScale.BlockToWorld(x + 0.5f, y, z + 0.5f);
+                var bounds = GetPrefabBounds(_config.TreePrefab, 1, 1, _config.HeightInBlocks);
+                var scale = _worldScale.ScaleForVoxelModel(1, 1, _config.HeightInBlocks, bounds);
+                var worldPos = _worldScale.BlockToWorld(x + 0.5f, y, z + 0.5f);
+                worldPos -= PlacementUtility.PivotOffsetForCenteringXZ(bounds, scale);
+
                 Quaternion rotation = _config.RandomRotation
                     ? Quaternion.Euler(0f, (float)(rng.NextDouble() * 360), 0f)
                     : Quaternion.identity;
 
                 var instance = UnityEngine.Object.Instantiate(_config.TreePrefab, worldPos, rotation, _treeParent);
                 instance.name = _config.TreePrefab.name;
-                var bounds = GetPrefabBounds(_config.TreePrefab, 1, 1, _config.HeightInBlocks);
-                instance.transform.localScale = _worldScale.ScaleForVoxelModel(1, 1, _config.HeightInBlocks, bounds);
+                instance.transform.localScale = scale;
 
                 spatialGrid[cellX, cellZ].Add((x, y, z));
             }

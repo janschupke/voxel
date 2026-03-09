@@ -53,7 +53,7 @@ namespace Voxel
             var rotation = Quaternion.Euler(0f, rotationY, 0f);
             var scale = GetScaleForEntry(entry, sizeX, sizeZ);
 
-            PlacePrefabInstance(entry, parent, pos, rotation, scale);
+            PlacePrefabInstance(entry, parent, pos, rotation, scale, sizeX, sizeZ);
             GameDebugLogger.Log($"[PlacementExecutor] PlaceSingle OK: '{entry.Name}' at origin ({originX},{baseY},{originZ}) size {sizeX}x{sizeZ}");
         }
 
@@ -104,7 +104,7 @@ namespace Voxel
                 if (_worldBootstrap.HasBlockingObjectAtBlock(node.X, surfaceY, node.Z)) continue;
 
                 RemoveEnvironmentAtBlockIfNeeded(node.X, surfaceY, node.Z, entry);
-                PlacePrefabAtBlockCenter(entry, parent, node.X, surfaceY, node.Z, worldScale, scale);
+                PlacePrefabAtBlockCenter(entry, parent, node.X, surfaceY, node.Z, worldScale, scale, 1, 1);
             }
         }
 
@@ -140,7 +140,7 @@ namespace Voxel
                 if (_worldBootstrap.HasBlockingObjectAtBlock(x, surfaceY, z)) continue;
 
                 RemoveEnvironmentAtBlockIfNeeded(x, surfaceY, z, entry);
-                PlacePrefabAtBlockCenter(entry, parent, x, surfaceY, z, worldScale, scale);
+                PlacePrefabAtBlockCenter(entry, parent, x, surfaceY, z, worldScale, scale, 1, 1);
             }
         }
 
@@ -169,17 +169,20 @@ namespace Voxel
         }
 
         private void PlacePrefabAtBlockCenter(PlacedObjectEntry entry, Transform parent, int x, int y, int z,
-            WorldScale worldScale, Vector3 scale)
+            WorldScale worldScale, Vector3 scale, int sizeX, int sizeZ)
         {
             var pos = worldScale.BlockToWorld(x + 0.5f, y, z + 0.5f);
             var rotation = entry.RandomRotation
                 ? Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)
                 : Quaternion.identity;
-            PlacePrefabInstance(entry, parent, pos, rotation, scale);
+            PlacePrefabInstance(entry, parent, pos, rotation, scale, sizeX, sizeZ);
         }
 
-        private void PlacePrefabInstance(PlacedObjectEntry entry, Transform parent, Vector3 pos, Quaternion rotation, Vector3 scale)
+        private void PlacePrefabInstance(PlacedObjectEntry entry, Transform parent, Vector3 pos, Quaternion rotation, Vector3 scale, int sizeX, int sizeZ)
         {
+            var bounds = GetPrefabBounds(entry.Prefab, sizeX, sizeZ, entry.HeightInBlocks, _worldBootstrap?.WorldParameters?.VoxelsPerBlockAxis ?? 16);
+            pos -= PlacementUtility.PivotOffsetForCenteringXZ(bounds, scale);
+
             var instance = Object.Instantiate(entry.Prefab, pos, rotation, parent);
             instance.name = entry.Prefab.name;
             instance.transform.localScale = scale;

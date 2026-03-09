@@ -56,10 +56,10 @@ namespace Voxel
 
             if (WorldPersistenceService.WorldExists())
             {
-                var (grid, placedObjects, buildingInventories, actorData, globalStorageItems) = WorldPersistenceService.Load();
+                var (grid, placedObjects, buildingInventories, actorData, globalStorageItems, saveVersion) = WorldPersistenceService.Load();
                 _grid = grid;
                 var inventoryLookup = BuildInventoryLookup(buildingInventories);
-                _placedObjectManager.LoadPlacedObjects(placedObjects, _grid, terrainMode, inventoryLookup);
+                _placedObjectManager.LoadPlacedObjects(placedObjects, _grid, terrainMode, inventoryLookup, saveVersion);
                 if (globalStorageItems != null && globalStorageItems.Count > 0)
                 {
                     var items = new List<(Item, int)>();

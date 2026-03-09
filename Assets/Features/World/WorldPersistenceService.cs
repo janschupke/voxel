@@ -10,7 +10,7 @@ namespace Voxel
     public static class WorldPersistenceService
     {
         private const string WorldFileName = "world.dat";
-        private const int SaveVersion = 4;
+        private const int SaveVersion = 5;
         private static string WorldPath => Path.Combine(Application.persistentDataPath, "World", WorldFileName);
 
         public static bool WorldExists()
@@ -122,7 +122,7 @@ namespace Voxel
         public static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,
             IReadOnlyList<BuildingInventorySaveData> buildingInventories,
             IReadOnlyList<ActorSaveData> actorData,
-            IReadOnlyList<(int ItemId, int Count)> globalStorageItems) Load()
+            IReadOnlyList<(int ItemId, int Count)> globalStorageItems, int saveVersion) Load()
         {
             if (!WorldExists())
                 throw new FileNotFoundException("No saved world found", WorldPath);
@@ -134,20 +134,23 @@ namespace Voxel
             int version = reader.ReadInt32();
 
             if (version >= 4)
-                return LoadV4(reader);
+            {
+                var (g, p, b, a, gl) = LoadV4(reader);
+                return (g, p, b, a, gl, version);
+            }
             if (version == 3)
             {
                 var (g, p, b, a) = LoadV3(reader);
-                return (g, p, b, a, new List<(int, int)>());
+                return (g, p, b, a, new List<(int, int)>(), version);
             }
             if (version < 100)
             {
                 var (g, p) = LoadV2Core(reader);
-                return (g, p, new List<BuildingInventorySaveData>(), new List<ActorSaveData>(), new List<(int, int)>());
+                return (g, p, new List<BuildingInventorySaveData>(), new List<ActorSaveData>(), new List<(int, int)>(), version);
             }
 
             var (grid, placedObjects) = LoadV1(reader, version);
-            return (grid, placedObjects, new List<BuildingInventorySaveData>(), new List<ActorSaveData>(), new List<(int, int)>());
+            return (grid, placedObjects, new List<BuildingInventorySaveData>(), new List<ActorSaveData>(), new List<(int, int)>(), version);
         }
 
         private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,

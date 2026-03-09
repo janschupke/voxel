@@ -58,8 +58,13 @@ namespace Voxel
             int sizeZ = entry?.AreaSizeZ ?? 1;
 
             var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            float centerX = transform.position.x / worldScale.BlockScale;
-            float centerZ = transform.position.z / worldScale.BlockScale;
+            int voxelsPerBlock = _worldParameters?.VoxelsPerBlockAxis ?? 16;
+            float heightInBlocks = entry != null && entry.HeightInBlocks > 0 ? entry.HeightInBlocks : 1f;
+            var prefabOrInstance = entry?.Prefab ?? transform.gameObject;
+            var bounds = GetPrefabBounds(prefabOrInstance, sizeX, sizeZ, heightInBlocks, voxelsPerBlock);
+            var offset = PlacementUtility.PivotOffsetForCenteringXZ(bounds, transform.localScale);
+            float centerX = (transform.position.x + offset.x) / worldScale.BlockScale;
+            float centerZ = (transform.position.z + offset.z) / worldScale.BlockScale;
             int by = Mathf.FloorToInt(transform.position.y / worldScale.BlockScale);
             int originX = Mathf.FloorToInt(centerX - (sizeX - 1) / 2f - 0.5f);
             int originZ = Mathf.FloorToInt(centerZ - (sizeZ - 1) / 2f - 0.5f);
@@ -283,14 +288,15 @@ namespace Voxel
         }
 
         public void LoadPlacedObjects(IReadOnlyList<PlacedObjectData> placedObjects, VoxelGrid grid, TerrainGenerationMode terrainMode,
-            IReadOnlyDictionary<(string EntryName, int BlockX, int BlockY, int BlockZ), List<(Item Item, int Count)>> inventoryLookup = null)
+            IReadOnlyDictionary<(string EntryName, int BlockX, int BlockY, int BlockZ), List<(Item Item, int Count)>> inventoryLookup = null,
+            int saveVersion = 5)
         {
             PlacedObjectPersistence.LoadPlacedObjects(
                 placedObjects, grid, terrainMode, inventoryLookup,
                 _registry, _worldParameters, _islandPipelineConfig,
                 GetOrCreateParentForEntry, GetParentByEntryName,
                 (x, y, z) => _roadOverlay.Add(x, y, z),
-                RunTreePlacement);
+                RunTreePlacement, saveVersion);
             RebuildBlockIndex();
         }
 
@@ -308,6 +314,20 @@ namespace Voxel
                     RegisterPlacedObject(kv.Key, child);
                 }
             }
+        }
+
+        private static Bounds GetPrefabBounds(GameObject prefab, int sizeX, int sizeZ, float heightInBlocks, int voxelsPerBlock)
+        {
+            if (prefab == null)
+            {
+                var fallbackSize = new Vector3(sizeX * voxelsPerBlock, heightInBlocks * voxelsPerBlock, sizeZ * voxelsPerBlock);
+                return new Bounds(Vector3.zero, fallbackSize);
+            }
+            var mf = prefab.GetComponentInChildren<MeshFilter>();
+            if (mf != null && mf.sharedMesh != null)
+                return mf.sharedMesh.bounds;
+            var fallbackSize2 = new Vector3(sizeX * voxelsPerBlock, heightInBlocks * voxelsPerBlock, sizeZ * voxelsPerBlock);
+            return new Bounds(Vector3.zero, fallbackSize2);
         }
 
         private void RunTreePlacement(VoxelGrid grid)

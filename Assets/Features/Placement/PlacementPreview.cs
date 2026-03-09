@@ -199,6 +199,7 @@ namespace Voxel
             instance.transform.localScale = scale;
 
             var pos = _worldScale.BlockToWorld(centerX, centerY, centerZ);
+            pos -= PlacementUtility.PivotOffsetForCenteringXZ(bounds, scale);
             instance.transform.position = pos;
             instance.transform.rotation = Quaternion.Euler(0f, rotationY, 0f);
 
@@ -277,6 +278,9 @@ namespace Voxel
 
             var (centerX, centerZ) = PlacementUtility.GetFootprintCenter(originX, originZ, sizeX, sizeZ);
             var pos = _worldScale.BlockToWorld(centerX, baseY, centerZ);
+            var bounds = GetPrefabBounds(sizeX, sizeZ, _entry.HeightInBlocks);
+            var scale = _instances[0].transform.localScale;
+            pos -= PlacementUtility.PivotOffsetForCenteringXZ(bounds, scale);
             _instances[0].transform.position = pos;
             _instances[0].transform.rotation = Quaternion.Euler(0f, rotationY, 0f);
         }

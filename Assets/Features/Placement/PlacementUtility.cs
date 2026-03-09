@@ -72,5 +72,14 @@ namespace Voxel
             float centerZ = originZ + (sizeZ - 1) / 2f + 0.5f;
             return (centerX, centerZ);
         }
+
+        /// <summary>World-space offset so the model's geometric center aligns with the placement position in XZ. Y excluded so models stay on surface. Returns zero when pivot is already at center (bounds.center ≈ 0 in XZ).</summary>
+        public static Vector3 PivotOffsetForCenteringXZ(Bounds meshBounds, Vector3 scale)
+        {
+            const float centerEpsilon = 0.01f;
+            if (Mathf.Abs(meshBounds.center.x) < centerEpsilon && Mathf.Abs(meshBounds.center.z) < centerEpsilon)
+                return Vector3.zero;
+            return new Vector3(meshBounds.center.x * scale.x, 0f, meshBounds.center.z * scale.z);
+        }
     }
 }

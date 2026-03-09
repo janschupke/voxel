@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 2513507626474637147}
   - component: {fileID: 6209030782492176794}
   - component: {fileID: 2380885554754333417}
-  - component: {fileID: 1665031828654578960}
+  - component: {fileID: 4077820223591854577}
   m_Layer: 0
   m_Name: Woodchuck
   m_TagString: Untagged
@@ -91,8 +91,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &1665031828654578960
-MeshCollider:
+--- !u!65 &4077820223591854577
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -109,7 +109,6 @@ MeshCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: -2432090755550338912, guid: 794517c373f0741b48669c2ccf5d4b79, type: 3}
+  serializedVersion: 3
+  m_Size: {x: 3.2, y: 3.2, z: 3.2}
+  m_Center: {x: 0, y: 1.6, z: 0}

@@ -22,7 +22,7 @@ MonoBehaviour:
   LinePlacementExtendThroughExisting: 0
   AreaSizeX: 1
   AreaSizeZ: 1
-  HeightInBlocks: 1.5
+  HeightInBlocks: 2
   RandomRotation: 1
   IsSelectable: 0
   OperationalRangeInBlocks: 0

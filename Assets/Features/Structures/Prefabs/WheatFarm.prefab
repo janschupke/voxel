@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 3275745203244509211}
   - component: {fileID: 23466442559035741}
   - component: {fileID: 8065452866695169968}
-  - component: {fileID: 6638381226731184799}
+  - component: {fileID: 2545656168059881675}
   m_Layer: 0
   m_Name: WheatFarm
   m_TagString: Untagged
@@ -91,8 +91,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!64 &6638381226731184799
-MeshCollider:
+--- !u!65 &2545656168059881675
+BoxCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -109,7 +109,6 @@ MeshCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 5
-  m_Convex: 0
-  m_CookingOptions: 30
-  m_Mesh: {fileID: -2432090755550338912, guid: 81209de3083ee47ba854900f94af697a, type: 3}
+  serializedVersion: 3
+  m_Size: {x: 3.2, y: 2.3, z: 3.2}
+  m_Center: {x: 0, y: 1.15, z: 0}
