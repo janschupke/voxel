@@ -198,6 +198,17 @@ namespace Voxel
             PlacementUtility.GetFootprintBlocks(fp.ox, fp.oz, by, fp.sx, fp.sz, outBlocks);
         }
 
+        /// <summary>Returns the world position of the footprint center, or null if the transform is not registered.</summary>
+        public Vector3? GetFootprintCenterWorld(Transform transform)
+        {
+            if (transform == null || !_transformToFootprint.TryGetValue(transform, out var fp)) return null;
+            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            int by = Mathf.FloorToInt(transform.position.y / worldScale.BlockScale);
+            float cx = fp.ox + (fp.sx - 1) / 2f + 0.5f;
+            float cz = fp.oz + (fp.sz - 1) / 2f + 0.5f;
+            return worldScale.BlockToWorld(cx, by, cz);
+        }
+
         /// <summary>Returns true if there is anything removable at the block (building, tree, or road).</summary>
         public bool HasRemovableAtBlock(int bx, int by, int bz)
         {

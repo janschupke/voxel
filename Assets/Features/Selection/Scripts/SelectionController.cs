@@ -30,6 +30,7 @@ namespace Voxel
         private Button _locateButton;
         private Button _clearInventoryButton;
         private Transform _selectedObject;
+        private Transform _locateTarget;
         private string _selectedEntryName;
         private Transform _hoveredObject;
         private Transform _lastHoveredObject;
@@ -112,6 +113,7 @@ namespace Voxel
                 _outlineRenderer?.ClearHighlight(_selectedObject);
                 _selectedObject = null;
             }
+            _locateTarget = null;
             _selectedEntryName = null;
             _cachedInventory = null;
             HideSelectionDetail();
@@ -218,6 +220,8 @@ namespace Voxel
         {
             UnsubscribeFromInventory();
             _selectedObject = obj;
+            if (_raycaster == null || !_raycaster.IsEntryParentOrWorldRoot(obj))
+                _locateTarget = obj;
             _selectedEntryName = entryName;
             _cachedInventory = obj != null ? obj.GetComponent<BuildingInventory>() as IBuildingInventory : null;
             if (_cachedInventory != null)
@@ -331,8 +335,11 @@ namespace Voxel
 
         private void OnLocateClicked()
         {
-            if (_selectedObject == null || worldBootstrap == null) return;
-            worldBootstrap.CenterCameraOnPosition(_selectedObject.position);
+            var target = _locateTarget ?? _selectedObject;
+            if (target == null || worldBootstrap == null) return;
+            var footprintCenter = worldBootstrap.GetFootprintCenterWorld(target);
+            Vector3 center = footprintCenter ?? target.position;
+            worldBootstrap.CenterCameraOnPosition(center);
         }
 
         private void OnClearInventoryClicked()

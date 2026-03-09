@@ -323,6 +323,10 @@ namespace Voxel
         public void GetFootprintBlocksForTransform(Transform transform, System.Collections.Generic.List<(int x, int y, int z)> outBlocks) =>
             _placedObjectManager.GetFootprintBlocksForTransform(transform, outBlocks);
 
+        /// <summary>Returns the world position of the footprint center for a placed object, or null if not registered.</summary>
+        public Vector3? GetFootprintCenterWorld(Transform transform) =>
+            _placedObjectManager.GetFootprintCenterWorld(transform);
+
         public bool HasRemovableAtBlock(int bx, int by, int bz) =>
             _placedObjectManager.HasRemovableAtBlock(bx, by, bz);
         public RoadOverlay GetRoadOverlay() => _placedObjectManager.RoadOverlay;

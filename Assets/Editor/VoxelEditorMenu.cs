@@ -12,5 +12,6 @@ namespace Voxel.Editor
         {
             EditorUtility.DisplayDialog("Voxel", "3D top-down voxel game.", "OK");
         }
+
     }
 }

@@ -22,6 +22,12 @@ namespace Voxel
             var picked = doc.rootVisualElement.panel.Pick(panelPos);
             if (picked == null) return false;
 
+            for (var el = picked; el != null; el = el.parent)
+            {
+                if (el.name == "Locate" || el.name == "SelectionDetail")
+                    return true;
+            }
+
             var topPanel = doc.rootVisualElement.Q("TopPanel");
             var sidebar = doc.rootVisualElement.Q("Sidebar");
             var menuPanel = doc.rootVisualElement.Q("MenuPanel");
