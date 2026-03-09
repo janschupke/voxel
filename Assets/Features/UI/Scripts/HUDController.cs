@@ -46,6 +46,12 @@ public class HUDController : MonoBehaviour
     private ScrollView _logPanelList;
     private VisualElement _tooltipPanel;
     private Label _tooltipLabel;
+    private VisualElement _placementCategoryButtons;
+    private VisualElement _placementButtons;
+    private string _selectedPlacementCategory;
+    private Dictionary<string, List<PlacedObjectEntry>> _placementEntriesByCategory;
+    private Dictionary<string, Button> _placementCategoryButtonsByCategory;
+    private Func<bool> _escapeHandlerClearPlacementCategory;
 
     private void Awake()
     {
@@ -122,56 +128,38 @@ public class HUDController : MonoBehaviour
             if (logButton != null)
                 logButton.clicked += ToggleLogPanel;
 
-            var placementContainer = uiDocument.rootVisualElement.Q<VisualElement>("PlacementButtons");
+            _placementCategoryButtons = uiDocument.rootVisualElement.Q<VisualElement>("PlacementCategoryButtons");
+            _placementButtons = uiDocument.rootVisualElement.Q<VisualElement>("PlacementButtons");
             _tooltipPanel = uiDocument.rootVisualElement.Q<VisualElement>("Tooltip");
             _tooltipLabel = uiDocument.rootVisualElement.Q<Label>("TooltipText");
 
-            if (placementContainer != null && _placementController != null)
+            if (_placementCategoryButtons != null && _placementButtons != null && _placementController != null)
             {
                 var registry = placedObjectRegistry != null ? placedObjectRegistry : worldBootstrap?.PlacedObjectRegistry;
                 var itemRegistry = worldBootstrap?.ItemRegistry;
-                var sprite = itemRegistry?.GetDefinition(Item.Wood)?.Sprite;
 
                 if (registry != null && registry.Entries != null)
                 {
-                    var entriesByCategory = GroupEntriesByCategory(registry.Entries);
+                    _placementEntriesByCategory = GroupEntriesByCategory(registry.Entries);
+                    _placementCategoryButtonsByCategory = new Dictionary<string, Button>();
                     var categoryOrder = registry.CategoryDisplayOrder ?? Array.Empty<string>();
+                    var categories = GetPlacementCategoriesInOrder(_placementEntriesByCategory.Keys, categoryOrder).ToList();
 
-                    foreach (var category in GetPlacementCategoriesInOrder(entriesByCategory.Keys, categoryOrder))
+                    foreach (var category in categories)
                     {
-                        if (!entriesByCategory.TryGetValue(category, out var entries)) continue;
-
-                        var header = new Label(category);
-                        header.AddToClassList("placement-category-header");
-                        placementContainer.Add(header);
-
-                        var buttonRow = new VisualElement();
-                        buttonRow.AddToClassList("placement-category-buttons");
-                        placementContainer.Add(buttonRow);
-
-                        foreach (var entry in entries)
-                        {
-                            if (entry == null || string.IsNullOrEmpty(entry.Name)) continue;
-
-                            var button = new Button { focusable = false };
-                            button.name = entry.Name;
-                            button.AddToClassList("placement-button");
-                            if (sprite != null)
-                                button.style.backgroundImage = new StyleBackground(sprite);
-                            if (!entry.IsSurfaceOverlay && entry.Prefab == null)
-                                button.SetEnabled(false);
-                            buttonRow.Add(button);
-
-                            var entryName = entry.Name;
-                            button.RegisterCallback<MouseEnterEvent>(_ => ShowTooltip(entryName));
-                            button.RegisterCallback<MouseLeaveEvent>(_ => HideTooltip());
-
-                            _placementController.RegisterButton(entry.Name, button);
-                            button.clicked += () => _placementController.TogglePlacementMode(entryName);
-                        }
+                        var cat = category;
+                        var categoryBtn = new Button { text = category, focusable = false };
+                        categoryBtn.AddToClassList("placement-category-button");
+                        categoryBtn.clicked += () => SelectPlacementCategory(cat);
+                        _placementCategoryButtons.Add(categoryBtn);
+                        _placementCategoryButtonsByCategory[cat] = categoryBtn;
                     }
+
                 }
             }
+
+            _escapeHandlerClearPlacementCategory = TryClearPlacementCategory;
+            HotkeyManager.Instance?.Register(Key.Escape, "ESC", "Clear category selection", null, _escapeHandlerClearPlacementCategory, HotkeyManager.PriorityDeselect);
 
             _messageLog = uiDocument.rootVisualElement.Q<VisualElement>("MessageLog");
             _logPanel = uiDocument.rootVisualElement.Q<VisualElement>("LogPanel");
@@ -449,6 +437,63 @@ public class HUDController : MonoBehaviour
         return GetCategoriesInDisplayOrder(categories, order);
     }
 
+    private void SelectPlacementCategory(string category)
+    {
+        if (_placementButtons == null || _placementCategoryButtons == null || _placementEntriesByCategory == null) return;
+        if (!_placementEntriesByCategory.TryGetValue(category, out var entries)) return;
+
+        _selectedPlacementCategory = category;
+
+        if (_placementCategoryButtonsByCategory != null)
+        {
+            foreach (var kv in _placementCategoryButtonsByCategory)
+                kv.Value.RemoveFromClassList("placement-category-selected");
+            if (_placementCategoryButtonsByCategory.TryGetValue(category, out var selectedBtn))
+                selectedBtn.AddToClassList("placement-category-selected");
+        }
+
+        _placementButtons.Clear();
+        var itemRegistry = worldBootstrap?.ItemRegistry;
+        var sprite = itemRegistry?.GetDefinition(Item.Wood)?.Sprite;
+
+        var buttonRow = new VisualElement();
+        buttonRow.AddToClassList("placement-category-buttons");
+        _placementButtons.Add(buttonRow);
+
+        foreach (var entry in entries)
+        {
+            if (entry == null || string.IsNullOrEmpty(entry.Name)) continue;
+
+            var button = new Button { focusable = false };
+            button.name = entry.Name;
+            button.AddToClassList("placement-button");
+            if (sprite != null)
+                button.style.backgroundImage = new StyleBackground(sprite);
+            if (!entry.IsSurfaceOverlay && entry.Prefab == null)
+                button.SetEnabled(false);
+            buttonRow.Add(button);
+
+            var entryName = entry.Name;
+            button.RegisterCallback<MouseEnterEvent>(_ => ShowTooltip(entryName));
+            button.RegisterCallback<MouseLeaveEvent>(_ => HideTooltip());
+
+            _placementController.RegisterButton(entry.Name, button);
+            button.clicked += () => _placementController.TogglePlacementMode(entryName);
+        }
+    }
+
+    private bool TryClearPlacementCategory()
+    {
+        if (string.IsNullOrEmpty(_selectedPlacementCategory)) return false;
+        if (_placementCategoryButtonsByCategory == null) return false;
+
+        _selectedPlacementCategory = null;
+        foreach (var btn in _placementCategoryButtonsByCategory.Values)
+            btn?.RemoveFromClassList("placement-category-selected");
+        _placementButtons?.Clear();
+        return true;
+    }
+
     private void OnDestroy()
     {
         WorldBootstrap.WorldReady -= OnWorldReady;
@@ -461,6 +506,8 @@ public class HUDController : MonoBehaviour
             HotkeyManager.Instance?.Unregister(_escapeHandlerGoBack);
         if (_escapeHandlerOpenMenu != null)
             HotkeyManager.Instance?.Unregister(_escapeHandlerOpenMenu);
+        if (_escapeHandlerClearPlacementCategory != null)
+            HotkeyManager.Instance?.Unregister(_escapeHandlerClearPlacementCategory);
         if (_hotkeyHandlerI != null)
             HotkeyManager.Instance?.Unregister(_hotkeyHandlerI);
         if (_hotkeyHandlerL != null)

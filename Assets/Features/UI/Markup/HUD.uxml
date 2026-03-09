@@ -14,6 +14,7 @@
                     <ui:Button text="Log" name="Log" focusable="false"/>
                     <ui:Button text="Clear All Inventories" name="ClearAllInventories" class="debug-only" focusable="false"/>
                 </ui:VisualElement>
+                <ui:VisualElement name="PlacementCategoryButtons" class="placement-category-select"/>
                 <ui:VisualElement name="PlacementButtons" class="placement-grid"/>
                 <ui:VisualElement name="SelectionDetail" class="hidden">
                     <ui:Label name="SelectionName" text=""/>

@@ -25,6 +25,22 @@
     background-color: rgba(0, 0, 0, 0.7);
 }
 
+.placement-category-select {
+    flex-direction: row;
+    flex-wrap: wrap;
+    padding: 5px 0;
+}
+
+.placement-category-button {
+    padding: 6px 10px;
+    margin: 2px;
+    font-size: 10px;
+}
+
+.placement-category-button.placement-category-selected {
+    background-color: rgba(0, 100, 0, 0.7);
+}
+
 .placement-grid {
     flex-direction: column;
     padding: 5px 0;
