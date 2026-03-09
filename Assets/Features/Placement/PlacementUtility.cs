@@ -1,12 +1,14 @@
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using Voxel.Pure;
 
 namespace Voxel
 {
-    /// <summary>Shared utility for world surface raycasting and block queries.</summary>
+    /// <summary>Shared utility for world surface raycasting, footprint calculations, and prefab placement.</summary>
     public static class PlacementUtility
     {
+        public const int DefaultVoxelsPerBlockAxis = 16;
         public static bool TryRaycastTopSurface(Camera cam, VoxelGrid grid, WorldScale scale, int waterLevelY,
             out (int bx, int by, int bz) block, out bool valid)
         {
@@ -80,6 +82,40 @@ namespace Voxel
             if (Mathf.Abs(meshBounds.center.x) < centerEpsilon && Mathf.Abs(meshBounds.center.z) < centerEpsilon)
                 return Vector3.zero;
             return new Vector3(meshBounds.center.x * scale.x, 0f, meshBounds.center.z * scale.z);
+        }
+
+        /// <summary>Footprint origin from center (inverse of GetFootprintCenter). Used when deriving origin from world position.</summary>
+        public static (int originX, int originZ) GetFootprintOriginFromCenter(float centerX, float centerZ, int sizeX, int sizeZ)
+        {
+            int originX = Mathf.FloorToInt(centerX - (sizeX - 1) / 2f - 0.5f);
+            int originZ = Mathf.FloorToInt(centerZ - (sizeZ - 1) / 2f - 0.5f);
+            return (originX, originZ);
+        }
+
+        /// <summary>Fills outBlocks with all blocks in the footprint. Reusable for registration, removal preview, environment hiding.</summary>
+        public static void GetFootprintBlocks(int originX, int originZ, int baseY, int sizeX, int sizeZ, List<(int x, int y, int z)> outBlocks)
+        {
+            outBlocks.Clear();
+            for (int dx = 0; dx < sizeX; dx++)
+            {
+                for (int dz = 0; dz < sizeZ; dz++)
+                {
+                    outBlocks.Add((originX + dx, baseY, originZ + dz));
+                }
+            }
+        }
+
+        /// <summary>Bounds for a voxel prefab. Uses mesh bounds if available, else fallback from size and voxelsPerBlock.</summary>
+        public static Bounds GetPrefabBounds(GameObject prefab, int sizeX, int sizeZ, float heightInBlocks, int voxelsPerBlock = DefaultVoxelsPerBlockAxis)
+        {
+            if (prefab != null)
+            {
+                var mf = prefab.GetComponentInChildren<MeshFilter>();
+                if (mf != null && mf.sharedMesh != null)
+                    return mf.sharedMesh.bounds;
+            }
+            var fallbackSize = new Vector3(sizeX * voxelsPerBlock, heightInBlocks * voxelsPerBlock, sizeZ * voxelsPerBlock);
+            return new Bounds(Vector3.zero, fallbackSize);
         }
     }
 }

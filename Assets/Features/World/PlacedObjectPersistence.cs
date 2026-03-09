@@ -124,7 +124,7 @@ namespace Voxel
                 var (sizeX, sizeZ) = entry != null ? entry.GetEffectiveArea(p.RotationY) : (1, 1);
                 float heightInBlocks = entry != null && entry.HeightInBlocks > 0 ? entry.HeightInBlocks : 1f;
                 int voxelsPerBlock = worldParameters?.VoxelsPerBlockAxis ?? 16;
-                var bounds = GetPrefabBounds(prefab, sizeX, sizeZ, heightInBlocks, voxelsPerBlock);
+                var bounds = PlacementUtility.GetPrefabBounds(prefab, sizeX, sizeZ, heightInBlocks, voxelsPerBlock);
                 var scale = worldScale.ScaleForVoxelModel(sizeX, sizeZ, heightInBlocks, bounds);
 
                 float centerX, centerZ;
@@ -166,28 +166,18 @@ namespace Voxel
 
         private static (int originX, int baseY, int originZ) GetFootprintOriginFromTransform(Transform child, PlacedObjectEntry entry, WorldScale worldScale, int voxelsPerBlock)
         {
-            int sizeX = entry.AreaSizeX;
-            int sizeZ = entry.AreaSizeZ;
+            float rotationY = child.eulerAngles.y;
+            var (sizeX, sizeZ) = entry.GetEffectiveArea(rotationY);
             float heightInBlocks = entry.HeightInBlocks > 0 ? entry.HeightInBlocks : 1f;
-            var bounds = GetPrefabBounds(entry.Prefab, sizeX, sizeZ, heightInBlocks, voxelsPerBlock);
+            var bounds = PlacementUtility.GetPrefabBounds(entry.Prefab, sizeX, sizeZ, heightInBlocks, voxelsPerBlock);
             var scale = worldScale.ScaleForVoxelModel(sizeX, sizeZ, heightInBlocks, bounds);
             var centerWorld = child.position + PlacementUtility.PivotOffsetForCenteringXZ(bounds, scale);
             float centerX = centerWorld.x / worldScale.BlockScale;
             float centerY = centerWorld.y / worldScale.BlockScale;
             float centerZ = centerWorld.z / worldScale.BlockScale;
-            int originX = Mathf.FloorToInt(centerX - (sizeX - 1) / 2f - 0.5f);
+            var (originX, originZ) = PlacementUtility.GetFootprintOriginFromCenter(centerX, centerZ, sizeX, sizeZ);
             int baseY = Mathf.FloorToInt(centerY);
-            int originZ = Mathf.FloorToInt(centerZ - (sizeZ - 1) / 2f - 0.5f);
             return (originX, baseY, originZ);
-        }
-
-        private static Bounds GetPrefabBounds(GameObject prefab, int sizeX, int sizeZ, float heightInBlocks, int voxelsPerBlock)
-        {
-            var mf = prefab.GetComponentInChildren<MeshFilter>();
-            if (mf != null && mf.sharedMesh != null)
-                return mf.sharedMesh.bounds;
-            var fallbackSize = new Vector3(sizeX * voxelsPerBlock, heightInBlocks * voxelsPerBlock, sizeZ * voxelsPerBlock);
-            return new Bounds(Vector3.zero, fallbackSize);
         }
     }
 }

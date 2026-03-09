@@ -45,9 +45,7 @@ namespace Voxel
             if (instance != null)
             {
                 _instances.Add(instance);
-                for (int dx = 0; dx < sizeX; dx++)
-                    for (int dz = 0; dz < sizeZ; dz++)
-                        _previewBlocks.Add((originX + dx, baseY, originZ + dz));
+                PlacementUtility.GetFootprintBlocks(originX, originZ, baseY, sizeX, sizeZ, _previewBlocks);
             }
         }
 
@@ -194,8 +192,8 @@ namespace Voxel
             var instance = Object.Instantiate(_prefab);
             instance.name = _prefab.name + "_Preview";
 
-            var bounds = GetPrefabBounds(sizeX, sizeZ, _entry.HeightInBlocks);
-            var scale = _worldScale.ScaleForVoxelModel(sizeX, sizeZ, _entry.HeightInBlocks, bounds);
+            var bounds = PlacementUtility.GetPrefabBounds(_prefab, _entry.AreaSizeX, _entry.AreaSizeZ, _entry.HeightInBlocks, _voxelsPerBlockAxis);
+            var scale = _worldScale.ScaleForVoxelModel(_entry.AreaSizeX, _entry.AreaSizeZ, _entry.HeightInBlocks, bounds);
             instance.transform.localScale = scale;
 
             var pos = _worldScale.BlockToWorld(centerX, centerY, centerZ);
@@ -211,15 +209,6 @@ namespace Voxel
                 col.enabled = false;
 
             return instance;
-        }
-
-        private Bounds GetPrefabBounds(int sizeX, int sizeZ, float heightInBlocks)
-        {
-            var mf = _prefab.GetComponentInChildren<MeshFilter>();
-            if (mf != null && mf.sharedMesh != null)
-                return mf.sharedMesh.bounds;
-            var fallbackSize = new Vector3(sizeX * _voxelsPerBlockAxis, heightInBlocks * _voxelsPerBlockAxis, sizeZ * _voxelsPerBlockAxis);
-            return new Bounds(Vector3.zero, fallbackSize);
         }
 
         private void ApplyPreviewMaterials(GameObject go, bool valid)
@@ -278,7 +267,7 @@ namespace Voxel
 
             var (centerX, centerZ) = PlacementUtility.GetFootprintCenter(originX, originZ, sizeX, sizeZ);
             var pos = _worldScale.BlockToWorld(centerX, baseY, centerZ);
-            var bounds = GetPrefabBounds(sizeX, sizeZ, _entry.HeightInBlocks);
+            var bounds = PlacementUtility.GetPrefabBounds(_prefab, _entry.AreaSizeX, _entry.AreaSizeZ, _entry.HeightInBlocks, _voxelsPerBlockAxis);
             var scale = _instances[0].transform.localScale;
             pos -= PlacementUtility.PivotOffsetForCenteringXZ(bounds, scale);
             _instances[0].transform.position = pos;

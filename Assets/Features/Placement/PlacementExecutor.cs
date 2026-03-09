@@ -13,6 +13,7 @@ namespace Voxel
     public class PlacementExecutor
     {
         private readonly WorldBootstrap _worldBootstrap;
+        private readonly List<(int x, int y, int z)> _footprintBlocksBuffer = new(32);
 
         public PlacementExecutor(WorldBootstrap worldBootstrap)
         {
@@ -51,7 +52,7 @@ namespace Voxel
             var (centerX, centerZ) = PlacementUtility.GetFootprintCenter(originX, originZ, sizeX, sizeZ);
             var pos = worldScale.BlockToWorld(centerX, baseY, centerZ);
             var rotation = Quaternion.Euler(0f, rotationY, 0f);
-            var scale = GetScaleForEntry(entry, sizeX, sizeZ);
+            var scale = GetScaleForEntry(entry, entry.AreaSizeX, entry.AreaSizeZ);
 
             PlacePrefabInstance(entry, parent, pos, rotation, scale, sizeX, sizeZ);
             GameDebugLogger.Log($"[PlacementExecutor] PlaceSingle OK: '{entry.Name}' at origin ({originX},{baseY},{originZ}) size {sizeX}x{sizeZ}");
@@ -157,9 +158,10 @@ namespace Voxel
         {
             if (!entry.CanReplaceEnvironment) return;
 
-            for (int dx = 0; dx < sizeX; dx++)
-                for (int dz = 0; dz < sizeZ; dz++)
-                    _worldBootstrap.RemoveEnvironmentAtBlock(originX + dx, baseY, originZ + dz);
+            _footprintBlocksBuffer.Clear();
+            PlacementUtility.GetFootprintBlocks(originX, originZ, baseY, sizeX, sizeZ, _footprintBlocksBuffer);
+            foreach (var (bx, by, bz) in _footprintBlocksBuffer)
+                _worldBootstrap.RemoveEnvironmentAtBlock(bx, by, bz);
         }
 
         private void RemoveEnvironmentAtBlockIfNeeded(int x, int y, int z, PlacedObjectEntry entry)
@@ -180,7 +182,7 @@ namespace Voxel
 
         private void PlacePrefabInstance(PlacedObjectEntry entry, Transform parent, Vector3 pos, Quaternion rotation, Vector3 scale, int sizeX, int sizeZ)
         {
-            var bounds = GetPrefabBounds(entry.Prefab, sizeX, sizeZ, entry.HeightInBlocks, _worldBootstrap?.WorldParameters?.VoxelsPerBlockAxis ?? 16);
+            var bounds = PlacementUtility.GetPrefabBounds(entry.Prefab, entry.AreaSizeX, entry.AreaSizeZ, entry.HeightInBlocks, _worldBootstrap?.WorldParameters?.VoxelsPerBlockAxis ?? PlacementUtility.DefaultVoxelsPerBlockAxis);
             pos -= PlacementUtility.PivotOffsetForCenteringXZ(bounds, scale);
 
             var instance = Object.Instantiate(entry.Prefab, pos, rotation, parent);
@@ -194,18 +196,9 @@ namespace Voxel
         private Vector3 GetScaleForEntry(PlacedObjectEntry entry, int sizeX, int sizeZ)
         {
             var worldScale = GetWorldScale();
-            int voxelsPerBlock = _worldBootstrap?.WorldParameters?.VoxelsPerBlockAxis ?? 16;
-            var bounds = GetPrefabBounds(entry.Prefab, sizeX, sizeZ, entry.HeightInBlocks, voxelsPerBlock);
+            int voxelsPerBlock = _worldBootstrap?.WorldParameters?.VoxelsPerBlockAxis ?? PlacementUtility.DefaultVoxelsPerBlockAxis;
+            var bounds = PlacementUtility.GetPrefabBounds(entry.Prefab, sizeX, sizeZ, entry.HeightInBlocks, voxelsPerBlock);
             return worldScale.ScaleForVoxelModel(sizeX, sizeZ, entry.HeightInBlocks, bounds);
-        }
-
-        private static Bounds GetPrefabBounds(GameObject prefab, int sizeX, int sizeZ, float heightInBlocks, int voxelsPerBlock)
-        {
-            var mf = prefab.GetComponentInChildren<MeshFilter>();
-            if (mf != null && mf.sharedMesh != null)
-                return mf.sharedMesh.bounds;
-            var fallbackSize = new Vector3(sizeX * voxelsPerBlock, heightInBlocks * voxelsPerBlock, sizeZ * voxelsPerBlock);
-            return new Bounds(Vector3.zero, fallbackSize);
         }
 
         private static void TryAddBuildingInventory(GameObject instance, PlacedObjectEntry entry)

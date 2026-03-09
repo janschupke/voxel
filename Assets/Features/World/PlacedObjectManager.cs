@@ -14,6 +14,7 @@ namespace Voxel
         private readonly RoadOverlay _roadOverlay = new RoadOverlay();
         private readonly Dictionary<(int x, int y, int z), List<Transform>> _blockToTransforms = new Dictionary<(int x, int y, int z), List<Transform>>();
         private readonly Dictionary<Transform, (int ox, int oz, int sx, int sz)> _transformToFootprint = new Dictionary<Transform, (int, int, int, int)>();
+        private readonly List<(int x, int y, int z)> _footprintBlocksBuffer = new(32);
 
         private PlacedObjectRegistry _registry;
         private WorldParameters _worldParameters;
@@ -54,35 +55,35 @@ namespace Voxel
         {
             if (transform == null || string.IsNullOrEmpty(entryName) || entryName == PlacedObjectKeys.Road) return;
             var entry = _registry?.GetByName(entryName);
-            int sizeX = entry?.AreaSizeX ?? 1;
-            int sizeZ = entry?.AreaSizeZ ?? 1;
+            float rotationY = transform.eulerAngles.y;
+            var (sizeX, sizeZ) = entry != null ? entry.GetEffectiveArea(rotationY) : (1, 1);
 
             var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            int voxelsPerBlock = _worldParameters?.VoxelsPerBlockAxis ?? 16;
+            int voxelsPerBlock = _worldParameters?.VoxelsPerBlockAxis ?? PlacementUtility.DefaultVoxelsPerBlockAxis;
             float heightInBlocks = entry != null && entry.HeightInBlocks > 0 ? entry.HeightInBlocks : 1f;
             var prefabOrInstance = entry?.Prefab ?? transform.gameObject;
-            var bounds = GetPrefabBounds(prefabOrInstance, sizeX, sizeZ, heightInBlocks, voxelsPerBlock);
+            int boundsSizeX = entry?.AreaSizeX ?? 1;
+            int boundsSizeZ = entry?.AreaSizeZ ?? 1;
+            var bounds = PlacementUtility.GetPrefabBounds(prefabOrInstance, boundsSizeX, boundsSizeZ, heightInBlocks, voxelsPerBlock);
             var offset = PlacementUtility.PivotOffsetForCenteringXZ(bounds, transform.localScale);
             float centerX = (transform.position.x + offset.x) / worldScale.BlockScale;
             float centerZ = (transform.position.z + offset.z) / worldScale.BlockScale;
             int by = Mathf.FloorToInt(transform.position.y / worldScale.BlockScale);
-            int originX = Mathf.FloorToInt(centerX - (sizeX - 1) / 2f - 0.5f);
-            int originZ = Mathf.FloorToInt(centerZ - (sizeZ - 1) / 2f - 0.5f);
+            var (originX, originZ) = PlacementUtility.GetFootprintOriginFromCenter(centerX, centerZ, sizeX, sizeZ);
 
             _transformToFootprint[transform] = (originX, originZ, sizeX, sizeZ);
 
-            for (int dx = 0; dx < sizeX; dx++)
+            _footprintBlocksBuffer.Clear();
+            PlacementUtility.GetFootprintBlocks(originX, originZ, by, sizeX, sizeZ, _footprintBlocksBuffer);
+            foreach (var (bx, by2, bz) in _footprintBlocksBuffer)
             {
-                for (int dz = 0; dz < sizeZ; dz++)
+                var key = (bx, by2, bz);
+                if (!_blockToTransforms.TryGetValue(key, out var list))
                 {
-                    var key = (originX + dx, by, originZ + dz);
-                    if (!_blockToTransforms.TryGetValue(key, out var list))
-                    {
-                        list = new List<Transform>();
-                        _blockToTransforms[key] = list;
-                    }
-                    list.Add(transform);
+                    list = new List<Transform>();
+                    _blockToTransforms[key] = list;
                 }
+                list.Add(transform);
             }
         }
 
@@ -94,13 +95,10 @@ namespace Voxel
             var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
             int by = Mathf.FloorToInt(transform.position.y / worldScale.BlockScale);
 
-            for (int dx = 0; dx < fp.sx; dx++)
-            {
-                for (int dz = 0; dz < fp.sz; dz++)
-                {
-                    UnregisterTransformAtBlock(fp.ox + dx, by, fp.oz + dz, transform);
-                }
-            }
+            _footprintBlocksBuffer.Clear();
+            PlacementUtility.GetFootprintBlocks(fp.ox, fp.oz, by, fp.sx, fp.sz, _footprintBlocksBuffer);
+            foreach (var (bx, by2, bz) in _footprintBlocksBuffer)
+                UnregisterTransformAtBlock(bx, by2, bz, transform);
         }
 
         private void UnregisterTransformAtBlock(int bx, int by, int bz, Transform transform)
@@ -188,6 +186,16 @@ namespace Voxel
                         outTransforms.Add(t);
                 }
             }
+        }
+
+        /// <summary>Fills outBlocks with all blocks in the footprint of the given transform. Used for removal preview.</summary>
+        public void GetFootprintBlocksForTransform(Transform transform, List<(int x, int y, int z)> outBlocks)
+        {
+            outBlocks.Clear();
+            if (transform == null || !_transformToFootprint.TryGetValue(transform, out var fp)) return;
+            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            int by = Mathf.FloorToInt(transform.position.y / worldScale.BlockScale);
+            PlacementUtility.GetFootprintBlocks(fp.ox, fp.oz, by, fp.sx, fp.sz, outBlocks);
         }
 
         /// <summary>Returns true if there is anything removable at the block (building, tree, or road).</summary>
@@ -316,20 +324,6 @@ namespace Voxel
             }
         }
 
-        private static Bounds GetPrefabBounds(GameObject prefab, int sizeX, int sizeZ, float heightInBlocks, int voxelsPerBlock)
-        {
-            if (prefab == null)
-            {
-                var fallbackSize = new Vector3(sizeX * voxelsPerBlock, heightInBlocks * voxelsPerBlock, sizeZ * voxelsPerBlock);
-                return new Bounds(Vector3.zero, fallbackSize);
-            }
-            var mf = prefab.GetComponentInChildren<MeshFilter>();
-            if (mf != null && mf.sharedMesh != null)
-                return mf.sharedMesh.bounds;
-            var fallbackSize2 = new Vector3(sizeX * voxelsPerBlock, heightInBlocks * voxelsPerBlock, sizeZ * voxelsPerBlock);
-            return new Bounds(Vector3.zero, fallbackSize2);
-        }
-
         private void RunTreePlacement(VoxelGrid grid)
         {
             if (_islandPipelineConfig == null) return;
@@ -343,7 +337,7 @@ namespace Voxel
                 : Mathf.Clamp(15, 0, height - 1);
 
             var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            int voxelsPerBlock = _worldParameters?.VoxelsPerBlockAxis ?? 16;
+            int voxelsPerBlock = _worldParameters?.VoxelsPerBlockAxis ?? PlacementUtility.DefaultVoxelsPerBlockAxis;
             var treeParent = GetOrCreateParentForEntry(PlacedObjectKeys.Tree);
             var heightBuffer = new HeightBuffer(grid.Width, grid.Depth);
             var context = new TerrainPipelineContext(heightBuffer, grid, waterLevelY, _islandPipelineConfig.MasterSeed);

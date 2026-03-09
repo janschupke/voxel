@@ -128,7 +128,7 @@ namespace Voxel
                 if (tooClose)
                     continue;
 
-                var bounds = GetPrefabBounds(_config.TreePrefab, 1, 1, _config.HeightInBlocks);
+                var bounds = PlacementUtility.GetPrefabBounds(_config.TreePrefab, 1, 1, _config.HeightInBlocks, _voxelsPerBlockAxis);
                 var scale = _worldScale.ScaleForVoxelModel(1, 1, _config.HeightInBlocks, bounds);
                 var worldPos = _worldScale.BlockToWorld(x + 0.5f, y, z + 0.5f);
                 worldPos -= PlacementUtility.PivotOffsetForCenteringXZ(bounds, scale);
@@ -159,15 +159,6 @@ namespace Voxel
                     return y;
             }
             return -1;
-        }
-
-        private Bounds GetPrefabBounds(GameObject prefab, int sizeX, int sizeZ, float heightInBlocks)
-        {
-            var mf = prefab.GetComponentInChildren<MeshFilter>();
-            if (mf != null && mf.sharedMesh != null)
-                return mf.sharedMesh.bounds;
-            var fallbackSize = new Vector3(sizeX * _voxelsPerBlockAxis, heightInBlocks * _voxelsPerBlockAxis, sizeZ * _voxelsPerBlockAxis);
-            return new Bounds(Vector3.zero, fallbackSize);
         }
 
         private static void Shuffle<T>(List<T> list, System.Random rng)

@@ -234,17 +234,10 @@ namespace Voxel
             RestoreHiddenEnvironment();
             if (_activeEntry.CanReplaceEnvironment && _preview != null)
             {
-                if (_activeEntry.PlacementMode == PlacementMode.Area || _activeEntry.PlacementMode == PlacementMode.Line)
+                foreach (var (x, y, z) in _preview.PreviewBlocks)
                 {
-                    foreach (var (x, y, z) in _preview.PreviewBlocks)
-                    {
-                        if (worldBootstrap.HasEnvironmentAtBlock(x, y, z))
-                            HideEnvironmentAtBlock((x, y, z));
-                    }
-                }
-                else if (newValid && newBlock.HasValue && worldBootstrap.HasEnvironmentAtBlock(newBlock.Value.x, newBlock.Value.y, newBlock.Value.z))
-                {
-                    HideEnvironmentAtBlock(newBlock.Value);
+                    if (worldBootstrap.HasEnvironmentAtBlock(x, y, z))
+                        HideEnvironmentAtBlock((x, y, z));
                 }
             }
         }

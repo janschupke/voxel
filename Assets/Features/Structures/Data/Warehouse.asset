@@ -26,8 +26,8 @@ MonoBehaviour:
   HeightInBlocks: 2
   RandomRotation: 0
   IsSelectable: 1
-  OperationalRangeInBlocks: 5
-  OperationalRangeType: 0
+  OperationalRangeInBlocks: 10
+  OperationalRangeType: 1
   AssignedActor: {fileID: 11400000, guid: 97c22c22e39b840629a7299cb83afa1a, type: 2}
   InventoryCapacity: 100
   UsesGlobalStorage: 1

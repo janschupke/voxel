@@ -23,6 +23,8 @@ namespace Voxel
         private RemovalPreview _preview;
         private Camera _cachedCamera;
         private readonly List<(int x, int y, int z)> _blocksBuffer = new();
+        private readonly List<(int x, int y, int z)> _footprintBuffer = new();
+        private readonly List<Transform> _transformsBuffer = new(8);
         private Func<bool> _escapeHandler;
 
         private VoxelGrid Grid => worldBootstrap?.Grid;
@@ -178,7 +180,17 @@ namespace Voxel
                     if (worldBootstrap.HasRemovableAtBlock(block.bx, block.by, block.bz))
                     {
                         _blocksBuffer.Clear();
-                        _blocksBuffer.Add((block.bx, block.by, block.bz));
+                        _transformsBuffer.Clear();
+                        worldBootstrap.GetTransformsAtBlock(block.bx, block.by, block.bz, _transformsBuffer);
+                        foreach (var t in _transformsBuffer)
+                        {
+                            if (t == null) continue;
+                            worldBootstrap.GetFootprintBlocksForTransform(t, _footprintBuffer);
+                            foreach (var b in _footprintBuffer)
+                                _blocksBuffer.Add(b);
+                        }
+                        if (_blocksBuffer.Count == 0 || worldBootstrap.HasRoadAt(block.bx, block.by, block.bz))
+                            _blocksBuffer.Add((block.bx, block.by, block.bz));
                         _preview.SetBlocks(_blocksBuffer);
                     }
                     else

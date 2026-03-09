@@ -278,7 +278,7 @@ MonoBehaviour:
   zoomSpeed: 5
   zoomSmoothTime: 0.08
   rotationYawSmoothTime: 0.15
-  minBlocksVisible: 20
+  minBlocksVisible: 35
   maxBlocksVisible: 400
   fieldOfView: 50
   locateTranslateDuration: 0.5

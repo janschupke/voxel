@@ -320,6 +320,9 @@ namespace Voxel
         public void GetTransformsAtBlock(int bx, int by, int bz, System.Collections.Generic.List<Transform> outTransforms) =>
             _placedObjectManager.GetTransformsAtBlock(bx, by, bz, outTransforms);
 
+        public void GetFootprintBlocksForTransform(Transform transform, System.Collections.Generic.List<(int x, int y, int z)> outBlocks) =>
+            _placedObjectManager.GetFootprintBlocksForTransform(transform, outBlocks);
+
         public bool HasRemovableAtBlock(int bx, int by, int bz) =>
             _placedObjectManager.HasRemovableAtBlock(bx, by, bz);
         public RoadOverlay GetRoadOverlay() => _placedObjectManager.RoadOverlay;
