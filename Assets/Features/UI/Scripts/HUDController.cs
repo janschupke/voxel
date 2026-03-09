@@ -42,6 +42,8 @@ public class HUDController : MonoBehaviour
     private Func<bool> _hotkeyHandlerE;
     private VisualElement _logPanel;
     private ScrollView _logPanelList;
+    private VisualElement _tooltipPanel;
+    private Label _tooltipLabel;
 
     private void Awake()
     {
@@ -119,24 +121,35 @@ public class HUDController : MonoBehaviour
                 logButton.clicked += ToggleLogPanel;
 
             var placementContainer = uiDocument.rootVisualElement.Q<VisualElement>("PlacementButtons");
+            _tooltipPanel = uiDocument.rootVisualElement.Q<VisualElement>("Tooltip");
+            _tooltipLabel = uiDocument.rootVisualElement.Q<Label>("TooltipText");
 
             if (placementContainer != null && _placementController != null)
             {
                 var registry = placedObjectRegistry != null ? placedObjectRegistry : worldBootstrap?.PlacedObjectRegistry;
+                var itemRegistry = worldBootstrap?.ItemRegistry;
+                var sprite = itemRegistry?.GetDefinition(Item.Wood)?.Sprite;
+
                 if (registry != null && registry.Entries != null)
                 {
                     foreach (var entry in registry.Entries)
                     {
                         if (entry == null || string.IsNullOrEmpty(entry.Name)) continue;
 
-                        var button = new Button { text = entry.Name, focusable = false };
+                        var button = new Button { focusable = false };
                         button.name = entry.Name;
-                        if (entry.Prefab == null)
+                        button.AddToClassList("placement-button");
+                        if (sprite != null)
+                            button.style.backgroundImage = new StyleBackground(sprite);
+                        if (!entry.IsSurfaceOverlay && entry.Prefab == null)
                             button.SetEnabled(false);
                         placementContainer.Add(button);
 
-                        _placementController.RegisterButton(entry.Name, button);
                         var entryName = entry.Name;
+                        button.RegisterCallback<MouseEnterEvent>(_ => ShowTooltip(entryName));
+                        button.RegisterCallback<MouseLeaveEvent>(_ => HideTooltip());
+
+                        _placementController.RegisterButton(entry.Name, button);
                         button.clicked += () => _placementController.TogglePlacementMode(entryName);
                     }
                 }
@@ -283,6 +296,17 @@ public class HUDController : MonoBehaviour
         }
         worldBootstrap.StorageInventory?.Clear();
         _selectionController?.RefreshSelectionDisplay();
+    }
+
+    private void ShowTooltip(string text)
+    {
+        if (_tooltipLabel != null) _tooltipLabel.text = text;
+        _tooltipPanel?.RemoveFromClassList("hidden");
+    }
+
+    private void HideTooltip()
+    {
+        _tooltipPanel?.AddToClassList("hidden");
     }
 
     private void UpdateRemoveButtonState()
