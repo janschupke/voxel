@@ -134,25 +134,41 @@ public class HUDController : MonoBehaviour
 
                 if (registry != null && registry.Entries != null)
                 {
-                    foreach (var entry in registry.Entries)
+                    var entriesByCategory = GroupEntriesByCategory(registry.Entries);
+                    var categoryOrder = registry.CategoryDisplayOrder ?? Array.Empty<string>();
+
+                    foreach (var category in GetPlacementCategoriesInOrder(entriesByCategory.Keys, categoryOrder))
                     {
-                        if (entry == null || string.IsNullOrEmpty(entry.Name)) continue;
+                        if (!entriesByCategory.TryGetValue(category, out var entries)) continue;
 
-                        var button = new Button { focusable = false };
-                        button.name = entry.Name;
-                        button.AddToClassList("placement-button");
-                        if (sprite != null)
-                            button.style.backgroundImage = new StyleBackground(sprite);
-                        if (!entry.IsSurfaceOverlay && entry.Prefab == null)
-                            button.SetEnabled(false);
-                        placementContainer.Add(button);
+                        var header = new Label(category);
+                        header.AddToClassList("placement-category-header");
+                        placementContainer.Add(header);
 
-                        var entryName = entry.Name;
-                        button.RegisterCallback<MouseEnterEvent>(_ => ShowTooltip(entryName));
-                        button.RegisterCallback<MouseLeaveEvent>(_ => HideTooltip());
+                        var buttonRow = new VisualElement();
+                        buttonRow.AddToClassList("placement-category-buttons");
+                        placementContainer.Add(buttonRow);
 
-                        _placementController.RegisterButton(entry.Name, button);
-                        button.clicked += () => _placementController.TogglePlacementMode(entryName);
+                        foreach (var entry in entries)
+                        {
+                            if (entry == null || string.IsNullOrEmpty(entry.Name)) continue;
+
+                            var button = new Button { focusable = false };
+                            button.name = entry.Name;
+                            button.AddToClassList("placement-button");
+                            if (sprite != null)
+                                button.style.backgroundImage = new StyleBackground(sprite);
+                            if (!entry.IsSurfaceOverlay && entry.Prefab == null)
+                                button.SetEnabled(false);
+                            buttonRow.Add(button);
+
+                            var entryName = entry.Name;
+                            button.RegisterCallback<MouseEnterEvent>(_ => ShowTooltip(entryName));
+                            button.RegisterCallback<MouseLeaveEvent>(_ => HideTooltip());
+
+                            _placementController.RegisterButton(entry.Name, button);
+                            button.clicked += () => _placementController.TogglePlacementMode(entryName);
+                        }
                     }
                 }
             }
@@ -409,6 +425,28 @@ public class HUDController : MonoBehaviour
         }
         foreach (var cat in set.Where(c => !orderList.Contains(c)))
             yield return cat;
+    }
+
+    private static Dictionary<string, List<PlacedObjectEntry>> GroupEntriesByCategory(IReadOnlyList<PlacedObjectEntry> entries)
+    {
+        var grouped = new Dictionary<string, List<PlacedObjectEntry>>();
+        if (entries == null) return grouped;
+        foreach (var entry in entries)
+        {
+            var category = entry?.CategoryDisplayName ?? "Other";
+            if (!grouped.TryGetValue(category, out var list))
+            {
+                list = new List<PlacedObjectEntry>();
+                grouped[category] = list;
+            }
+            list.Add(entry);
+        }
+        return grouped;
+    }
+
+    private static IEnumerable<string> GetPlacementCategoriesInOrder(IEnumerable<string> categories, IReadOnlyList<string> order)
+    {
+        return GetCategoriesInDisplayOrder(categories, order);
     }
 
     private void OnDestroy()

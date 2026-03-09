@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: IronMine
   m_EditorClassIdentifier: 
   Name: Iron Mine
+  category: {fileID: 11400000, guid: 1dfb56d52aa6f4e808ad1b1484997543, type: 2}
   Prefab: {fileID: 6454709804644264742, guid: 16083d43d9942424caa5cdd6109073ef, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1

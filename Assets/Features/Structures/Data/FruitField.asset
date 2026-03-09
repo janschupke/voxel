@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: FruitField
   m_EditorClassIdentifier: 
   Name: Fruit Field
+  category: {fileID: 11400000, guid: 1dfb56d52aa6f4e808ad1b1484997543, type: 2}
   Prefab: {fileID: 4545896585688481801, guid: ad2bd9365433a4e38926fe1e2d370ed7, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 0

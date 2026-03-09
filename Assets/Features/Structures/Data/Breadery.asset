@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Breadery
   m_EditorClassIdentifier: 
   Name: Breadery
+  category: {fileID: 11400000, guid: 7bdbc6cdc133a49b591198b577c567ee, type: 2}
   Prefab: {fileID: 705533529897339205, guid: 53c42bdbe5ae54494ba01cbdb524b2b7, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1

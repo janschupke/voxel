@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Tree
   m_EditorClassIdentifier: 
   Name: Tree
+  category: {fileID: 11400000, guid: 1dfb56d52aa6f4e808ad1b1484997543, type: 2}
   Prefab: {fileID: 1477076164812818489, guid: d0d55ca8d56e64895a4ce8ca8c61622c, type: 3}
   CanReplaceTrees: 0
   IsBlocking: 0

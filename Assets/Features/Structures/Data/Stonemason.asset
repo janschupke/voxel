@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Stonemason
   m_EditorClassIdentifier: 
   Name: Stonemason
+  category: {fileID: 11400000, guid: 7bdbc6cdc133a49b591198b577c567ee, type: 2}
   Prefab: {fileID: 4650309228845015917, guid: 90b8ebeda726343429946a0ef65fe9cb, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1

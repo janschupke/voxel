@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Woodchuck
   m_EditorClassIdentifier: 
   Name: Woodchuck
+  category: {fileID: 11400000, guid: 1dfb56d52aa6f4e808ad1b1484997543, type: 2}
   Prefab: {fileID: 2173271080134177757, guid: 064681dfe2bcf4dbb8d7adb53321c6ab, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1

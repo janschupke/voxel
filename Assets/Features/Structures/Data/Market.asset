@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Market
   m_EditorClassIdentifier: 
   Name: Market
+  category: {fileID: 11400000, guid: 7bdbc6cdc133a49b591198b577c567ee, type: 2}
   Prefab: {fileID: 7668403618459068059, guid: 909748da5fdc64c2680681fe963c8b96, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1

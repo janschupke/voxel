@@ -8,7 +8,25 @@ namespace Voxel
     {
         [SerializeField] private List<PlacedObjectEntry> entries = new();
 
+        [Tooltip("Category display order in building menu. Categories not listed appear last.")]
+        [SerializeField] private List<PlacedObjectCategory> categoryDisplayOrder = new();
+
         public IReadOnlyList<PlacedObjectEntry> Entries => entries;
+
+        public IReadOnlyList<string> CategoryDisplayOrder
+        {
+            get
+            {
+                if (categoryDisplayOrder == null) return new List<string>();
+                var list = new List<string>(categoryDisplayOrder.Count);
+                foreach (var cat in categoryDisplayOrder)
+                {
+                    if (cat != null)
+                        list.Add(cat.DisplayName);
+                }
+                return list;
+            }
+        }
 
         public PlacedObjectEntry GetByName(string name)
         {

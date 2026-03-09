@@ -16,6 +16,15 @@ namespace Voxel
         [Tooltip("UI label (e.g. House, Tree)")]
         public string Name;
 
+        [Tooltip("Category for building menu grouping (e.g. Producers, Other)")]
+        [SerializeField] private PlacedObjectCategory category;
+
+        /// <summary>Category for UI grouping. Configure in inspector.</summary>
+        public PlacedObjectCategory Category => category;
+
+        /// <summary>Category display name for UI. Falls back to "Other" if not set.</summary>
+        public string CategoryDisplayName => category != null ? category.DisplayName : "Other";
+
         [Tooltip("Prefab to instantiate when placing")]
         public GameObject Prefab;
 

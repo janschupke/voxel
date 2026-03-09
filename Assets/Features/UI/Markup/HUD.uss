@@ -26,9 +26,21 @@
 }
 
 .placement-grid {
+    flex-direction: column;
+    padding: 5px 0;
+}
+
+.placement-category-buttons {
     flex-direction: row;
     flex-wrap: wrap;
-    padding: 5px 0;
+}
+
+.placement-category-header {
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 10px;
+    -unity-font-style: bold;
+    padding-top: 8px;
+    padding-bottom: 2px;
 }
 
 .tooltip-panel {

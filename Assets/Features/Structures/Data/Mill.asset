@@ -13,6 +13,7 @@ MonoBehaviour:
   m_Name: Mill
   m_EditorClassIdentifier: 
   Name: Mill
+  category: {fileID: 11400000, guid: 7bdbc6cdc133a49b591198b577c567ee, type: 2}
   Prefab: {fileID: 5506616311142673777, guid: 1e82446f2d0ff4ffb971c11754e15905, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
