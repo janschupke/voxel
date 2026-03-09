@@ -16,7 +16,7 @@ namespace Voxel
     public class BuildingProduction : MonoBehaviour
     {
         [SerializeField] private BuildingInventory inventory;
-        [SerializeField] private ProductionTreeConfig productionTree;
+        [SerializeField] private RecipeListConfig recipeList;
 
         private ProductionState _state = ProductionState.Idle;
         private int _currentRecipeIndex = -1;
@@ -37,19 +37,19 @@ namespace Voxel
                 inventory = GetComponent<BuildingInventory>();
         }
 
-        public void Initialize(ProductionTreeConfig tree)
+        public void Initialize(RecipeListConfig list)
         {
-            productionTree = tree;
+            recipeList = list;
             _state = ProductionState.Idle;
             _currentRecipeIndex = -1;
             _timerRemaining = 0f;
-            if (SelectedRecipeIndex < 0 || productionTree == null || SelectedRecipeIndex >= productionTree.Recipes.Length)
+            if (SelectedRecipeIndex < 0 || recipeList == null || SelectedRecipeIndex >= recipeList.Recipes.Length)
                 SelectedRecipeIndex = 0;
         }
 
         public void LoadState(int selectedIndex, int currentIndex, float timer)
         {
-            SelectedRecipeIndex = Mathf.Clamp(selectedIndex, 0, productionTree != null ? productionTree.Recipes.Length - 1 : 0);
+            SelectedRecipeIndex = Mathf.Clamp(selectedIndex, 0, recipeList != null ? recipeList.Recipes.Length - 1 : 0);
             _currentRecipeIndex = currentIndex;
             _timerRemaining = Mathf.Max(0f, timer);
             _state = _currentRecipeIndex >= 0 && _timerRemaining > 0f ? ProductionState.Producing : ProductionState.Idle;
@@ -57,7 +57,7 @@ namespace Voxel
 
         private void Update()
         {
-            if (productionTree == null || inventory == null || productionTree.Recipes.Length == 0) return;
+            if (recipeList == null || inventory == null || recipeList.Recipes.Length == 0) return;
 
             var recipe = GetSelectedRecipe();
             if (recipe == null) return;
@@ -102,16 +102,16 @@ namespace Voxel
 
         private RecipeConfig GetSelectedRecipe()
         {
-            if (productionTree == null || productionTree.Recipes.Length == 0) return null;
-            int idx = Mathf.Clamp(SelectedRecipeIndex, 0, productionTree.Recipes.Length - 1);
-            return productionTree.Recipes[idx];
+            if (recipeList == null || recipeList.Recipes.Length == 0) return null;
+            int idx = Mathf.Clamp(SelectedRecipeIndex, 0, recipeList.Recipes.Length - 1);
+            return recipeList.Recipes[idx];
         }
 
         private RecipeConfig GetRecipeAt(int index)
         {
-            if (productionTree == null || index < 0 || index >= productionTree.Recipes.Length)
+            if (recipeList == null || index < 0 || index >= recipeList.Recipes.Length)
                 return null;
-            return productionTree.Recipes[index];
+            return recipeList.Recipes[index];
         }
 
         private float GetProgressNormalized()
@@ -127,7 +127,7 @@ namespace Voxel
         {
             if (!ProductionService.CanRun(recipe, inventory)) return;
 
-            _currentRecipeIndex = Array.IndexOf(productionTree.Recipes, recipe);
+            _currentRecipeIndex = Array.IndexOf(recipeList.Recipes, recipe);
             _timerRemaining = recipe.WorkDurationSeconds;
             _state = ProductionState.Producing;
             _lastStateChangedTime = Time.time;

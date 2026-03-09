@@ -29,10 +29,10 @@ MonoBehaviour:
   IsSelectable: 1
   OperationalRangeInBlocks: 3
   OperationalRangeType: 0
-  AssignedActor: {fileID: 0}
-  InventoryCapacity: 0
+  AssignedActor: {fileID: 11400000, guid: a7f23180b05fc4965bf4b981b7270a88, type: 2}
+  InventoryCapacity: 10
   UsesGlobalStorage: 0
   IsGatherSite: 0
   CollectorTarget: 1
   CritterSpawnerConfig: {fileID: 0}
-  ProductionTree: {fileID: 11400000, guid: dd230b2cb354f49e083829782736ff99, type: 2}
+  RecipeList: {fileID: 11400000, guid: dd230b2cb354f49e083829782736ff99, type: 2}

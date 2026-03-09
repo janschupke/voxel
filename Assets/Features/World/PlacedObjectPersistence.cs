@@ -95,7 +95,7 @@ namespace Voxel
             {
                 if (kv.Value == null || kv.Key == PlacedObjectKeys.Road) continue;
                 var entry = registry?.GetByName(kv.Key);
-                if (entry == null || entry.ProductionTree == null) continue;
+                if (entry == null || entry.RecipeList == null) continue;
                 int voxelsPerBlock = worldParameters?.VoxelsPerBlockAxis ?? 16;
                 for (int i = 0; i < kv.Value.childCount; i++)
                 {
@@ -108,7 +108,7 @@ namespace Voxel
                         ? GetFootprintOriginFromTransform(child, entry, worldScale, voxelsPerBlock)
                         : worldScale.WorldToBlock(child.position);
                     int currentIdx = prod.State == ProductionState.Producing && prod.CurrentRecipe != null
-                        ? System.Array.IndexOf(entry.ProductionTree.Recipes, prod.CurrentRecipe)
+                        ? System.Array.IndexOf(entry.RecipeList.Recipes, prod.CurrentRecipe)
                         : -1;
                     list.Add(new ProductionSaveData(kv.Key, bx, by, bz,
                         prod.SelectedRecipeIndex, currentIdx, prod.TimerRemaining));
@@ -191,11 +191,11 @@ namespace Voxel
                     if (inventoryLookup != null && inventoryLookup.TryGetValue(key, out var items) && items != null && items.Count > 0)
                         inv.LoadFrom(items);
                 }
-                if (entry != null && entry.ProductionTree != null)
+                if (entry != null && entry.RecipeList != null)
                 {
                     var prod = instance.GetComponent<BuildingProduction>();
                     if (prod == null) prod = instance.AddComponent<BuildingProduction>();
-                    prod.Initialize(entry.ProductionTree);
+                    prod.Initialize(entry.RecipeList);
                     var prodKey = (p.EntryName, p.BlockX, p.BlockY, p.BlockZ);
                     if (productionLookup != null && productionLookup.TryGetValue(prodKey, out var prodData))
                         prod.LoadState(prodData.SelectedRecipeIndex, prodData.CurrentRecipeIndex, prodData.TimerRemaining);

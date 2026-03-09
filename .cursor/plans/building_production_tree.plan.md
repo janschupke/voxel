@@ -9,7 +9,7 @@ isProject: false
 
 ## Overview
 
-Buildings produce items based on a **production tree** when source items are available. Each building can have one or more recipes: consume inputs from its inventory, run for a configurable duration, produce outputs. Integrates with the actor system: Collectors bring non-final items; Carriers pick final items; production outputs feed into this flow.
+Buildings produce items based on a **recipe list** when source items are available. Each building can have one or more recipes: consume inputs from its inventory, run for a configurable duration, produce outputs. Integrates with the actor system: Collectors bring non-final items; Carriers pick final items; production outputs feed into this flow.
 
 ---
 
@@ -27,7 +27,7 @@ Buildings produce items based on a **production tree** when source items are ava
 
 | Requirement         | Description                                                                              |
 | ------------------- | ---------------------------------------------------------------------------------------- |
-| **Production tree** | Configurable input/output per recipe                                                     |
+| **Recipe list** | Configurable input/output per recipe                                                     |
 | **State machine**   | Idle, Producing, Blocked (missing inputs), etc.                                          |
 | **Timing**          | Work duration per recipe                                                                 |
 | **Input/output**    | Consume source items; produce output items into building inventory                       |
@@ -77,13 +77,13 @@ public class RecipeConfig : ScriptableObject
 }
 ```
 
-### ProductionTreeConfig (ScriptableObject)
+### RecipeListConfig (ScriptableObject)
 
-One per building type. Holds ordered list of recipes (production tree).
+One per building type. Holds ordered list of recipes.
 
 ```csharp
 [CreateAssetMenu(menuName = "Voxel/Production/Production Tree")]
-public class ProductionTreeConfig : ScriptableObject
+public class RecipeListConfig : ScriptableObject
 {
     public RecipeConfig[] Recipes;  // Ordered; first match with available inputs runs
 }
@@ -93,7 +93,7 @@ public class ProductionTreeConfig : ScriptableObject
 
 ```csharp
 [Header("Production")]
-public ProductionTreeConfig ProductionTree;  // When set, building runs production
+public RecipeListConfig RecipeList;  // When set, building runs production
 ```
 
 ---
@@ -117,23 +117,23 @@ public ProductionTreeConfig ProductionTree;  // When set, building runs producti
 ### Phase 1: Domain Layer (Pure)
 
 1. **RecipeConfig** — ScriptableObject: Inputs, Outputs, WorkDurationSeconds
-2. **ProductionTreeConfig** — ScriptableObject: RecipeConfig[]
+2. **RecipeListConfig** — ScriptableObject: RecipeConfig[]
 3. **ProductionService** (pure) — `bool CanRun(RecipeConfig, IReadOnlyInventory)` (inputs present + `HasSpaceFor` outputs), `void Execute(RecipeConfig, IInventory)` (consume + add)
 4. **ProductionState** (struct or class) — CurrentRecipe, Timer, State enum
 
 ### Phase 2: Building Production Component
 
-1. **BuildingProduction** (MonoBehaviour) — Attached to buildings with ProductionTree
-  - References: BuildingInventory, ProductionTreeConfig
+1. **BuildingProduction** (MonoBehaviour) — Attached to buildings with RecipeList
+  - References: BuildingInventory, RecipeListConfig
   - Selected recipe index (user picks in sidebar; persisted)
   - Update loop: state machine tick; only run selected recipe when `CanRun` (inputs + output space)
   - On produce: `inventory.AddItem(output, count, emitUnitProduced: true)` for floating text (reuse existing system)
-2. **PlacementExecutor / PlacedObjectPersistence** — Add BuildingProduction when `entry.ProductionTree != null`
+2. **PlacementExecutor / PlacedObjectPersistence** — Add BuildingProduction when `entry.RecipeList != null`
 
 ### Phase 3: PlacedObjectEntry Integration
 
-1. Add `ProductionTreeConfig ProductionTree` to PlacedObjectEntry
-2. Breadery, Mill, Beerery, etc. — assign production trees
+1. Add `RecipeListConfig RecipeList` to PlacedObjectEntry
+2. Breadery, Mill, Beerery, etc. — assign recipe lists
 
 ### Phase 4: Persistence
 
@@ -142,14 +142,14 @@ public ProductionTreeConfig ProductionTree;  // When set, building runs producti
 
 ### Phase 5: Production Tree UI (Sidebar / Building Detail)
 
-Production tree display in the sidebar's SelectionDetail (building detail panel) when a production building is selected. The section is shown only when `entry.ProductionTree != null`; otherwise it follows the same hide pattern as InventorySection for `UsesGlobalStorage`.
+Recipe list display in the sidebar's SelectionDetail (building detail panel) when a production building is selected. The section is shown only when `entry.RecipeList != null`; otherwise it follows the same hide pattern as InventorySection for `UsesGlobalStorage`.
 
 #### UI Requirements
 
 
 | Element                     | Description                                                                                  |
 | --------------------------- | -------------------------------------------------------------------------------------------- |
-| **Production tree section** | New section in SelectionDetail, shown only when `entry.ProductionTree != null`               |
+| **Recipe list section** | New section in SelectionDetail, shown only when `entry.RecipeList != null`               |
 | **Section header**          | "Production" label, styled like `inventory-category-header`                                  |
 | **State indicator**         | Idle / Producing / Blocked badge with distinct styling                                       |
 | **Recipe list**             | For each recipe: name, inputs, outputs, duration; user selects which recipe to run (clickable) |
@@ -170,7 +170,7 @@ flowchart LR
     subgraph selection [Selection Flow]
         Select[SelectObject]
         Show[ShowSelectionDetail]
-        RefreshProd[RefreshProductionTreeDisplay]
+        RefreshProd[RefreshRecipeListDisplay]
     end
 
     subgraph data [Data Sources]
@@ -180,8 +180,8 @@ flowchart LR
 
     Select -->|GetComponent| BP
     Select -->|registry.GetByName| Entry
-    Entry -->|ProductionTree| Show
-    Show -->|entry.ProductionTree != null| RefreshProd
+    Entry -->|RecipeList| Show
+    Show -->|entry.RecipeList != null| RefreshProd
     BP -->|State, CurrentRecipe, Progress| RefreshProd
 ```
 
@@ -189,20 +189,20 @@ flowchart LR
 
 #### HUD.uxml Changes
 
-Add `ProductionTreeSection` inside SelectionDetail, between InventorySection and Locate (same order as other sections):
+Add `RecipeListSection` inside SelectionDetail, between InventorySection and Locate (same order as other sections):
 
 ```xml
-<ui:VisualElement name="ProductionTreeSection" class="hidden"/>
+<ui:VisualElement name="RecipeListSection" class="hidden"/>
 ```
 
-Placement: after `InventorySection`, before `Locate`. Section starts with `class="hidden"`; SelectionController removes it when production tree is present.
+Placement: after `InventorySection`, before `Locate`. Section starts with `class="hidden"`; SelectionController removes it when recipe list is present.
 
 #### HUD.uss Styles
 
 
 | Selector                      | Purpose                                                                                         |
 | ----------------------------- | ----------------------------------------------------------------------------------------------- |
-| `#ProductionTreeSection`      | Base container: `flex-direction: column`, `padding-top/bottom: 5px`, mirror `#InventorySection` |
+| `#RecipeListSection`      | Base container: `flex-direction: column`, `padding-top/bottom: 5px`, mirror `#InventorySection` |
 | `.production-header`          | Section title "Production"; reuse `inventory-category-header`                                   |
 | `.production-state-row`       | Row for state badge + optional progress                                                         |
 | `.production-state-idle`      | Idle state color (e.g. muted gray)                                                              |
@@ -218,8 +218,8 @@ Reuse `inventory-row`, `inventory-icon`, `inventory-count` for item icons and co
 
 #### SelectionController Changes
 
-1. **Cache**: Add `private BuildingProduction _cachedProduction;` and `private VisualElement _productionTreeSection;`
-2. **Query**: In `Start`, add `_productionTreeSection = uiDocument.rootVisualElement.Q<VisualElement>("ProductionTreeSection");`
+1. **Cache**: Add `private BuildingProduction _cachedProduction;` and `private VisualElement _recipeListSection;`
+2. **Query**: In `Start`, add `_recipeListSection = uiDocument.rootVisualElement.Q<VisualElement>("RecipeListSection");`
 3. **SelectObject**: After caching `_cachedInventory`, add:
 
 ```csharp
@@ -233,25 +233,25 @@ Reuse `inventory-row`, `inventory-icon`, `inventory-count` for item icons and co
 1. **ShowSelectionDetail**: After inventory section show/hide logic, add:
 
 ```csharp
-   if (_productionTreeSection != null)
+   if (_recipeListSection != null)
    {
-       bool showProduction = entry?.ProductionTree != null;
+       bool showProduction = entry?.RecipeList != null;
        if (showProduction)
        {
-           _productionTreeSection.RemoveFromClassList("hidden");
-           RefreshProductionTreeDisplay();
+           _recipeListSection.RemoveFromClassList("hidden");
+           RefreshRecipeListDisplay();
        }
        else
-           _productionTreeSection.AddToClassList("hidden");
+           _recipeListSection.AddToClassList("hidden");
    }
 
 
 ```
 
-5. **RefreshProductionTreeDisplay**: Clear `_productionTreeSection`, iterate `entry.ProductionTree.Recipes`, build clickable rows for each recipe (name, inputs, outputs, duration). On click, set `_cachedProduction.SelectedRecipeIndex = i`. If `_cachedProduction != null`, add state row (Idle/Producing/Blocked) and progress bar when Producing. Highlight selected recipe. Use `itemRegistry.GetDefinition(item)` for sprites and display names.
-6. **OnProductionStateChanged** and **OnInventoryChanged**: Both call `RefreshProductionTreeDisplay()` when production section visible (production completion adds to inventory).
+5. **RefreshRecipeListDisplay**: Clear `_recipeListSection`, iterate `entry.RecipeList.Recipes`, build clickable rows for each recipe (name, inputs, outputs, duration). On click, set `_cachedProduction.SelectedRecipeIndex = i`. If `_cachedProduction != null`, add state row (Idle/Producing/Blocked) and progress bar when Producing. Highlight selected recipe. Use `itemRegistry.GetDefinition(item)` for sprites and display names.
+6. **OnProductionStateChanged** and **OnInventoryChanged**: Both call `RefreshRecipeListDisplay()` when production section visible (production completion adds to inventory).
 7. **UnsubscribeFromInventory** (rename to `UnsubscribeFromSelection` or extend): Unsubscribe `_cachedProduction.StateChanged -= OnProductionStateChanged`; set `_cachedProduction = null`.
-8. **RefreshSelectionDisplay**: Add `RefreshProductionTreeDisplay()` when `_productionTreeSection` is visible.
+8. **RefreshSelectionDisplay**: Add `RefreshRecipeListDisplay()` when `_recipeListSection` is visible.
 
 #### BuildingProduction API for UI
 
@@ -271,8 +271,8 @@ public event Action StateChanged;  // Invoke when state changes or progress upda
 
 #### Refresh Strategy
 
-- **StateChanged**: `BuildingProduction` invokes on state transitions (and optionally on timer tick for progress bar). SelectionController subscribes and calls `RefreshProductionTreeDisplay`.
-- **InventoryChanged**: Production completion adds to inventory; existing subscription already triggers `RefreshInventoryDisplay`. Extend to also call `RefreshProductionTreeDisplay` when production section visible.
+- **StateChanged**: `BuildingProduction` invokes on state transitions (and optionally on timer tick for progress bar). SelectionController subscribes and calls `RefreshRecipeListDisplay`.
+- **InventoryChanged**: Production completion adds to inventory; existing subscription already triggers `RefreshInventoryDisplay`. Extend to also call `RefreshRecipeListDisplay` when production section visible.
 
 #### Edge Cases
 
@@ -283,11 +283,11 @@ public event Action StateChanged;  // Invoke when state changes or progress upda
 
 1. SelectionHeader (icon + name)
 2. InventorySection
-3. **ProductionTreeSection** (new)
+3. **RecipeListSection** (new)
 4. Locate
 5. DebugSection
 
-ProductionTreeSection content: header "Production", state row (badge + progress bar when Producing), recipe rows (one per recipe).
+RecipeListSection content: header "Production", state row (badge + progress bar when Producing), recipe rows (one per recipe).
 
 ---
 
@@ -319,16 +319,16 @@ ProductionTreeSection content: header "Production", state row (badge + progress 
 | File                         | Action                                                                                                              |
 | ---------------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | `RecipeConfig.cs`            | New — ScriptableObject                                                                                              |
-| `ProductionTreeConfig.cs`    | New — ScriptableObject                                                                                              |
+| `RecipeListConfig.cs`    | New — ScriptableObject                                                                                              |
 | `ProductionService.cs`       | New — Pure domain (can run, execute)                                                                                |
 | `BuildingProduction.cs`      | New — MonoBehaviour, state machine; expose State, CurrentRecipe, Progress for UI                                    |
-| `PlacedObjectEntry.cs`       | Add ProductionTree                                                                                                  |
-| `PlacementExecutor.cs`       | Add BuildingProduction when ProductionTree set                                                                      |
+| `PlacedObjectEntry.cs`       | Add RecipeList                                                                                                  |
+| `PlacementExecutor.cs`       | Add BuildingProduction when RecipeList set                                                                      |
 | `PlacedObjectPersistence.cs` | Save/load production state                                                                                          |
 | `ProductionSaveData.cs`      | New — Struct for persistence                                                                                        |
-| `HUD.uxml`                   | Add ProductionTreeSection (between InventorySection and Locate)                                                     |
-| `HUD.uss`                    | Add ProductionTreeSection, production-header, state, recipe, progress styles                                        |
-| `SelectionController.cs`     | Cache BuildingProduction, ProductionTreeSection; show/hide; RefreshProductionTreeDisplay; StateChanged subscription |
+| `HUD.uxml`                   | Add RecipeListSection (between InventorySection and Locate)                                                     |
+| `HUD.uss`                    | Add RecipeListSection, production-header, state, recipe, progress styles                                        |
+| `SelectionController.cs`     | Cache BuildingProduction, RecipeListSection; show/hide; RefreshRecipeListDisplay; StateChanged subscription |
 
 
 ---

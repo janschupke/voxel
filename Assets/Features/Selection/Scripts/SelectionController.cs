@@ -43,7 +43,7 @@ namespace Voxel
         private SelectionRaycaster _raycaster;
         private IBuildingInventory _cachedInventory;
         private BuildingProduction _cachedProduction;
-        private VisualElement _productionTreeSection;
+        private VisualElement _recipeListSection;
         private Camera _cachedCamera;
         private Func<bool> _escapeHandler;
 
@@ -75,7 +75,7 @@ namespace Voxel
                 _selectionIcon = uiDocument.rootVisualElement.Q<VisualElement>("SelectionIcon");
                 _selectionName = uiDocument.rootVisualElement.Q<Label>("SelectionName");
                 _inventorySection = uiDocument.rootVisualElement.Q<VisualElement>("InventorySection");
-                _productionTreeSection = uiDocument.rootVisualElement.Q<VisualElement>("ProductionTreeSection");
+                _recipeListSection = uiDocument.rootVisualElement.Q<VisualElement>("RecipeListSection");
                 _locateButton = uiDocument.rootVisualElement.Q<Button>("Locate");
                 _debugSection = uiDocument.rootVisualElement.Q<VisualElement>("DebugSection");
                 _clearInventoryButton = uiDocument.rootVisualElement.Q<Button>("ClearInventory");
@@ -108,8 +108,8 @@ namespace Voxel
         public void RefreshSelectionDisplay()
         {
             RefreshInventoryDisplay();
-            if (_productionTreeSection != null && !_productionTreeSection.ClassListContains("hidden"))
-                RefreshProductionTreeDisplay();
+            if (_recipeListSection != null && !_recipeListSection.ClassListContains("hidden"))
+                RefreshRecipeListDisplay();
         }
 
         public void ClearSelection()
@@ -142,14 +142,14 @@ namespace Voxel
         private void OnInventoryChanged()
         {
             RefreshInventoryDisplay();
-            if (_productionTreeSection != null && !_productionTreeSection.ClassListContains("hidden"))
-                RefreshProductionTreeDisplay();
+            if (_recipeListSection != null && !_recipeListSection.ClassListContains("hidden"))
+                RefreshRecipeListDisplay();
         }
 
         private void OnProductionStateChanged()
         {
             if (_selectedObject == null) return;
-            RefreshProductionTreeDisplay();
+            RefreshRecipeListDisplay();
         }
 
         private void ClearHoverHighlight()
@@ -276,36 +276,36 @@ namespace Voxel
                 else
                     _inventorySection.RemoveFromClassList("hidden");
             }
-            if (_productionTreeSection != null)
+            if (_recipeListSection != null)
             {
                 var entry = registry?.GetByName(name);
-                bool showProduction = entry?.ProductionTree != null;
-                if (showProduction)
+                bool showRecipes = entry?.RecipeList != null;
+                if (showRecipes)
                 {
-                    _productionTreeSection.RemoveFromClassList("hidden");
-                    RefreshProductionTreeDisplay();
+                    _recipeListSection.RemoveFromClassList("hidden");
+                    RefreshRecipeListDisplay();
                 }
                 else
-                    _productionTreeSection.AddToClassList("hidden");
+                    _recipeListSection.AddToClassList("hidden");
             }
             RefreshInventoryDisplay();
             UpdateClearInventoryButtonVisibility();
         }
 
-        private void RefreshProductionTreeDisplay()
+        private void RefreshRecipeListDisplay()
         {
-            if (_productionTreeSection == null || _selectedObject == null) return;
+            if (_recipeListSection == null || _selectedObject == null) return;
             var entry = registry?.GetByName(_selectedEntryName);
-            if (entry?.ProductionTree == null) return;
+            if (entry?.RecipeList == null) return;
             var itemRegistry = worldBootstrap?.ItemRegistry;
             if (itemRegistry == null) return;
 
-            _productionTreeSection.Clear();
+            _recipeListSection.Clear();
 
             var header = new Label("Production");
             header.AddToClassList("production-header");
             header.AddToClassList("inventory-category-header");
-            _productionTreeSection.Add(header);
+            _recipeListSection.Add(header);
 
             if (_cachedProduction != null)
             {
@@ -314,7 +314,7 @@ namespace Voxel
                 var stateLabel = new Label(_cachedProduction.State.ToString());
                 stateLabel.AddToClassList("production-state-" + _cachedProduction.State.ToString().ToLowerInvariant());
                 stateRow.Add(stateLabel);
-                _productionTreeSection.Add(stateRow);
+                _recipeListSection.Add(stateRow);
 
                 if (_cachedProduction.State == ProductionState.Producing)
                 {
@@ -324,11 +324,11 @@ namespace Voxel
                     fill.AddToClassList("production-progress-fill");
                     fill.style.width = Length.Percent(_cachedProduction.ProgressNormalized * 100f);
                     progressBar.Add(fill);
-                    _productionTreeSection.Add(progressBar);
+                    _recipeListSection.Add(progressBar);
                 }
             }
 
-            var recipes = entry.ProductionTree.Recipes;
+            var recipes = entry.RecipeList.Recipes;
             if (recipes == null) return;
             for (int i = 0; i < recipes.Length; i++)
             {
@@ -366,12 +366,12 @@ namespace Voxel
                     if (_cachedProduction != null && index >= 0 && index < recipes.Length)
                     {
                         _cachedProduction.SelectedRecipeIndex = index;
-                        RefreshProductionTreeDisplay();
+                        RefreshRecipeListDisplay();
                     }
                 });
                 row.pickingMode = PickingMode.Position;
 
-                _productionTreeSection.Add(row);
+                _recipeListSection.Add(row);
             }
         }
 

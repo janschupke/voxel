@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.Serialization;
 using Voxel.Pure;
 
 namespace Voxel
@@ -111,7 +112,8 @@ namespace Voxel
 
         [Header("Production")]
         [Tooltip("When set, BuildingProduction is added and runs recipes when inputs and output space available.")]
-        public ProductionTreeConfig ProductionTree;
+        [FormerlySerializedAs("ProductionTree")]
+        public RecipeListConfig RecipeList;
 
         /// <summary>Blocks placement of other objects at the same block. Building and Road block; Environment does not.</summary>
         public bool BlocksPlacement => StructureType == StructureType.Building || StructureType == StructureType.Road;

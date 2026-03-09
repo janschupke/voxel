@@ -22,7 +22,7 @@
                         <ui:Label name="SelectionName" text=""/>
                     </ui:VisualElement>
                     <ui:VisualElement name="InventorySection"/>
-                    <ui:VisualElement name="ProductionTreeSection" class="hidden"/>
+                    <ui:VisualElement name="RecipeListSection" class="hidden"/>
                     <ui:Button text="Locate" name="Locate" focusable="false"/>
                     <ui:VisualElement name="DebugSection" class="debug-only">
                         <ui:Label text="Debug" name="DebugSectionLabel"/>

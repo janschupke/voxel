@@ -16,3 +16,4 @@ MonoBehaviour:
   Name: Wood
   category: {fileID: 11400000, guid: d514b8479a1e64f9d99a7eb21b6036b5, type: 2}
   Sprite: {fileID: 21300000, guid: abbb0f898da1544d5a92f14dd90f37dd, type: 3}
+  IsFinal: 1

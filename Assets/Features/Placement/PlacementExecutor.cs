@@ -213,10 +213,10 @@ namespace Voxel
 
         private static void TryAddBuildingProduction(GameObject instance, PlacedObjectEntry entry)
         {
-            if (entry == null || entry.ProductionTree == null) return;
+            if (entry == null || entry.RecipeList == null) return;
             var prod = instance.GetComponent<BuildingProduction>();
             if (prod == null) prod = instance.AddComponent<BuildingProduction>();
-            prod.Initialize(entry.ProductionTree);
+            prod.Initialize(entry.RecipeList);
         }
 
         private void TryAddCritterSpawner(GameObject instance, PlacedObjectEntry entry)
