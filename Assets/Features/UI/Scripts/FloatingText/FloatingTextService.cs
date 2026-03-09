@@ -42,10 +42,10 @@ namespace Voxel
 
             if (evt.EventType == WorldObjectEventTypes.UnitProduced)
             {
-                if (evt.Data is (Item item, int amount) && amount > 0)
+                if (evt.Data is (Item item, int newCount) && newCount > 0)
                 {
                     var itemName = _itemRegistry?.GetDefinition(item)?.Name ?? item.ToString();
-                    var text = $"+{amount} {itemName}";
+                    var text = $"{itemName}: {newCount}";
                     ShowAt(evt.Source, text);
                 }
             }
@@ -83,7 +83,7 @@ namespace Voxel
             rect.pivot = new Vector2(0.5f, 0.5f);
 
             var text = go.AddComponent<Text>();
-            text.text = "+1";
+            text.text = "0";
             text.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
             text.fontSize = 24;
             text.color = new Color(0.3f, 0.9f, 0.3f, 1f);

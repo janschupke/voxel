@@ -44,6 +44,9 @@ namespace Voxel
         private IBuildingInventory _cachedInventory;
         private BuildingProduction _cachedProduction;
         private VisualElement _recipeListSection;
+        private VisualElement _buildingMenu;
+        private VisualElement _tooltipPanel;
+        private Label _tooltipLabel;
         private Camera _cachedCamera;
         private Func<bool> _escapeHandler;
 
@@ -76,6 +79,9 @@ namespace Voxel
                 _selectionName = uiDocument.rootVisualElement.Q<Label>("SelectionName");
                 _inventorySection = uiDocument.rootVisualElement.Q<VisualElement>("InventorySection");
                 _recipeListSection = uiDocument.rootVisualElement.Q<VisualElement>("RecipeListSection");
+                _buildingMenu = uiDocument.rootVisualElement.Q<VisualElement>("BuildingMenu");
+                _tooltipPanel = uiDocument.rootVisualElement.Q<VisualElement>("Tooltip");
+                _tooltipLabel = uiDocument.rootVisualElement.Q<Label>("TooltipText");
                 _locateButton = uiDocument.rootVisualElement.Q<Button>("Locate");
                 _debugSection = uiDocument.rootVisualElement.Q<VisualElement>("DebugSection");
                 _clearInventoryButton = uiDocument.rootVisualElement.Q<Button>("ClearInventory");
@@ -88,7 +94,7 @@ namespace Voxel
                 _cachedCamera = Camera.main;
                 if (worldBootstrap != null)
                     UIPanelUtils.UpdateDebugControlsVisibility(uiDocument.rootVisualElement, worldBootstrap.ShowDebugControls);
-                HideSelectionDetail();
+                UpdateSidebarForSelection();
             }
 
             _escapeHandler = TryClearSelection;
@@ -108,7 +114,8 @@ namespace Voxel
         public void RefreshSelectionDisplay()
         {
             RefreshInventoryDisplay();
-            if (_recipeListSection != null && !_recipeListSection.ClassListContains("hidden"))
+            var entry = registry?.GetByName(_selectedEntryName);
+            if (_recipeListSection != null && entry?.RecipeList != null)
                 RefreshRecipeListDisplay();
         }
 
@@ -124,7 +131,7 @@ namespace Voxel
             _selectedEntryName = null;
             _cachedInventory = null;
             _cachedProduction = null;
-            HideSelectionDetail();
+            UpdateSidebarForSelection();
         }
 
         private void UnsubscribeFromInventory()
@@ -142,7 +149,8 @@ namespace Voxel
         private void OnInventoryChanged()
         {
             RefreshInventoryDisplay();
-            if (_recipeListSection != null && !_recipeListSection.ClassListContains("hidden"))
+            var entry = registry?.GetByName(_selectedEntryName);
+            if (_recipeListSection != null && entry?.RecipeList != null)
                 RefreshRecipeListDisplay();
         }
 
@@ -238,6 +246,7 @@ namespace Voxel
 
         private void SelectObject(Transform obj, string entryName)
         {
+            _placementController?.CancelPlacementMode();
             UnsubscribeFromInventory();
             _selectedObject = obj;
             if (_raycaster == null || !_raycaster.IsEntryParentOrWorldRoot(obj))
@@ -249,13 +258,32 @@ namespace Voxel
                 _cachedInventory.InventoryChanged += OnInventoryChanged;
             if (_cachedProduction != null)
                 _cachedProduction.StateChanged += OnProductionStateChanged;
-            ShowSelectionDetail(entryName);
+            UpdateSidebarForSelection();
+            PopulateSelectionDetail(entryName);
         }
 
-        private void ShowSelectionDetail(string name)
+        /// <summary>Single source of truth for sidebar visibility. Called on selection change.</summary>
+        private void UpdateSidebarForSelection()
         {
+            bool hasSelection = _selectedObject != null;
+            if (_buildingMenu != null)
+            {
+                if (hasSelection)
+                    _buildingMenu.AddToClassList("hidden");
+                else
+                    _buildingMenu.RemoveFromClassList("hidden");
+            }
             if (_selectionDetail != null)
-                _selectionDetail.RemoveFromClassList("hidden");
+            {
+                if (hasSelection)
+                    _selectionDetail.RemoveFromClassList("hidden");
+                else
+                    _selectionDetail.AddToClassList("hidden");
+            }
+        }
+
+        private void PopulateSelectionDetail(string name)
+        {
             if (_selectionName != null)
                 _selectionName.text = name;
             if (_selectionIcon != null)
@@ -345,15 +373,16 @@ namespace Voxel
                 nameLabel.style.flexGrow = 1;
                 row.Add(nameLabel);
 
-                var inputs = new Label(FormatRecipeIO(recipe.Inputs, itemRegistry));
-                inputs.AddToClassList("inventory-count");
-                inputs.style.fontSize = 8;
-                row.Add(inputs);
-
-                var outputs = new Label(" → " + FormatRecipeIO(recipe.Outputs, itemRegistry));
-                outputs.AddToClassList("inventory-count");
-                outputs.style.fontSize = 8;
-                row.Add(outputs);
+                var ioRow = new VisualElement();
+                ioRow.AddToClassList("inventory-row");
+                ioRow.style.flexGrow = 0;
+                AddRecipeItemSprites(ioRow, recipe.Inputs, itemRegistry);
+                var arrow = new Label(" → ");
+                arrow.AddToClassList("inventory-count");
+                arrow.style.fontSize = 8;
+                ioRow.Add(arrow);
+                AddRecipeItemSprites(ioRow, recipe.Outputs, itemRegistry);
+                row.Add(ioRow);
 
                 var duration = new Label($" {recipe.WorkDurationSeconds:F0}s");
                 duration.AddToClassList("inventory-count");
@@ -375,18 +404,39 @@ namespace Voxel
             }
         }
 
-        private static string FormatRecipeIO(RecipeInputOutput[] items, IItemRegistry itemRegistry)
+        private void AddRecipeItemSprites(VisualElement parent, RecipeInputOutput[] items, IItemRegistry itemRegistry)
         {
-            if (items == null || items.Length == 0) return "";
-            var parts = new List<string>();
+            if (items == null || itemRegistry == null) return;
             foreach (var io in items)
             {
                 if (io.Count <= 0) continue;
-                var def = itemRegistry?.GetDefinition(io.Item);
+                var def = itemRegistry.GetDefinition(io.Item);
                 var name = def?.Name ?? io.Item.ToString();
-                parts.Add(io.Count > 1 ? $"{name} x{io.Count}" : name);
+                var tooltipText = io.Count > 1 ? $"{name} x{io.Count}" : name;
+
+                var icon = new VisualElement();
+                icon.AddToClassList("inventory-icon");
+                icon.style.width = 18;
+                icon.style.height = 18;
+                icon.style.minWidth = 18;
+                icon.style.minHeight = 18;
+                if (def?.Sprite != null)
+                    icon.style.backgroundImage = new StyleBackground(def.Sprite);
+                icon.RegisterCallback<MouseEnterEvent>(_ => ShowTooltip(tooltipText));
+                icon.RegisterCallback<MouseLeaveEvent>(_ => HideTooltip());
+                parent.Add(icon);
             }
-            return string.Join(", ", parts);
+        }
+
+        private void ShowTooltip(string text)
+        {
+            if (_tooltipLabel != null) _tooltipLabel.text = text;
+            _tooltipPanel?.RemoveFromClassList("hidden");
+        }
+
+        private void HideTooltip()
+        {
+            _tooltipPanel?.AddToClassList("hidden");
         }
 
         private void RefreshInventoryDisplay()
@@ -398,12 +448,12 @@ namespace Voxel
             var itemRegistry = worldBootstrap?.ItemRegistry;
             if (inventory != null && itemRegistry != null)
             {
-                var capacityLabel = new Label($"{inventory.GetTotalCount()} (max {inventory.PerItemCapacity} per item)");
-                capacityLabel.AddToClassList("inventory-count");
-                _inventorySection.Add(capacityLabel);
-
                 var itemsByCategory = GroupInventoryItemsByCategory(inventory.GetAllItems(), itemRegistry);
                 var categoryOrder = itemRegistry.CategoryDisplayOrder ?? Array.Empty<string>();
+
+                var inventoryHeader = new Label("Inventory");
+                inventoryHeader.AddToClassList("inventory-category-header");
+                _inventorySection.Add(inventoryHeader);
 
                 foreach (var category in GetCategoriesInDisplayOrder(itemsByCategory.Keys, categoryOrder))
                 {
@@ -426,10 +476,15 @@ namespace Voxel
                         if (def.Sprite != null)
                             icon.style.backgroundImage = new StyleBackground(def.Sprite);
 
-                        var countLabel = new Label(count.ToString());
+                        var nameLabel = new Label(def.Name ?? item.ToString());
+                        nameLabel.AddToClassList("inventory-count");
+                        nameLabel.style.flexGrow = 1;
+
+                        var countLabel = new Label($"{count}/{inventory.PerItemCapacity}");
                         countLabel.AddToClassList("inventory-count");
 
                         row.Add(icon);
+                        row.Add(nameLabel);
                         row.Add(countLabel);
                         _inventorySection.Add(row);
                     }
@@ -468,11 +523,6 @@ namespace Voxel
                 yield return cat;
         }
 
-        private void HideSelectionDetail()
-        {
-            if (_selectionDetail != null)
-                _selectionDetail.AddToClassList("hidden");
-        }
 
         private void OnLocateClicked()
         {

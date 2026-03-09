@@ -28,7 +28,10 @@ namespace Voxel
             var after = GetTotalCount();
             var added = after - before;
             if (added > 0 && emitUnitProduced)
-                WorldObjectEventBus.Raise(new WorldObjectEvent(transform, WorldObjectEventTypes.UnitProduced, (item, added)));
+            {
+                var newCount = GetCount(item);
+                WorldObjectEventBus.Raise(new WorldObjectEvent(transform, WorldObjectEventTypes.UnitProduced, (item, newCount)));
+            }
             if (added > 0)
                 InventoryChanged?.Invoke();
         }
