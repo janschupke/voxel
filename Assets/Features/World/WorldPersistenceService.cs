@@ -10,7 +10,7 @@ namespace Voxel
     public static class WorldPersistenceService
     {
         private const string WorldFileName = "world.dat";
-        private const int SaveVersion = 7;
+        private const int SaveVersion = 8;
 
         /// <summary>Legacy int→string mapping for v4/v5 saves. Order matches original enum (Beer=0, Bread=1, ...).</summary>
         private static readonly string[] LegacyItemIdToString =
@@ -30,6 +30,7 @@ namespace Voxel
 
         public static void Save(VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects = null,
             IReadOnlyList<BuildingInventorySaveData> buildingInventories = null,
+            IReadOnlyList<ProductionSaveData> productionData = null,
             IReadOnlyList<ActorSaveData> actorData = null,
             IReadOnlyList<(string ItemId, int Count)> globalStorageItems = null)
         {
@@ -122,10 +123,28 @@ namespace Voxel
                     writer.Write(amt);
                 }
             }
+
+            int prodCount = productionData?.Count ?? 0;
+            writer.Write(prodCount);
+            if (prodCount > 0 && productionData != null)
+            {
+                for (int i = 0; i < prodCount; i++)
+                {
+                    var p = productionData[i];
+                    writer.Write(p.EntryName ?? "");
+                    writer.Write(p.BlockX);
+                    writer.Write(p.BlockY);
+                    writer.Write(p.BlockZ);
+                    writer.Write(p.SelectedRecipeIndex);
+                    writer.Write(p.CurrentRecipeIndex);
+                    writer.Write(p.TimerRemaining);
+                }
+            }
         }
 
         public static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,
             IReadOnlyList<BuildingInventorySaveData> buildingInventories,
+            IReadOnlyList<ProductionSaveData> productionData,
             IReadOnlyList<ActorSaveData> actorData,
             IReadOnlyList<(string ItemId, int Count)> globalStorageItems, int saveVersion) Load()
         {
@@ -138,34 +157,39 @@ namespace Voxel
             using var reader = new BinaryReader(gzip);
             int version = reader.ReadInt32();
 
+            if (version >= 8)
+            {
+                var (g, p, b, prod, a, gl) = LoadV8(reader);
+                return (g, p, b, prod, a, gl, version);
+            }
             if (version >= 7)
             {
-                var (g, p, b, a, gl) = LoadV7(reader);
-                return (g, p, b, a, gl, version);
+                var (g, p, b, prod, a, gl) = LoadV7(reader);
+                return (g, p, b, prod, a, gl, version);
             }
             if (version >= 6)
             {
                 var (g, p, b, a, gl) = LoadV6(reader);
-                return (g, p, b, a, gl, version);
+                return (g, p, b, new List<ProductionSaveData>(), a, gl, version);
             }
             if (version >= 4)
             {
                 var (g, p, b, a, gl) = LoadV4(reader);
-                return (g, p, b, a, gl, version);
+                return (g, p, b, new List<ProductionSaveData>(), a, gl, version);
             }
             if (version == 3)
             {
                 var (g, p, b, a) = LoadV3(reader);
-                return (g, p, b, a, new List<(string, int)>(), version);
+                return (g, p, b, new List<ProductionSaveData>(), a, new List<(string, int)>(), version);
             }
             if (version < 100)
             {
                 var (g, p) = LoadV2Core(reader);
-                return (g, p, new List<BuildingInventorySaveData>(), new List<ActorSaveData>(), new List<(string, int)>(), version);
+                return (g, p, new List<BuildingInventorySaveData>(), new List<ProductionSaveData>(), new List<ActorSaveData>(), new List<(string, int)>(), version);
             }
 
             var (grid, placedObjects) = LoadV1(reader, version);
-            return (grid, placedObjects, new List<BuildingInventorySaveData>(), new List<ActorSaveData>(), new List<(string, int)>(), version);
+            return (grid, placedObjects, new List<BuildingInventorySaveData>(), new List<ProductionSaveData>(), new List<ActorSaveData>(), new List<(string, int)>(), version);
         }
 
         private static string LegacyItemIdToStableId(int legacyId)
@@ -177,6 +201,7 @@ namespace Voxel
 
         private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,
             IReadOnlyList<BuildingInventorySaveData> buildingInventories,
+            IReadOnlyList<ProductionSaveData> productionData,
             IReadOnlyList<ActorSaveData> actorData,
             IReadOnlyList<(string ItemId, int Count)> globalStorageItems) LoadV7(BinaryReader reader)
         {
@@ -240,7 +265,39 @@ namespace Voxel
             {
             }
 
-            return (grid, placedObjects, buildingInventories, actorData, globalStorageItems);
+            return (grid, placedObjects, buildingInventories, new List<ProductionSaveData>(), actorData, globalStorageItems);
+        }
+
+        private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,
+            IReadOnlyList<BuildingInventorySaveData> buildingInventories,
+            IReadOnlyList<ProductionSaveData> productionData,
+            IReadOnlyList<ActorSaveData> actorData,
+            IReadOnlyList<(string ItemId, int Count)> globalStorageItems) LoadV8(BinaryReader reader)
+        {
+            var (grid, placedObjects, buildingInventories, _, actorData, globalStorageItems) = LoadV7(reader);
+            var productionData = new List<ProductionSaveData>();
+            try
+            {
+                int prodCount = reader.ReadInt32();
+                if (prodCount > 0 && prodCount < 100000)
+                {
+                    for (int i = 0; i < prodCount; i++)
+                    {
+                        productionData.Add(new ProductionSaveData(
+                            reader.ReadString(),
+                            reader.ReadInt32(),
+                            reader.ReadInt32(),
+                            reader.ReadInt32(),
+                            reader.ReadInt32(),
+                            reader.ReadInt32(),
+                            reader.ReadSingle()));
+                    }
+                }
+            }
+            catch (EndOfStreamException)
+            {
+            }
+            return (grid, placedObjects, buildingInventories, productionData, actorData, globalStorageItems);
         }
 
         private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,

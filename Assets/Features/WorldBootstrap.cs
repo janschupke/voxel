@@ -56,10 +56,11 @@ namespace Voxel
 
             if (WorldPersistenceService.WorldExists())
             {
-                var (grid, placedObjects, buildingInventories, actorData, globalStorageItems, saveVersion) = WorldPersistenceService.Load();
+                var (grid, placedObjects, buildingInventories, productionData, actorData, globalStorageItems, saveVersion) = WorldPersistenceService.Load();
                 _grid = grid;
                 var inventoryLookup = BuildInventoryLookup(buildingInventories, itemRegistry);
-                _placedObjectManager.LoadPlacedObjects(placedObjects, _grid, terrainMode, inventoryLookup, saveVersion, (go, e) =>
+                var productionLookup = BuildProductionLookup(productionData);
+                _placedObjectManager.LoadPlacedObjects(placedObjects, _grid, terrainMode, inventoryLookup, productionLookup, saveVersion, (go, e) =>
                 {
                     if (e?.CritterSpawnerConfig == null) return;
                     var s = go.GetComponent<CritterSpawner>();
@@ -160,6 +161,7 @@ namespace Voxel
                     _grid,
                     _placedObjectManager.CollectPlacedObjectsForSave(),
                     _placedObjectManager.CollectBuildingInventoriesForSave(itemRegistry),
+                    _placedObjectManager.CollectProductionForSave(),
                     CollectActorDataForSave(),
                     globalStorageItems);
             }
@@ -188,6 +190,16 @@ namespace Voxel
                     list.Add((itemRegistry.GetStableId(item), count));
             }
             return list;
+        }
+
+        private static Dictionary<(string EntryName, int BlockX, int BlockY, int BlockZ), ProductionSaveData> BuildProductionLookup(
+            IReadOnlyList<ProductionSaveData> productionData)
+        {
+            var lookup = new Dictionary<(string, int, int, int), ProductionSaveData>();
+            if (productionData == null) return lookup;
+            foreach (var p in productionData)
+                lookup[(p.EntryName, p.BlockX, p.BlockY, p.BlockZ)] = p;
+            return lookup;
         }
 
         private static Dictionary<(string, int, int, int), List<(Item, int)>> BuildInventoryLookup(

@@ -109,6 +109,10 @@ namespace Voxel
         [Tooltip("When set, a CritterSpawner is added when placing this object.")]
         public CritterSpawnerConfig CritterSpawnerConfig;
 
+        [Header("Production")]
+        [Tooltip("When set, BuildingProduction is added and runs recipes when inputs and output space available.")]
+        public ProductionTreeConfig ProductionTree;
+
         /// <summary>Blocks placement of other objects at the same block. Building and Road block; Environment does not.</summary>
         public bool BlocksPlacement => StructureType == StructureType.Building || StructureType == StructureType.Road;
 

@@ -15,6 +15,7 @@ MonoBehaviour:
   Name: Mill
   category: {fileID: 11400000, guid: 7bdbc6cdc133a49b591198b577c567ee, type: 2}
   Prefab: {fileID: 5506616311142673777, guid: 1e82446f2d0ff4ffb971c11754e15905, type: 3}
+  sprite: {fileID: 0}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0
@@ -31,3 +32,7 @@ MonoBehaviour:
   AssignedActor: {fileID: 0}
   InventoryCapacity: 0
   UsesGlobalStorage: 0
+  IsGatherSite: 0
+  CollectorTarget: 1
+  CritterSpawnerConfig: {fileID: 0}
+  ProductionTree: {fileID: 11400000, guid: dd230b2cb354f49e083829782736ff99, type: 2}

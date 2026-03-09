@@ -42,6 +42,8 @@ namespace Voxel
         private SelectionOutlineRenderer _outlineRenderer;
         private SelectionRaycaster _raycaster;
         private IBuildingInventory _cachedInventory;
+        private BuildingProduction _cachedProduction;
+        private VisualElement _productionTreeSection;
         private Camera _cachedCamera;
         private Func<bool> _escapeHandler;
 
@@ -73,6 +75,7 @@ namespace Voxel
                 _selectionIcon = uiDocument.rootVisualElement.Q<VisualElement>("SelectionIcon");
                 _selectionName = uiDocument.rootVisualElement.Q<Label>("SelectionName");
                 _inventorySection = uiDocument.rootVisualElement.Q<VisualElement>("InventorySection");
+                _productionTreeSection = uiDocument.rootVisualElement.Q<VisualElement>("ProductionTreeSection");
                 _locateButton = uiDocument.rootVisualElement.Q<Button>("Locate");
                 _debugSection = uiDocument.rootVisualElement.Q<VisualElement>("DebugSection");
                 _clearInventoryButton = uiDocument.rootVisualElement.Q<Button>("ClearInventory");
@@ -105,6 +108,8 @@ namespace Voxel
         public void RefreshSelectionDisplay()
         {
             RefreshInventoryDisplay();
+            if (_productionTreeSection != null && !_productionTreeSection.ClassListContains("hidden"))
+                RefreshProductionTreeDisplay();
         }
 
         public void ClearSelection()
@@ -118,6 +123,7 @@ namespace Voxel
             _locateTarget = null;
             _selectedEntryName = null;
             _cachedInventory = null;
+            _cachedProduction = null;
             HideSelectionDetail();
         }
 
@@ -127,11 +133,23 @@ namespace Voxel
             {
                 _cachedInventory.InventoryChanged -= OnInventoryChanged;
             }
+            if (_cachedProduction != null)
+            {
+                _cachedProduction.StateChanged -= OnProductionStateChanged;
+            }
         }
 
         private void OnInventoryChanged()
         {
             RefreshInventoryDisplay();
+            if (_productionTreeSection != null && !_productionTreeSection.ClassListContains("hidden"))
+                RefreshProductionTreeDisplay();
+        }
+
+        private void OnProductionStateChanged()
+        {
+            if (_selectedObject == null) return;
+            RefreshProductionTreeDisplay();
         }
 
         private void ClearHoverHighlight()
@@ -226,8 +244,11 @@ namespace Voxel
                 _locateTarget = obj;
             _selectedEntryName = entryName;
             _cachedInventory = obj != null ? obj.GetComponent<BuildingInventory>() as IBuildingInventory : null;
+            _cachedProduction = obj != null ? obj.GetComponent<BuildingProduction>() : null;
             if (_cachedInventory != null)
                 _cachedInventory.InventoryChanged += OnInventoryChanged;
+            if (_cachedProduction != null)
+                _cachedProduction.StateChanged += OnProductionStateChanged;
             ShowSelectionDetail(entryName);
         }
 
@@ -255,8 +276,117 @@ namespace Voxel
                 else
                     _inventorySection.RemoveFromClassList("hidden");
             }
+            if (_productionTreeSection != null)
+            {
+                var entry = registry?.GetByName(name);
+                bool showProduction = entry?.ProductionTree != null;
+                if (showProduction)
+                {
+                    _productionTreeSection.RemoveFromClassList("hidden");
+                    RefreshProductionTreeDisplay();
+                }
+                else
+                    _productionTreeSection.AddToClassList("hidden");
+            }
             RefreshInventoryDisplay();
             UpdateClearInventoryButtonVisibility();
+        }
+
+        private void RefreshProductionTreeDisplay()
+        {
+            if (_productionTreeSection == null || _selectedObject == null) return;
+            var entry = registry?.GetByName(_selectedEntryName);
+            if (entry?.ProductionTree == null) return;
+            var itemRegistry = worldBootstrap?.ItemRegistry;
+            if (itemRegistry == null) return;
+
+            _productionTreeSection.Clear();
+
+            var header = new Label("Production");
+            header.AddToClassList("production-header");
+            header.AddToClassList("inventory-category-header");
+            _productionTreeSection.Add(header);
+
+            if (_cachedProduction != null)
+            {
+                var stateRow = new VisualElement();
+                stateRow.AddToClassList("production-state-row");
+                var stateLabel = new Label(_cachedProduction.State.ToString());
+                stateLabel.AddToClassList("production-state-" + _cachedProduction.State.ToString().ToLowerInvariant());
+                stateRow.Add(stateLabel);
+                _productionTreeSection.Add(stateRow);
+
+                if (_cachedProduction.State == ProductionState.Producing)
+                {
+                    var progressBar = new VisualElement();
+                    progressBar.AddToClassList("production-progress-bar");
+                    var fill = new VisualElement();
+                    fill.AddToClassList("production-progress-fill");
+                    fill.style.width = Length.Percent(_cachedProduction.ProgressNormalized * 100f);
+                    progressBar.Add(fill);
+                    _productionTreeSection.Add(progressBar);
+                }
+            }
+
+            var recipes = entry.ProductionTree.Recipes;
+            if (recipes == null) return;
+            for (int i = 0; i < recipes.Length; i++)
+            {
+                var recipe = recipes[i];
+                if (recipe == null) continue;
+                var row = new VisualElement();
+                row.AddToClassList("production-recipe-row");
+                if (_cachedProduction != null && _cachedProduction.SelectedRecipeIndex == i)
+                    row.AddToClassList("production-recipe-selected");
+                row.AddToClassList("inventory-row");
+
+                var nameLabel = new Label(recipe.Name ?? "?");
+                nameLabel.AddToClassList("inventory-count");
+                nameLabel.style.flexGrow = 1;
+                row.Add(nameLabel);
+
+                var inputs = new Label(FormatRecipeIO(recipe.Inputs, itemRegistry));
+                inputs.AddToClassList("inventory-count");
+                inputs.style.fontSize = 8;
+                row.Add(inputs);
+
+                var outputs = new Label(" → " + FormatRecipeIO(recipe.Outputs, itemRegistry));
+                outputs.AddToClassList("inventory-count");
+                outputs.style.fontSize = 8;
+                row.Add(outputs);
+
+                var duration = new Label($" {recipe.WorkDurationSeconds:F0}s");
+                duration.AddToClassList("inventory-count");
+                duration.style.fontSize = 8;
+                row.Add(duration);
+
+                int index = i;
+                row.RegisterCallback<ClickEvent>(_ =>
+                {
+                    if (_cachedProduction != null && index >= 0 && index < recipes.Length)
+                    {
+                        _cachedProduction.SelectedRecipeIndex = index;
+                        RefreshProductionTreeDisplay();
+                    }
+                });
+                row.pickingMode = PickingMode.Position;
+
+                _productionTreeSection.Add(row);
+            }
+        }
+
+        private static string FormatRecipeIO(RecipeInputOutput[] items, IItemRegistry itemRegistry)
+        {
+            if (items == null || items.Length == 0) return "";
+            var parts = new List<string>();
+            foreach (var io in items)
+            {
+                if (io.Count <= 0) continue;
+                var def = itemRegistry?.GetDefinition(io.Item);
+                var name = def?.Name ?? io.Item.ToString();
+                parts.Add(io.Count > 1 ? $"{name} x{io.Count}" : name);
+            }
+            return string.Join(", ", parts);
         }
 
         private void RefreshInventoryDisplay()

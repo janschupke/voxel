@@ -14,9 +14,6 @@ namespace Voxel
         [Tooltip("Category-specific config (GathererConfig, CollectorConfig, etc.). Required. Behavior type is inferred from config.")]
         [SerializeField] private ActorCategoryConfig categoryConfig;
 
-        [Tooltip("Optional. Override behavior type by assembly-qualified name. Leave empty to use Category.")]
-        [SerializeField] private string behaviorTypeName;
-
         [Tooltip("Pathing mode: Road (road only), Free (shortest land path), Smart (prefer road, any path)")]
         public ActorPathingMode PathingMode = ActorPathingMode.Free;
 
@@ -42,8 +39,5 @@ namespace Voxel
 
         /// <summary>Category-specific config. Required. Behavior type is inferred from config type.</summary>
         public ActorCategoryConfig CategoryConfig => categoryConfig;
-
-        /// <summary>When non-empty, used instead of Category to resolve the behavior Type.</summary>
-        public string BehaviorTypeName => behaviorTypeName;
     }
 }

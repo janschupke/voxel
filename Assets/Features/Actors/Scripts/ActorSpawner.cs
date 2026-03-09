@@ -171,13 +171,6 @@ namespace Voxel
 
         private static System.Type GetBehaviorType(ActorDefinition actorDef)
         {
-            if (actorDef != null && !string.IsNullOrWhiteSpace(actorDef.BehaviorTypeName))
-            {
-                var type = System.Type.GetType(actorDef.BehaviorTypeName);
-                if (type != null && typeof(ActorBehavior).IsAssignableFrom(type))
-                    return type;
-                GameDebugLogger.LogWarning($"[ActorSpawner] BehaviorTypeName '{actorDef.BehaviorTypeName}' not found or not assignable to ActorBehavior; falling back to CategoryConfig.");
-            }
             return GetBehaviorTypeFromConfig(actorDef?.CategoryConfig);
         }
 

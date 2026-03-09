@@ -306,13 +306,19 @@ namespace Voxel
             return PlacedObjectPersistence.CollectBuildingInventoriesForSave(_parentsByEntryName, _registry, _worldParameters, itemRegistry);
         }
 
+        public List<ProductionSaveData> CollectProductionForSave()
+        {
+            return PlacedObjectPersistence.CollectProductionForSave(_parentsByEntryName, _registry, _worldParameters);
+        }
+
         public void LoadPlacedObjects(IReadOnlyList<PlacedObjectData> placedObjects, VoxelGrid grid, TerrainGenerationMode terrainMode,
             IReadOnlyDictionary<(string EntryName, int BlockX, int BlockY, int BlockZ), List<(Item Item, int Count)>> inventoryLookup = null,
+            IReadOnlyDictionary<(string EntryName, int BlockX, int BlockY, int BlockZ), ProductionSaveData> productionLookup = null,
             int saveVersion = 5,
             System.Action<GameObject, PlacedObjectEntry> onInstanceCreated = null)
         {
             PlacedObjectPersistence.LoadPlacedObjects(
-                placedObjects, grid, terrainMode, inventoryLookup,
+                placedObjects, grid, terrainMode, inventoryLookup, productionLookup,
                 _registry, _worldParameters, _islandPipelineConfig,
                 GetOrCreateParentForEntry, GetParentByEntryName,
                 (x, y, z) => _roadOverlay.Add(x, y, z),
