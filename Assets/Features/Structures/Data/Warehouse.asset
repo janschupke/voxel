@@ -20,8 +20,9 @@ MonoBehaviour:
   IsSurfaceOverlay: 0
   PlacementMode: 0
   LinePlacementExtendThroughExisting: 0
-  PrefabHeightInUnits: 2
-  ScaleMultiplier: 1
+  AreaSizeX: 2
+  AreaSizeZ: 3
+  HeightInBlocks: 2
   RandomRotation: 0
   IsSelectable: 1
   OperationalRangeInBlocks: 5

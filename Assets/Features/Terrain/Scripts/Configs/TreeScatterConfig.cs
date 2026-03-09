@@ -35,15 +35,11 @@ namespace Voxel
         [SerializeField] [Tooltip("Apply random Y rotation for variety")]
         private bool randomRotation = true;
 
-        [SerializeField] [Min(0.01f)] [Tooltip("Prefab height in its local units (used to scale to 1 block). Tree prefab = 2.")]
-        private float prefabHeightInUnits = 2f;
-
-        [SerializeField] [Min(0.01f)] [Tooltip("Scale multiplier. 1 = 1 block tall, 2 = 2x bigger, 0.5 = half size.")]
-        private float scaleMultiplier = 1f;
+        [SerializeField] [Min(0.01f)] [Tooltip("Height in world block units. Model scale derived from area (1x1) and height.")]
+        private float heightInBlocks = 1f;
 
         public GameObject TreePrefab => treePrefab;
-        public float PrefabHeightInUnits => prefabHeightInUnits;
-        public float ScaleMultiplier => scaleMultiplier;
+        public float HeightInBlocks => heightInBlocks;
         public float Density => density;
         public int MinTreeDistance => minTreeDistance;
         public int MaxTreeDistance => maxTreeDistance;

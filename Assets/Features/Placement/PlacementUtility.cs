@@ -56,5 +56,21 @@ namespace Voxel
 
         public static int GetTopSolidY(VoxelGrid grid, int x, int z, int gridHeight) =>
             Voxel.Pure.BlockQueries.GetTopSolidY(grid, x, z, gridHeight);
+
+        /// <summary>Footprint origin so the object centers on the cursor block. Use Floor so cursor block is in footprint and offset is minimized.</summary>
+        public static (int originX, int originZ) GetFootprintOrigin(int cursorBx, int cursorBz, int sizeX, int sizeZ)
+        {
+            int originX = Mathf.FloorToInt(cursorBx - (sizeX - 1) / 2f);
+            int originZ = Mathf.FloorToInt(cursorBz - (sizeZ - 1) / 2f);
+            return (originX, originZ);
+        }
+
+        /// <summary>Geometric center of footprint in block coords (for pivot placement). Aligned to world cells.</summary>
+        public static (float centerX, float centerZ) GetFootprintCenter(int originX, int originZ, int sizeX, int sizeZ)
+        {
+            float centerX = originX + (sizeX - 1) / 2f + 0.5f;
+            float centerZ = originZ + (sizeZ - 1) / 2f + 0.5f;
+            return (centerX, centerZ);
+        }
     }
 }

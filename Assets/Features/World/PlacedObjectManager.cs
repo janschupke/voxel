@@ -13,6 +13,7 @@ namespace Voxel
         private readonly Dictionary<string, Transform> _parentsByEntryName = new Dictionary<string, Transform>();
         private readonly RoadOverlay _roadOverlay = new RoadOverlay();
         private readonly Dictionary<(int x, int y, int z), List<Transform>> _blockToTransforms = new Dictionary<(int x, int y, int z), List<Transform>>();
+        private readonly Dictionary<Transform, (int ox, int oz, int sx, int sz)> _transformToFootprint = new Dictionary<Transform, (int, int, int, int)>();
 
         private PlacedObjectRegistry _registry;
         private WorldParameters _worldParameters;
@@ -39,6 +40,7 @@ namespace Voxel
         {
             _roadOverlay.Clear();
             _blockToTransforms.Clear();
+            _transformToFootprint.Clear();
             foreach (var kv in _parentsByEntryName)
             {
                 if (kv.Value != null)
@@ -47,19 +49,53 @@ namespace Voxel
             _parentsByEntryName.Clear();
         }
 
-        /// <summary>Registers a placed object in the block spatial index. Call after instantiating.</summary>
+        /// <summary>Registers a placed object in the block spatial index. Call after instantiating. Registers at all blocks in footprint.</summary>
         public void RegisterPlacedObject(string entryName, Transform transform)
         {
             if (transform == null || string.IsNullOrEmpty(entryName) || entryName == PlacedObjectKeys.Road) return;
+            var entry = _registry?.GetByName(entryName);
+            int sizeX = entry?.AreaSizeX ?? 1;
+            int sizeZ = entry?.AreaSizeZ ?? 1;
+
             var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
-            var (bx, by, bz) = worldScale.WorldToBlock(transform.position);
-            var key = (bx, by, bz);
-            if (!_blockToTransforms.TryGetValue(key, out var list))
+            float centerX = transform.position.x / worldScale.BlockScale;
+            float centerZ = transform.position.z / worldScale.BlockScale;
+            int by = Mathf.FloorToInt(transform.position.y / worldScale.BlockScale);
+            int originX = Mathf.FloorToInt(centerX - (sizeX - 1) / 2f - 0.5f);
+            int originZ = Mathf.FloorToInt(centerZ - (sizeZ - 1) / 2f - 0.5f);
+
+            _transformToFootprint[transform] = (originX, originZ, sizeX, sizeZ);
+
+            for (int dx = 0; dx < sizeX; dx++)
             {
-                list = new List<Transform>();
-                _blockToTransforms[key] = list;
+                for (int dz = 0; dz < sizeZ; dz++)
+                {
+                    var key = (originX + dx, by, originZ + dz);
+                    if (!_blockToTransforms.TryGetValue(key, out var list))
+                    {
+                        list = new List<Transform>();
+                        _blockToTransforms[key] = list;
+                    }
+                    list.Add(transform);
+                }
             }
-            list.Add(transform);
+        }
+
+        private void UnregisterPlacedObject(Transform transform)
+        {
+            if (transform == null || !_transformToFootprint.TryGetValue(transform, out var fp)) return;
+            _transformToFootprint.Remove(transform);
+
+            var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            int by = Mathf.FloorToInt(transform.position.y / worldScale.BlockScale);
+
+            for (int dx = 0; dx < fp.sx; dx++)
+            {
+                for (int dz = 0; dz < fp.sz; dz++)
+                {
+                    UnregisterTransformAtBlock(fp.ox + dx, by, fp.oz + dz, transform);
+                }
+            }
         }
 
         private void UnregisterTransformAtBlock(int bx, int by, int bz, Transform transform)
@@ -115,11 +151,15 @@ namespace Voxel
             var key = (bx, by, bz);
             if (_blockToTransforms.TryGetValue(key, out var list))
             {
-                foreach (var t in list)
+                var toDestroy = new List<Transform>(list);
+                foreach (var t in toDestroy)
                 {
                     if (t != null)
+                    {
+                        UnregisterPlacedObject(t);
                         Object.Destroy(t.gameObject);
-                    removed = true;
+                        removed = true;
+                    }
                 }
                 _blockToTransforms.Remove(key);
             }

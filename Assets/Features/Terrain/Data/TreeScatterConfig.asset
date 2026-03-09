@@ -22,3 +22,4 @@ MonoBehaviour:
   clusterNoiseFrequency: 0.06
   excludeMountains: 1
   randomRotation: 1
+  heightInBlocks: 1

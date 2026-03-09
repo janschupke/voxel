@@ -36,11 +36,22 @@ namespace Voxel
         [Tooltip("When Line placement: allow path through existing roads; skip preview and placement on those blocks (extend/repair).")]
         public bool LinePlacementExtendThroughExisting;
 
-        [Min(0.01f)] [Tooltip("Prefab height in its local units (used to scale to 1 block)")]
-        public float PrefabHeightInUnits = 2f;
+        [Header("Footprint")]
+        [Min(1)] [Tooltip("Ground footprint in blocks (x). For Single placement, cursor snaps to center.")]
+        public int AreaSizeX = 1;
 
-        [Min(0.01f)] [Tooltip("Scale multiplier")]
-        public float ScaleMultiplier = 1f;
+        [Min(1)] [Tooltip("Ground footprint in blocks (z). For Single placement, cursor snaps to center.")]
+        public int AreaSizeZ = 1;
+
+        [Min(0.01f)] [Tooltip("Height in world block units. Model scale is derived from area and height.")]
+        public float HeightInBlocks = 1f;
+
+        /// <summary>Returns area dimensions, swapping x/z when rotation is 90° or 270°.</summary>
+        public (int sizeX, int sizeZ) GetEffectiveArea(float rotationY)
+        {
+            var normalized = ((int)Mathf.Repeat(rotationY, 360f) / 90) % 2;
+            return normalized == 0 ? (AreaSizeX, AreaSizeZ) : (AreaSizeZ, AreaSizeX);
+        }
 
         [Tooltip("Apply random Y rotation for variety (e.g. for trees)")]
         public bool RandomRotation;

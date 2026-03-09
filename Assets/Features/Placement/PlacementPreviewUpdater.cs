@@ -79,7 +79,7 @@ namespace Voxel
                     if (PlacementUtility.TryRaycastTopSurface(_camera, grid, _worldScale, waterLevelY, out var block, out bool valid))
                     {
                         bool treeValid = valid && isBlockValid(block.bx, block.by, block.bz);
-                        preview.SetSingle(block, 0f, treeValid);
+                        preview.SetSingle(block.bx, block.bz, block.by, 1, 1, 0f, treeValid);
                     }
                     else
                     {
@@ -91,9 +91,11 @@ namespace Voxel
             {
                 if (PlacementUtility.TryRaycastTopSurface(_camera, grid, _worldScale, waterLevelY, out var block, out bool valid))
                 {
-                    previewValid = valid && PlacementValidator.IsBlockValidForPlacement(_worldBootstrap, block.bx, block.by, block.bz, activeEntry);
-                    previewBlock = block;
-                    preview.SetSingle(block, rotationY, previewValid);
+                    var (sizeX, sizeZ) = activeEntry.GetEffectiveArea(rotationY);
+                    var (originX, originZ) = PlacementUtility.GetFootprintOrigin(block.bx, block.bz, sizeX, sizeZ);
+                    previewValid = valid && PlacementValidator.IsAreaValidForPlacement(_worldBootstrap, originX, originZ, sizeX, sizeZ, block.by, activeEntry);
+                    previewBlock = (originX, block.by, originZ);
+                    preview.SetSingle(originX, originZ, block.by, sizeX, sizeZ, rotationY, previewValid);
                 }
                 else
                 {

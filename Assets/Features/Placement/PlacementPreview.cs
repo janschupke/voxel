@@ -10,8 +10,7 @@ namespace Voxel
     {
         private readonly GameObject _prefab;
         private readonly WorldScale _worldScale;
-        private readonly float _prefabHeightInUnits;
-        private readonly float _scaleMultiplier;
+        private readonly PlacedObjectEntry _entry;
         private readonly List<GameObject> _instances = new();
         private readonly List<(int x, int y, int z)> _previewBlocks = new();
         private readonly Dictionary<Material, Material> _validMaterialCache = new();
@@ -25,24 +24,28 @@ namespace Voxel
         /// <summary>Blocks currently shown in the preview (for hiding environment underneath).</summary>
         public IReadOnlyList<(int x, int y, int z)> PreviewBlocks => _previewBlocks;
 
-        public PlacementPreview(GameObject prefab, WorldScale worldScale, float prefabHeightInUnits = 2f, float scaleMultiplier = 1f)
+        public PlacementPreview(GameObject prefab, WorldScale worldScale, PlacedObjectEntry entry)
         {
             _prefab = prefab;
             _worldScale = worldScale;
-            _prefabHeightInUnits = prefabHeightInUnits;
-            _scaleMultiplier = scaleMultiplier;
+            _entry = entry;
         }
 
-        public void SetSingle((int x, int y, int z) block, float rotationY, bool valid)
+        /// <summary>Single placement: one instance at center of footprint. PreviewBlocks = all blocks in footprint.</summary>
+        public void SetSingle(int originX, int originZ, int baseY, int sizeX, int sizeZ, float rotationY, bool valid)
         {
             Clear();
-            if (_prefab == null) return;
+            if (_prefab == null || _entry == null) return;
 
-            var instance = CreatePreviewInstance(block, rotationY, valid);
+            var (centerX, centerZ) = PlacementUtility.GetFootprintCenter(originX, originZ, sizeX, sizeZ);
+
+            var instance = CreatePreviewInstance(centerX, baseY, centerZ, rotationY, valid, sizeX, sizeZ);
             if (instance != null)
             {
                 _instances.Add(instance);
-                _previewBlocks.Add(block);
+                for (int dx = 0; dx < sizeX; dx++)
+                    for (int dz = 0; dz < sizeZ; dz++)
+                        _previewBlocks.Add((originX + dx, baseY, originZ + dz));
             }
         }
 
@@ -71,7 +74,7 @@ namespace Voxel
                     if (!isBlockValid(x, surfaceY, z)) continue;
 
                     float rot = randomRotation ? Random.Range(0f, 360f) : 0f;
-                    var instance = CreatePreviewInstance((x, surfaceY, z), rot, true);
+                    var instance = CreatePreviewInstance(x + 0.5f, surfaceY, z + 0.5f, rot, true, 1, 1);
                     if (instance != null)
                     {
                         _instances.Add(instance);
@@ -107,7 +110,7 @@ namespace Voxel
 
                 bool valid = topY >= waterLevelY && isBlockValid(node.X, surfaceY, node.Z);
 
-                var instance = CreatePreviewInstance((node.X, surfaceY, node.Z), 0f, valid);
+                var instance = CreatePreviewInstance(node.X + 0.5f, surfaceY, node.Z + 0.5f, 0f, valid, 1, 1);
                 if (instance != null)
                 {
                     _instances.Add(instance);
@@ -142,7 +145,7 @@ namespace Voxel
                     bool valid = topY >= waterLevelY && isBlockValid(x, surfaceY, z);
 
                     float rot = randomRotation ? Random.Range(0f, 360f) : 0f;
-                    var instance = CreatePreviewInstance((x, surfaceY, z), rot, valid);
+                    var instance = CreatePreviewInstance(x + 0.5f, surfaceY, z + 0.5f, rot, valid, 1, 1);
                     if (instance != null)
                     {
                         _instances.Add(instance);
@@ -182,15 +185,18 @@ namespace Voxel
             _invalidMaterialCache.Clear();
         }
 
-        private GameObject CreatePreviewInstance((int x, int y, int z) block, float rotationY, bool valid)
+        private GameObject CreatePreviewInstance(float centerX, float centerY, float centerZ, float rotationY, bool valid, int sizeX, int sizeZ)
         {
+            if (_entry == null) return null;
+
             var instance = Object.Instantiate(_prefab);
             instance.name = _prefab.name + "_Preview";
 
-            var scale = _worldScale.ScaleVectorForBlockSizedPrefab(_prefabHeightInUnits) * _scaleMultiplier;
+            var bounds = GetPrefabBounds();
+            var scale = _worldScale.ScaleForVoxelModel(sizeX, sizeZ, _entry.HeightInBlocks, bounds);
             instance.transform.localScale = scale;
 
-            var pos = _worldScale.BlockToWorld(block.x + 0.5f, block.y, block.z + 0.5f);
+            var pos = _worldScale.BlockToWorld(centerX, centerY, centerZ);
             instance.transform.position = pos;
             instance.transform.rotation = Quaternion.Euler(0f, rotationY, 0f);
 
@@ -202,6 +208,14 @@ namespace Voxel
                 col.enabled = false;
 
             return instance;
+        }
+
+        private Bounds GetPrefabBounds()
+        {
+            var mf = _prefab.GetComponentInChildren<MeshFilter>();
+            if (mf != null && mf.sharedMesh != null)
+                return mf.sharedMesh.bounds;
+            return new Bounds(Vector3.zero, Vector3.one * 16f);
         }
 
         private void ApplyPreviewMaterials(GameObject go, bool valid)
@@ -254,11 +268,12 @@ namespace Voxel
             }
         }
 
-        public void UpdateSinglePositionAndRotation((int x, int y, int z) block, float rotationY)
+        public void UpdateSinglePositionAndRotation(int originX, int originZ, int baseY, int sizeX, int sizeZ, float rotationY)
         {
             if (_instances.Count == 0) return;
 
-            var pos = _worldScale.BlockToWorld(block.x + 0.5f, block.y, block.z + 0.5f);
+            var (centerX, centerZ) = PlacementUtility.GetFootprintCenter(originX, originZ, sizeX, sizeZ);
+            var pos = _worldScale.BlockToWorld(centerX, baseY, centerZ);
             _instances[0].transform.position = pos;
             _instances[0].transform.rotation = Quaternion.Euler(0f, rotationY, 0f);
         }

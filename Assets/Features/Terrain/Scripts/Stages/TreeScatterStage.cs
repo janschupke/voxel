@@ -133,7 +133,8 @@ namespace Voxel
 
                 var instance = UnityEngine.Object.Instantiate(_config.TreePrefab, worldPos, rotation, _treeParent);
                 instance.name = _config.TreePrefab.name;
-                instance.transform.localScale = _worldScale.ScaleVectorForBlockSizedPrefab(_config.PrefabHeightInUnits) * _config.ScaleMultiplier;
+                var bounds = GetPrefabBounds(_config.TreePrefab);
+                instance.transform.localScale = _worldScale.ScaleForVoxelModel(1, 1, _config.HeightInBlocks, bounds);
 
                 spatialGrid[cellX, cellZ].Add((x, y, z));
             }
@@ -153,6 +154,14 @@ namespace Voxel
                     return y;
             }
             return -1;
+        }
+
+        private static Bounds GetPrefabBounds(GameObject prefab)
+        {
+            var mf = prefab.GetComponentInChildren<MeshFilter>();
+            if (mf != null && mf.sharedMesh != null)
+                return mf.sharedMesh.bounds;
+            return new Bounds(Vector3.zero, Vector3.one * 16f);
         }
 
         private static void Shuffle<T>(List<T> list, System.Random rng)

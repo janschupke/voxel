@@ -37,5 +37,15 @@ namespace Voxel
         /// <summary>Uniform scale vector for a prefab that should be 1 block tall (prefab height in local units).</summary>
         public Vector3 ScaleVectorForBlockSizedPrefab(float prefabHeightInUnits) =>
             Vector3.one * ScaleForBlockSizedPrefab(prefabHeightInUnits);
+
+        /// <summary>Non-uniform scale so a voxel model fits the configured area and height. Models assumed in 16-voxel increments.</summary>
+        public Vector3 ScaleForVoxelModel(float areaSizeX, float areaSizeZ, float heightInBlocks, Bounds meshBounds)
+        {
+            var s = meshBounds.size;
+            float sx = s.x > 0.0001f ? (areaSizeX * BlockScale) / s.x : BlockScale;
+            float sz = s.z > 0.0001f ? (areaSizeZ * BlockScale) / s.z : BlockScale;
+            float sy = s.y > 0.0001f ? (heightInBlocks * BlockScale) / s.y : BlockScale;
+            return new Vector3(sx, sy, sz);
+        }
     }
 }

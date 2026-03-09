@@ -112,9 +112,11 @@ namespace Voxel
                 var parent = getOrCreateParent(p.EntryName);
                 if (parent == null) continue;
 
-                float prefabHeight = entry != null && entry.PrefabHeightInUnits > 0 ? entry.PrefabHeightInUnits : 2f;
-                float scaleMult = entry != null && entry.ScaleMultiplier > 0 ? entry.ScaleMultiplier : 1f;
-                var scale = worldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
+                int sizeX = entry?.AreaSizeX ?? 1;
+                int sizeZ = entry?.AreaSizeZ ?? 1;
+                float heightInBlocks = entry != null && entry.HeightInBlocks > 0 ? entry.HeightInBlocks : 1f;
+                var bounds = GetPrefabBounds(prefab);
+                var scale = worldScale.ScaleForVoxelModel(sizeX, sizeZ, heightInBlocks, bounds);
 
                 var instance = Object.Instantiate(prefab, p.ToWorldPosition(worldScale), p.ToRotation(), parent);
                 instance.name = prefab.name;
@@ -136,6 +138,14 @@ namespace Voxel
                 if (treeParent == null || treeParent.childCount == 0)
                     runTreePlacement?.Invoke(grid);
             }
+        }
+
+        private static Bounds GetPrefabBounds(GameObject prefab)
+        {
+            var mf = prefab.GetComponentInChildren<MeshFilter>();
+            if (mf != null && mf.sharedMesh != null)
+                return mf.sharedMesh.bounds;
+            return new Bounds(Vector3.zero, Vector3.one * 16f);
         }
     }
 }

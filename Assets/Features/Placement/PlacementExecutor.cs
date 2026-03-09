@@ -29,12 +29,16 @@ namespace Voxel
 
             if (entry.IsSurfaceOverlay)
             {
-                if (entry.CanReplaceEnvironment)
-                    _worldBootstrap.RemoveEnvironmentAtBlock(block.x, block.y, block.z);
-                _worldBootstrap.AddRoadAt(block.x, block.y, block.z);
-                _worldBootstrap.Renderer?.InvalidateChunkAt(block.x, block.y - 1, block.z);
+                PlaceRoadAtBlock(block.x, block.y, block.z, entry);
                 return;
             }
+
+            var (sizeX, sizeZ) = entry.GetEffectiveArea(rotationY);
+            int originX = block.x;
+            int originZ = block.z;
+            int baseY = block.y;
+
+            RemoveEnvironmentInFootprint(originX, originZ, sizeX, sizeZ, baseY, entry);
 
             var parent = _worldBootstrap.GetParentForEntry(entry);
             if (parent == null || entry.Prefab == null)
@@ -43,24 +47,14 @@ namespace Voxel
                 return;
             }
 
-            if (entry.CanReplaceEnvironment)
-                _worldBootstrap.RemoveEnvironmentAtBlock(block.x, block.y, block.z);
-
             var worldScale = GetWorldScale();
-            var pos = worldScale.BlockToWorld(block.x + 0.5f, block.y, block.z + 0.5f);
+            var (centerX, centerZ) = PlacementUtility.GetFootprintCenter(originX, originZ, sizeX, sizeZ);
+            var pos = worldScale.BlockToWorld(centerX, baseY, centerZ);
             var rotation = Quaternion.Euler(0f, rotationY, 0f);
-            float prefabHeight = entry.PrefabHeightInUnits > 0 ? entry.PrefabHeightInUnits : 2f;
-            float scaleMult = entry.ScaleMultiplier > 0 ? entry.ScaleMultiplier : 1f;
-            var scale = worldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
+            var scale = GetScaleForEntry(entry, sizeX, sizeZ);
 
-            var instance = Object.Instantiate(entry.Prefab, pos, rotation, parent);
-            instance.name = entry.Prefab.name;
-            instance.transform.localScale = scale;
-            TryAddBuildingInventory(instance, entry);
-            _worldBootstrap.NotifyObjectPlaced(entry.Name, instance.transform);
-
-            _worldBootstrap.SpawnActorForBuildingIfNeeded(entry, instance.transform);
-            GameDebugLogger.Log($"[PlacementExecutor] PlaceSingle OK: '{entry.Name}' at {block}");
+            PlacePrefabInstance(entry, parent, pos, rotation, scale);
+            GameDebugLogger.Log($"[PlacementExecutor] PlaceSingle OK: '{entry.Name}' at origin ({originX},{baseY},{originZ}) size {sizeX}x{sizeZ}");
         }
 
         public void PlaceInLine((int x, int z) start, (int x, int z) end, PlacedObjectEntry entry)
@@ -80,7 +74,6 @@ namespace Voxel
 
             if (entry.IsSurfaceOverlay)
             {
-                int roadPlaced = 0;
                 foreach (var node in path)
                 {
                     int topY = PlacementUtility.GetTopSolidY(grid, node.X, node.Z, grid.Height);
@@ -90,12 +83,7 @@ namespace Voxel
                     if (skipExisting && _worldBootstrap.HasRoadAt(node.X, surfaceY, node.Z)) continue;
                     if (_worldBootstrap.HasBlockingObjectAtBlock(node.X, surfaceY, node.Z)) continue;
 
-                    if (entry.CanReplaceEnvironment)
-                        _worldBootstrap.RemoveEnvironmentAtBlock(node.X, surfaceY, node.Z);
-
-                    _worldBootstrap.AddRoadAt(node.X, surfaceY, node.Z);
-                    _worldBootstrap.Renderer?.InvalidateChunkAt(node.X, topY, node.Z);
-                    roadPlaced++;
+                    PlaceRoadAtBlock(node.X, surfaceY, node.Z, entry);
                 }
                 return;
             }
@@ -104,12 +92,9 @@ namespace Voxel
             if (parent == null || entry.Prefab == null) return;
 
             _worldBootstrap.GetOrCreateParentForEntry(entry.Name);
-            float prefabHeight = entry.PrefabHeightInUnits > 0 ? entry.PrefabHeightInUnits : 2f;
-            float scaleMult = entry.ScaleMultiplier > 0 ? entry.ScaleMultiplier : 1f;
             var worldScale = GetWorldScale();
-            var scale = worldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
+            var scale = GetScaleForEntry(entry, 1, 1);
 
-            int placed = 0;
             foreach (var node in path)
             {
                 int topY = PlacementUtility.GetTopSolidY(grid, node.X, node.Z, grid.Height);
@@ -118,20 +103,8 @@ namespace Voxel
                 int surfaceY = topY + 1;
                 if (_worldBootstrap.HasBlockingObjectAtBlock(node.X, surfaceY, node.Z)) continue;
 
-                if (entry.CanReplaceEnvironment)
-                    _worldBootstrap.RemoveEnvironmentAtBlock(node.X, surfaceY, node.Z);
-
-                var pos = worldScale.BlockToWorld(node.X + 0.5f, surfaceY, node.Z + 0.5f);
-                var rotation = entry.RandomRotation
-                    ? Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)
-                    : Quaternion.identity;
-                var instance = Object.Instantiate(entry.Prefab, pos, rotation, parent);
-                instance.name = entry.Prefab.name;
-                instance.transform.localScale = scale;
-                TryAddBuildingInventory(instance, entry);
-                _worldBootstrap.NotifyObjectPlaced(entry.Name, instance.transform);
-                _worldBootstrap.SpawnActorForBuildingIfNeeded(entry, instance.transform);
-                placed++;
+                RemoveEnvironmentAtBlockIfNeeded(node.X, surfaceY, node.Z, entry);
+                PlacePrefabAtBlockCenter(entry, parent, node.X, surfaceY, node.Z, worldScale, scale);
             }
         }
 
@@ -147,19 +120,11 @@ namespace Voxel
 
             if (entry.IsSurfaceOverlay)
             {
-                int roadPlaced = 0;
                 foreach (var (x, surfaceY, z) in PlacementBlockService.GetBlocksForArea(start, end, grid, waterLevelY))
                 {
                     if (_worldBootstrap.HasBlockingObjectAtBlock(x, surfaceY, z)) continue;
-
-                    if (entry.CanReplaceEnvironment)
-                        _worldBootstrap.RemoveEnvironmentAtBlock(x, surfaceY, z);
-
-                    _worldBootstrap.AddRoadAt(x, surfaceY, z);
-                    _worldBootstrap.Renderer?.InvalidateChunkAt(x, surfaceY - 1, z);
-                    roadPlaced++;
+                    PlaceRoadAtBlock(x, surfaceY, z, entry);
                 }
-
                 return;
             }
 
@@ -167,32 +132,75 @@ namespace Voxel
             if (parent == null || entry.Prefab == null) return;
 
             _worldBootstrap.GetOrCreateParentForEntry(entry.Name);
-
-            float prefabHeight = entry.PrefabHeightInUnits > 0 ? entry.PrefabHeightInUnits : 2f;
-            float scaleMult = entry.ScaleMultiplier > 0 ? entry.ScaleMultiplier : 1f;
             var worldScale = GetWorldScale();
-            var scale = worldScale.ScaleVectorForBlockSizedPrefab(prefabHeight) * scaleMult;
+            var scale = GetScaleForEntry(entry, 1, 1);
 
-            int placed = 0;
             foreach (var (x, surfaceY, z) in PlacementBlockService.GetBlocksForArea(start, end, grid, waterLevelY))
             {
                 if (_worldBootstrap.HasBlockingObjectAtBlock(x, surfaceY, z)) continue;
 
-                if (entry.CanReplaceEnvironment)
-                    _worldBootstrap.RemoveEnvironmentAtBlock(x, surfaceY, z);
-
-                var pos = worldScale.BlockToWorld(x + 0.5f, surfaceY, z + 0.5f);
-                var rotation = entry.RandomRotation
-                    ? Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)
-                    : Quaternion.identity;
-                var instance = Object.Instantiate(entry.Prefab, pos, rotation, parent);
-                instance.name = entry.Prefab.name;
-                instance.transform.localScale = scale;
-                TryAddBuildingInventory(instance, entry);
-                _worldBootstrap.NotifyObjectPlaced(entry.Name, instance.transform);
-                _worldBootstrap.SpawnActorForBuildingIfNeeded(entry, instance.transform);
-                placed++;
+                RemoveEnvironmentAtBlockIfNeeded(x, surfaceY, z, entry);
+                PlacePrefabAtBlockCenter(entry, parent, x, surfaceY, z, worldScale, scale);
             }
+        }
+
+        private void PlaceRoadAtBlock(int x, int y, int z, PlacedObjectEntry entry)
+        {
+            if (entry.CanReplaceEnvironment)
+                _worldBootstrap.RemoveEnvironmentAtBlock(x, y, z);
+
+            _worldBootstrap.AddRoadAt(x, y, z);
+            _worldBootstrap.Renderer?.InvalidateChunkAt(x, y - 1, z);
+        }
+
+        private void RemoveEnvironmentInFootprint(int originX, int originZ, int sizeX, int sizeZ, int baseY, PlacedObjectEntry entry)
+        {
+            if (!entry.CanReplaceEnvironment) return;
+
+            for (int dx = 0; dx < sizeX; dx++)
+                for (int dz = 0; dz < sizeZ; dz++)
+                    _worldBootstrap.RemoveEnvironmentAtBlock(originX + dx, baseY, originZ + dz);
+        }
+
+        private void RemoveEnvironmentAtBlockIfNeeded(int x, int y, int z, PlacedObjectEntry entry)
+        {
+            if (entry.CanReplaceEnvironment)
+                _worldBootstrap.RemoveEnvironmentAtBlock(x, y, z);
+        }
+
+        private void PlacePrefabAtBlockCenter(PlacedObjectEntry entry, Transform parent, int x, int y, int z,
+            WorldScale worldScale, Vector3 scale)
+        {
+            var pos = worldScale.BlockToWorld(x + 0.5f, y, z + 0.5f);
+            var rotation = entry.RandomRotation
+                ? Quaternion.Euler(0f, Random.Range(0f, 360f), 0f)
+                : Quaternion.identity;
+            PlacePrefabInstance(entry, parent, pos, rotation, scale);
+        }
+
+        private void PlacePrefabInstance(PlacedObjectEntry entry, Transform parent, Vector3 pos, Quaternion rotation, Vector3 scale)
+        {
+            var instance = Object.Instantiate(entry.Prefab, pos, rotation, parent);
+            instance.name = entry.Prefab.name;
+            instance.transform.localScale = scale;
+            TryAddBuildingInventory(instance, entry);
+            _worldBootstrap.NotifyObjectPlaced(entry.Name, instance.transform);
+            _worldBootstrap.SpawnActorForBuildingIfNeeded(entry, instance.transform);
+        }
+
+        private Vector3 GetScaleForEntry(PlacedObjectEntry entry, int sizeX, int sizeZ)
+        {
+            var worldScale = GetWorldScale();
+            var bounds = GetPrefabBounds(entry.Prefab);
+            return worldScale.ScaleForVoxelModel(sizeX, sizeZ, entry.HeightInBlocks, bounds);
+        }
+
+        private static Bounds GetPrefabBounds(GameObject prefab)
+        {
+            var mf = prefab.GetComponentInChildren<MeshFilter>();
+            if (mf != null && mf.sharedMesh != null)
+                return mf.sharedMesh.bounds;
+            return new Bounds(Vector3.zero, Vector3.one * 16f);
         }
 
         private static void TryAddBuildingInventory(GameObject instance, PlacedObjectEntry entry)

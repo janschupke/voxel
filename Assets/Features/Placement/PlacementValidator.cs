@@ -31,6 +31,31 @@ namespace Voxel
             return true;
         }
 
+        /// <summary>Checks all blocks in the footprint. Uses surfaceY for each (x,z); grid bounds checked per block.</summary>
+        public static bool IsAreaValidForPlacement(
+            WorldBootstrap worldBootstrap,
+            int originX, int originZ, int sizeX, int sizeZ, int baseY,
+            PlacedObjectEntry entry)
+        {
+            if (worldBootstrap == null || entry == null) return false;
+            var grid = worldBootstrap.Grid;
+            if (grid == null) return false;
+
+            for (int dx = 0; dx < sizeX; dx++)
+            {
+                for (int dz = 0; dz < sizeZ; dz++)
+                {
+                    int x = originX + dx;
+                    int z = originZ + dz;
+                    if (x < 0 || x >= grid.Width || z < 0 || z >= grid.Depth)
+                        return false;
+                    if (!IsBlockValidForPlacement(worldBootstrap, x, baseY, z, entry))
+                        return false;
+                }
+            }
+            return true;
+        }
+
         public static System.Func<int, int, int, bool> CreateBlockValidator(WorldBootstrap worldBootstrap)
         {
             return (x, y, z) => worldBootstrap != null && !worldBootstrap.HasBlockingObjectAtBlock(x, y, z);

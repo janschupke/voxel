@@ -215,12 +215,10 @@ namespace Voxel
             if (_previewUpdater == null) _previewUpdater = new PlacementPreviewUpdater(worldBootstrap, _cachedCamera);
 
             if (_activeEntry.Prefab == null) { _preview?.Release(); _preview = null; _previewBlock = null; return; }
-            float prefabHeight = _activeEntry.PrefabHeightInUnits > 0 ? _activeEntry.PrefabHeightInUnits : 2f;
-            float scaleMult = _activeEntry.ScaleMultiplier > 0 ? _activeEntry.ScaleMultiplier : 1f;
             if (_preview == null || _preview.Prefab != _activeEntry.Prefab)
             {
                 _preview?.Release();
-                _preview = new PlacementPreview(_activeEntry.Prefab, WorldScale, prefabHeight, scaleMult);
+                _preview = new PlacementPreview(_activeEntry.Prefab, WorldScale, _activeEntry);
             }
 
             var dragStart = _activeEntry.PlacementMode == PlacementMode.Area || _activeEntry.PlacementMode == PlacementMode.Line
