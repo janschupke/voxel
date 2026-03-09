@@ -8,6 +8,24 @@ namespace Voxel
     {
         [SerializeField] private List<ItemDefinition> definitions = new();
 
+        [Tooltip("Category display order in inventory UI. Categories not listed appear last.")]
+        [SerializeField] private List<ItemCategory> categoryDisplayOrder = new();
+
+        public IReadOnlyList<string> CategoryDisplayOrder
+        {
+            get
+            {
+                if (categoryDisplayOrder == null) return new List<string>();
+                var list = new List<string>(categoryDisplayOrder.Count);
+                foreach (var cat in categoryDisplayOrder)
+                {
+                    if (cat != null)
+                        list.Add(cat.DisplayName);
+                }
+                return list;
+            }
+        }
+
         public ItemDefinition GetDefinition(Item item)
         {
             if (definitions == null) return null;

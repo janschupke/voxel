@@ -14,4 +14,5 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   ItemId: 9
   Name: Jelly
+  category: {fileID: 11400000, guid: 33e1edba5a83c48b0b2225b89bb4d31d, type: 2}
   Sprite: {fileID: 21300000, guid: 36be4d3e9009246f59e1e605f6727fba, type: 3}

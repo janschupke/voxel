@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
@@ -248,34 +250,77 @@ namespace Voxel
 
             _inventorySection.Clear();
             var inventory = _cachedInventory;
-            IItemRegistry itemRegistry = worldBootstrap?.ItemRegistry;
+            var itemRegistry = worldBootstrap?.ItemRegistry;
             if (inventory != null && itemRegistry != null)
             {
                 var capacityLabel = new Label($"{inventory.GetTotalCount()}/{inventory.MaxCapacity}");
                 capacityLabel.AddToClassList("inventory-count");
                 _inventorySection.Add(capacityLabel);
 
-                foreach (var (item, count) in inventory.GetAllItems())
+                var itemsByCategory = GroupInventoryItemsByCategory(inventory.GetAllItems(), itemRegistry);
+                var categoryOrder = itemRegistry.CategoryDisplayOrder ?? Array.Empty<string>();
+
+                foreach (var category in GetCategoriesInDisplayOrder(itemsByCategory.Keys, categoryOrder))
                 {
-                    var def = itemRegistry.GetDefinition(item);
-                    if (def == null) continue;
+                    if (!itemsByCategory.TryGetValue(category, out var items) || items.Count == 0) continue;
 
-                    var row = new VisualElement();
-                    row.AddToClassList("inventory-row");
+                    var header = new Label(category);
+                    header.AddToClassList("inventory-category-header");
+                    _inventorySection.Add(header);
 
-                    var icon = new VisualElement();
-                    icon.AddToClassList("inventory-icon");
-                    if (def.Sprite != null)
-                        icon.style.backgroundImage = new StyleBackground(def.Sprite);
+                    foreach (var (item, count) in items)
+                    {
+                        var def = itemRegistry.GetDefinition(item);
+                        if (def == null) continue;
 
-                    var countLabel = new Label(count.ToString());
-                    countLabel.AddToClassList("inventory-count");
+                        var row = new VisualElement();
+                        row.AddToClassList("inventory-row");
 
-                    row.Add(icon);
-                    row.Add(countLabel);
-                    _inventorySection.Add(row);
+                        var icon = new VisualElement();
+                        icon.AddToClassList("inventory-icon");
+                        if (def.Sprite != null)
+                            icon.style.backgroundImage = new StyleBackground(def.Sprite);
+
+                        var countLabel = new Label(count.ToString());
+                        countLabel.AddToClassList("inventory-count");
+
+                        row.Add(icon);
+                        row.Add(countLabel);
+                        _inventorySection.Add(row);
+                    }
                 }
             }
+        }
+
+        private static Dictionary<string, List<(Item Item, int Count)>> GroupInventoryItemsByCategory(
+            IEnumerable<(Item Item, int Count)> items, IItemRegistry itemRegistry)
+        {
+            var grouped = new Dictionary<string, List<(Item, int)>>();
+            foreach (var (item, count) in items)
+            {
+                var def = itemRegistry.GetDefinition(item);
+                var category = def?.CategoryDisplayName ?? "Other";
+                if (!grouped.TryGetValue(category, out var list))
+                {
+                    list = new List<(Item, int)>();
+                    grouped[category] = list;
+                }
+                list.Add((item, count));
+            }
+            return grouped;
+        }
+
+        private static IEnumerable<string> GetCategoriesInDisplayOrder(IEnumerable<string> categories, IReadOnlyList<string> order)
+        {
+            var set = categories.ToHashSet();
+            var orderList = order ?? new List<string>();
+            foreach (var cat in orderList)
+            {
+                if (set.Contains(cat))
+                    yield return cat;
+            }
+            foreach (var cat in set.Where(c => !orderList.Contains(c)))
+                yield return cat;
         }
 
         private void HideSelectionDetail()

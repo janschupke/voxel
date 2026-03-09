@@ -14,5 +14,8 @@ namespace Voxel
 
         /// <summary>Returns stable string ID for persistence. Never changes when enum is reordered.</summary>
         string GetStableId(Item item);
+
+        /// <summary>Category display order for inventory UI. Categories not listed appear last.</summary>
+        IReadOnlyList<string> CategoryDisplayOrder { get; }
     }
 }

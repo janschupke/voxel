@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
@@ -340,31 +342,73 @@ public class HUDController : MonoBehaviour
         var storage = worldBootstrap.StorageInventory;
         if (itemRegistry == null || storage == null) return;
 
+        var itemsByCategory = GroupItemsByCategory(itemRegistry);
+        var categoryOrder = itemRegistry.CategoryDisplayOrder ?? Array.Empty<string>();
+
+        foreach (var category in GetCategoriesInDisplayOrder(itemsByCategory.Keys, categoryOrder))
+        {
+            if (!itemsByCategory.TryGetValue(category, out var items)) continue;
+
+            var header = new Label(category);
+            header.AddToClassList("inventory-category-header");
+            _inventoryPanelList.Add(header);
+
+            foreach (var item in items)
+            {
+                var def = itemRegistry.GetDefinition(item);
+                var count = storage.GetCount(item);
+
+                var row = new VisualElement();
+                row.AddToClassList("inventory-row");
+
+                var icon = new VisualElement();
+                icon.AddToClassList("inventory-icon");
+                if (def?.Sprite != null)
+                    icon.style.backgroundImage = new StyleBackground(def.Sprite);
+
+                var nameLabel = new Label(def?.Name ?? item.ToString());
+                nameLabel.AddToClassList("inventory-count");
+                nameLabel.style.flexGrow = 1;
+
+                var countLabel = new Label(count.ToString());
+                countLabel.AddToClassList("inventory-count");
+
+                row.Add(icon);
+                row.Add(nameLabel);
+                row.Add(countLabel);
+                _inventoryPanelList.Add(row);
+            }
+        }
+    }
+
+    private static Dictionary<string, List<Item>> GroupItemsByCategory(IItemRegistry itemRegistry)
+    {
+        var grouped = new Dictionary<string, List<Item>>();
         foreach (Item item in Enum.GetValues(typeof(Item)))
         {
             var def = itemRegistry.GetDefinition(item);
-            var count = storage.GetCount(item);
-
-            var row = new VisualElement();
-            row.AddToClassList("inventory-row");
-
-            var icon = new VisualElement();
-            icon.AddToClassList("inventory-icon");
-            if (def?.Sprite != null)
-                icon.style.backgroundImage = new StyleBackground(def.Sprite);
-
-            var nameLabel = new Label(def?.Name ?? item.ToString());
-            nameLabel.AddToClassList("inventory-count");
-            nameLabel.style.flexGrow = 1;
-
-            var countLabel = new Label(count.ToString());
-            countLabel.AddToClassList("inventory-count");
-
-            row.Add(icon);
-            row.Add(nameLabel);
-            row.Add(countLabel);
-            _inventoryPanelList.Add(row);
+            var category = def?.CategoryDisplayName ?? "Other";
+            if (!grouped.TryGetValue(category, out var list))
+            {
+                list = new List<Item>();
+                grouped[category] = list;
+            }
+            list.Add(item);
         }
+        return grouped;
+    }
+
+    private static IEnumerable<string> GetCategoriesInDisplayOrder(IEnumerable<string> categories, IReadOnlyList<string> order)
+    {
+        var set = categories.ToHashSet();
+        var orderList = order ?? new List<string>();
+        foreach (var cat in orderList)
+        {
+            if (set.Contains(cat))
+                yield return cat;
+        }
+        foreach (var cat in set.Where(c => !orderList.Contains(c)))
+            yield return cat;
     }
 
     private void OnDestroy()
