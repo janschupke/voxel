@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace Voxel
@@ -149,6 +150,20 @@ namespace Voxel
             _currentRecipeIndex = -1;
             _timerRemaining = 0f;
             StateChanged?.Invoke();
+        }
+
+        /// <summary>Fills output with input items the building needs (currently has 0). Used by collectors.</summary>
+        public void GetNeededInputItemsWithZero(HashSet<Item> output)
+        {
+            output.Clear();
+            var recipe = GetSelectedRecipe();
+            if (recipe == null || inventory == null) return;
+            foreach (var input in recipe.Inputs)
+            {
+                if (input.Count <= 0) continue;
+                if (inventory.GetCount(input.Item) == 0)
+                    output.Add(input.Item);
+            }
         }
 
         /// <summary>Call when inputs may have been taken (e.g. by collector).</summary>

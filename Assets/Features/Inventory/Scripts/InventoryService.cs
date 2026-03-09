@@ -9,13 +9,13 @@ namespace Voxel
     public class InventoryService
     {
         private readonly Dictionary<Item, int> _items = new Dictionary<Item, int>();
-        private int _maxCapacity;
+        private int _perItemCapacity;
 
-        public int MaxCapacity => _maxCapacity;
+        public int PerItemCapacity => _perItemCapacity;
 
-        public void Initialize(int capacity)
+        public void Initialize(int perItemCapacity)
         {
-            _maxCapacity = capacity > 0 ? capacity : 0;
+            _perItemCapacity = perItemCapacity > 0 ? perItemCapacity : 0;
         }
 
         public void AddItem(Item item, int amount)
@@ -23,7 +23,7 @@ namespace Voxel
             if (amount <= 0) return;
             int current = GetCount(item);
             int total = current + amount;
-            int allowed = total < _maxCapacity ? total : _maxCapacity;
+            int allowed = total < _perItemCapacity ? total : _perItemCapacity;
             int toAdd = allowed - current;
             if (toAdd <= 0) return;
 
@@ -43,9 +43,9 @@ namespace Voxel
             return total;
         }
 
-        public bool HasSpaceFor(int additional)
+        public bool HasSpaceFor(Item item, int amount)
         {
-            return GetTotalCount() + additional <= _maxCapacity;
+            return GetCount(item) + amount <= _perItemCapacity;
         }
 
         public void Clear()

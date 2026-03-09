@@ -10,10 +10,10 @@ namespace Voxel
     {
         event Action InventoryChanged;
 
-        int MaxCapacity { get; }
+        int PerItemCapacity { get; }
         int GetCount(Item item);
         int GetTotalCount();
-        bool HasSpaceFor(int additional);
+        bool HasSpaceFor(Item item, int amount);
         IEnumerable<(Item Item, int Count)> GetAllItems();
         (Item Item, int Count)? TryTakeOne(Item item);
         /// <summary>Tries to remove up to amount of the specified item. Returns (item, actualCount) if successful.</summary>

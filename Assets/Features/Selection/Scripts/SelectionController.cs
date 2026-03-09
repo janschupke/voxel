@@ -398,7 +398,7 @@ namespace Voxel
             var itemRegistry = worldBootstrap?.ItemRegistry;
             if (inventory != null && itemRegistry != null)
             {
-                var capacityLabel = new Label($"{inventory.GetTotalCount()}/{inventory.MaxCapacity}");
+                var capacityLabel = new Label($"{inventory.GetTotalCount()} (max {inventory.PerItemCapacity} per item)");
                 capacityLabel.AddToClassList("inventory-count");
                 _inventorySection.Add(capacityLabel);
 

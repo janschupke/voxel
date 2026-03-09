@@ -18,14 +18,12 @@ namespace Voxel
                     return false;
             }
 
-            int outputSlots = 0;
             foreach (var output in recipe.Outputs)
             {
-                if (output.Count > 0)
-                    outputSlots += output.Count;
+                if (output.Count <= 0) continue;
+                if (!inventory.HasSpaceFor(output.Item, output.Count))
+                    return false;
             }
-            if (outputSlots > 0 && !inventory.HasSpaceFor(outputSlots))
-                return false;
 
             return true;
         }

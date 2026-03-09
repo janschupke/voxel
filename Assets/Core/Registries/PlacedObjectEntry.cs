@@ -94,7 +94,7 @@ namespace Voxel
         public ActorDefinition AssignedActor;
 
         [Header("Inventory")]
-        [Tooltip("Max items this building can hold. 0 = no inventory.")]
+        [Tooltip("Max count per item type this building can hold. 0 = no inventory.")]
         [Min(0)]
         public int InventoryCapacity;
         [Tooltip("When true, this building uses global storage instead of per-building inventory. No BuildingInventory is added.")]

@@ -14,7 +14,7 @@ namespace Voxel
 
         public event Action InventoryChanged;
 
-        public int MaxCapacity => _service.MaxCapacity;
+        public int PerItemCapacity => _service.PerItemCapacity;
 
         public void Initialize(string entryName, int capacity)
         {
@@ -75,7 +75,7 @@ namespace Voxel
 
         public int GetCount(Item item) => _service.GetCount(item);
         public int GetTotalCount() => _service.GetTotalCount();
-        public bool HasSpaceFor(int additional) => _service.HasSpaceFor(additional);
+        public bool HasSpaceFor(Item item, int amount) => _service.HasSpaceFor(item, amount);
         public IEnumerable<(Item Item, int Count)> GetAllItems() => _service.GetAllItems();
     }
 }

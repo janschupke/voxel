@@ -75,7 +75,6 @@ namespace Voxel
 
             Item? pickItem = null;
             int pickCount = 0;
-            var buildingFull = inv.GetTotalCount() >= inv.MaxCapacity;
 
             foreach (var (item, count) in inv.GetAllItems())
             {
@@ -87,7 +86,8 @@ namespace Voxel
                     pickCount = take;
                     break;
                 }
-                if (pickItem == null && (config?.TakeNonFinalWhenBuildingFull ?? true) && buildingFull)
+                var itemAtCapacity = !inv.HasSpaceFor(item, 1);
+                if (pickItem == null && (config?.TakeNonFinalWhenBuildingFull ?? true) && itemAtCapacity)
                 {
                     pickItem = item;
                     pickCount = take;
@@ -140,7 +140,7 @@ namespace Voxel
                     {
                         if (count <= 0) continue;
                         if (itemRegistry.IsFinal(item)) hasFinal = true;
-                        else if (takeNonFinalWhenFull && inv.GetTotalCount() >= inv.MaxCapacity)
+                        else if (takeNonFinalWhenFull && !inv.HasSpaceFor(item, 1))
                             hasNonFinalFull = true;
                     }
                     if (hasFinal) finalBuildings.Add(building);

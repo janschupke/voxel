@@ -90,14 +90,15 @@ namespace Voxel
             var (_, producedItem) = GetGatherParams();
 
             var inventory = GetHomeInventory();
-            if (inventory != null && inventory.HasSpaceFor(1))
+            if (inventory != null && inventory.HasSpaceFor(producedItem, 1))
                 inventory.AddItem(producedItem, 1);
         }
 
         protected override bool IsBuildingInventoryFull()
         {
             var inventory = GetHomeInventory();
-            return inventory != null && !inventory.HasSpaceFor(1);
+            var (_, producedItem) = GetGatherParams();
+            return inventory != null && !inventory.HasSpaceFor(producedItem, 1);
         }
     }
 }

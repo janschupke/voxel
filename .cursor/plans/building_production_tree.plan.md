@@ -15,7 +15,7 @@ Buildings produce items based on a **recipe list** when source items are availab
 
 ## Current State
 
-- **BuildingInventory**: Per-building, total capacity, any item. `AddItem`, `RemoveItem`, `GetCount`, `HasSpaceFor`, `TryTake`.
+- **BuildingInventory**: Per-building, per-item capacity. `AddItem`, `RemoveItem`, `GetCount`, `HasSpaceFor(Item, int)`, `TryTake`.
 - **ItemDefinition.IsFinal**: Final items → Carriers pick ASAP. Non-final → Collectors only; Carriers take when building full.
 - **Actors**: Gatherers produce into building inventory; Collectors pick non-final from buildings; Carriers pick final (and non-final when full) and deposit to warehouse.
 - **No production logic**: Buildings do not consume inputs or produce outputs autonomously.
