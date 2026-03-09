@@ -59,7 +59,13 @@ namespace Voxel
                 var (grid, placedObjects, buildingInventories, actorData, globalStorageItems, saveVersion) = WorldPersistenceService.Load();
                 _grid = grid;
                 var inventoryLookup = BuildInventoryLookup(buildingInventories, itemRegistry);
-                _placedObjectManager.LoadPlacedObjects(placedObjects, _grid, terrainMode, inventoryLookup, saveVersion);
+                _placedObjectManager.LoadPlacedObjects(placedObjects, _grid, terrainMode, inventoryLookup, saveVersion, (go, e) =>
+                {
+                    if (e?.CritterSpawnerConfig == null) return;
+                    var s = go.GetComponent<CritterSpawner>();
+                    if (s == null) s = go.AddComponent<CritterSpawner>();
+                    s.Initialize(e.CritterSpawnerConfig, this);
+                });
                 if (globalStorageItems != null && globalStorageItems.Count > 0 && itemRegistry != null)
                 {
                     var items = new List<(Item, int)>();
@@ -222,8 +228,17 @@ namespace Voxel
                 var homeEntryName = _placedObjectManager.GetEntryNameForTransform(ab.HomeBuildingTransform) ?? "";
                 var actorTypeName = ab.ActorTypeNameForSave;
                 var carriedItemId = "";
+                var carriedCount = 1;
                 if (ab is CarrierActorBehavior carrier && carrier.CarriedItem.HasValue && itemRegistry != null)
+                {
                     carriedItemId = itemRegistry.GetStableId(carrier.CarriedItem.Value);
+                    carriedCount = carrier.CarriedCount > 0 ? carrier.CarriedCount : 1;
+                }
+                else if (ab is CollectorActorBehavior collector && collector.CarriedItem.HasValue && itemRegistry != null)
+                {
+                    carriedItemId = itemRegistry.GetStableId(collector.CarriedItem.Value);
+                    carriedCount = collector.CarriedCount > 0 ? collector.CarriedCount : 1;
+                }
 
                 list.Add(new ActorSaveData(
                     actorTypeName,
@@ -231,7 +246,8 @@ namespace Voxel
                     hx, hy, hz,
                     ab.transform.position.x, ab.transform.position.y, ab.transform.position.z,
                     (int)ab.CurrentState,
-                    carriedItemId));
+                    carriedItemId,
+                    carriedCount));
             }
             return list;
         }

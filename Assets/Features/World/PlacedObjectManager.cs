@@ -308,14 +308,15 @@ namespace Voxel
 
         public void LoadPlacedObjects(IReadOnlyList<PlacedObjectData> placedObjects, VoxelGrid grid, TerrainGenerationMode terrainMode,
             IReadOnlyDictionary<(string EntryName, int BlockX, int BlockY, int BlockZ), List<(Item Item, int Count)>> inventoryLookup = null,
-            int saveVersion = 5)
+            int saveVersion = 5,
+            System.Action<GameObject, PlacedObjectEntry> onInstanceCreated = null)
         {
             PlacedObjectPersistence.LoadPlacedObjects(
                 placedObjects, grid, terrainMode, inventoryLookup,
                 _registry, _worldParameters, _islandPipelineConfig,
                 GetOrCreateParentForEntry, GetParentByEntryName,
                 (x, y, z) => _roadOverlay.Add(x, y, z),
-                RunTreePlacement, saveVersion);
+                RunTreePlacement, saveVersion, onInstanceCreated);
             RebuildBlockIndex();
         }
 

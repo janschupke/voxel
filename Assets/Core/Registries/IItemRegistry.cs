@@ -17,5 +17,8 @@ namespace Voxel
 
         /// <summary>Category display order for inventory UI. Categories not listed appear last.</summary>
         IReadOnlyList<string> CategoryDisplayOrder { get; }
+
+        /// <summary>Returns true if item is final (carriers pick ASAP). False = only collectors pick, carriers take when building full.</summary>
+        bool IsFinal(Item item);
     }
 }

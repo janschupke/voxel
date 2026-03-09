@@ -95,7 +95,8 @@ namespace Voxel
             System.Func<string, Transform> getParentByName,
             System.Action<int, int, int> addRoadAt,
             System.Action<VoxelGrid> runTreePlacement,
-            int saveVersion = 5)
+            int saveVersion = 5,
+            System.Action<GameObject, PlacedObjectEntry> onInstanceCreated = null)
         {
             if (registry == null || placedObjects == null || placedObjects.Count == 0)
             {
@@ -154,6 +155,8 @@ namespace Voxel
                     if (inventoryLookup != null && inventoryLookup.TryGetValue(key, out var items) && items != null && items.Count > 0)
                         inv.LoadFrom(items);
                 }
+                if (entry != null && onInstanceCreated != null)
+                    onInstanceCreated(instance, entry);
             }
 
             if (terrainMode == TerrainGenerationMode.IslandPipeline && islandPipelineConfig != null)

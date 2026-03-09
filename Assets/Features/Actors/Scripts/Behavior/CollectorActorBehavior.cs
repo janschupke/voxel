@@ -7,12 +7,13 @@ using Voxel.Pure;
 namespace Voxel
 {
     /// <summary>
-    /// Carrier actor: finds buildings in range with inventory items, picks up (prioritizes final items),
-    /// returns to warehouse, deposits to global storage. No work outside.
+    /// Collector actor: finds buildings in range with non-final items, picks up (configurable capacity),
+    /// returns home, deposits into own building's inventory for further processing.
     /// </summary>
-    public class CarrierActorBehavior : ActorBehavior
+    public class CollectorActorBehavior : ActorBehavior
     {
         private IBuildingInventory _cachedSourceInventory;
+        private IBuildingInventory _cachedHomeInventory;
         private Transform _sourceBuilding;
         private Item? _carriedItem;
         private int _carriedCount;
@@ -28,13 +29,8 @@ namespace Voxel
             _carriedCount = count > 0 ? count : 0;
         }
 
-        private CarrierConfig Config => Definition?.CategoryConfig as CarrierConfig;
+        private CollectorConfig Config => Definition?.CategoryConfig as CollectorConfig;
         private int CapacityPerTrip => Config?.CapacityPerTrip ?? 1;
-
-        private IStorageInventory GetStorageInventory()
-        {
-            return WorldBootstrap?.StorageInventory;
-        }
 
         protected override bool SkipWorkOutside => true;
 
@@ -54,47 +50,31 @@ namespace Voxel
 
             var config = Config;
             var itemRegistry = WorldBootstrap?.ItemRegistry;
-            var capacity = CapacityPerTrip;
+            if (config == null || itemRegistry == null || !config.OnlyNonFinalItems) return;
 
-            var (pickItem, pickCount) = PickItemFromBuilding(inv, config, itemRegistry, capacity);
-            if (pickItem.HasValue && pickCount > 0)
+            var capacity = CapacityPerTrip;
+            foreach (var (item, count) in inv.GetAllItems())
             {
-                var taken = inv.TryTake(pickItem.Value, pickCount);
+                if (count <= 0) continue;
+                if (itemRegistry.IsFinal(item)) continue;
+
+                var take = Mathf.Min(count, capacity);
+                var taken = inv.TryTake(item, take);
                 if (taken.HasValue)
                 {
                     _carriedItem = taken.Value.Item;
                     _carriedCount = taken.Value.Count;
-                    GameDebugLogger.Log($"[Carrier] {gameObject.name} picked up {_carriedCount} {_carriedItem} from {_sourceBuilding.name}");
+                    GameDebugLogger.Log($"[Collector] {gameObject.name} picked up {_carriedCount} {_carriedItem} from {_sourceBuilding.name}");
+                    break;
                 }
             }
         }
 
-        private (Item? item, int count) PickItemFromBuilding(IBuildingInventory inv, CarrierConfig config, IItemRegistry itemRegistry, int capacity)
+        private IBuildingInventory GetHomeInventory()
         {
-            if (config == null || itemRegistry == null) return (null, 0);
-
-            Item? pickItem = null;
-            int pickCount = 0;
-            var buildingFull = inv.GetTotalCount() >= inv.MaxCapacity;
-
-            foreach (var (item, count) in inv.GetAllItems())
-            {
-                if (count <= 0) continue;
-                var take = Mathf.Min(count, capacity);
-                if (itemRegistry.IsFinal(item))
-                {
-                    pickItem = item;
-                    pickCount = take;
-                    break;
-                }
-                if (pickItem == null && (config?.TakeNonFinalWhenBuildingFull ?? true) && buildingFull)
-                {
-                    pickItem = item;
-                    pickCount = take;
-                    break;
-                }
-            }
-            return (pickItem, pickCount);
+            if (_cachedHomeInventory == null && HomeBuilding != null)
+                _cachedHomeInventory = HomeBuilding.GetComponent<BuildingInventory>();
+            return _cachedHomeInventory;
         }
 
         protected override (Vector3? Target, bool HadCandidates) TryGetReachableTarget()
@@ -107,13 +87,13 @@ namespace Voxel
             if (registry == null || itemRegistry == null) return (null, false);
 
             var config = Config;
+            if (config == null || !config.OnlyNonFinalItems) return (null, false);
+
             var homeEntryName = WorldBootstrap.GetEntryNameForTransform(HomeBuilding);
             var worldScale = WorldScale;
             var (hx, hy, hz) = worldScale.WorldToBlock(HomeBuilding.position);
 
-            var finalBuildings = new List<Transform>();
-            var overflowBuildings = new List<Transform>();
-
+            _candidatesBuffer.Clear();
             foreach (var entry in registry.Entries)
             {
                 if (entry == null || entry.InventoryCapacity <= 0 || entry.UsesGlobalStorage) continue;
@@ -130,31 +110,26 @@ namespace Voxel
                     var inv = building.GetComponent<BuildingInventory>();
                     if (inv == null || inv.GetTotalCount() <= 0) continue;
 
-                    var (bx, _, bz) = worldScale.WorldToBlock(building.position);
-                    if (!OperationalRange.IsCellInRange(hx, hz, bx, bz, RangeCells, RangeType)) continue;
-
-                    bool hasFinal = false;
-                    bool hasNonFinalFull = false;
-                    var takeNonFinalWhenFull = config?.TakeNonFinalWhenBuildingFull ?? true;
+                    bool hasNonFinal = false;
                     foreach (var (item, count) in inv.GetAllItems())
                     {
-                        if (count <= 0) continue;
-                        if (itemRegistry.IsFinal(item)) hasFinal = true;
-                        else if (takeNonFinalWhenFull && inv.GetTotalCount() >= inv.MaxCapacity)
-                            hasNonFinalFull = true;
+                        if (count > 0 && !itemRegistry.IsFinal(item))
+                        {
+                            hasNonFinal = true;
+                            break;
+                        }
                     }
-                    if (hasFinal) finalBuildings.Add(building);
-                    else if (hasNonFinalFull) overflowBuildings.Add(building);
+                    if (!hasNonFinal) continue;
+
+                    var (bx, _, bz) = worldScale.WorldToBlock(building.position);
+                    if (OperationalRange.IsCellInRange(hx, hz, bx, bz, RangeCells, RangeType))
+                        _candidatesBuffer.Add(building);
                 }
             }
 
-            _candidatesBuffer.Clear();
-            if (finalBuildings.Count > 0) _candidatesBuffer.AddRange(finalBuildings);
-            else if (overflowBuildings.Count > 0) _candidatesBuffer.AddRange(overflowBuildings);
-
             if (_candidatesBuffer.Count == 0)
             {
-                GameDebugLogger.Log($"[Carrier] {gameObject.name} TryGetTarget: no buildings with pickable items in range");
+                GameDebugLogger.Log($"[Collector] {gameObject.name} TryGetTarget: no buildings with non-final items in range");
                 return (null, false);
             }
 
@@ -167,21 +142,21 @@ namespace Voxel
                 {
                     _sourceBuilding = building;
                     _cachedSourceInventory = building.GetComponent<BuildingInventory>();
-                    GameDebugLogger.Log($"[Carrier] {gameObject.name} TryGetTarget: found path to {building.name} (path len={path.Count})");
+                    GameDebugLogger.Log($"[Collector] {gameObject.name} TryGetTarget: found path to {building.name} (path len={path.Count})");
                     return (building.position, true);
                 }
             }
 
-            GameDebugLogger.Log($"[Carrier] {gameObject.name} TryGetTarget: {_candidatesBuffer.Count} buildings in range but no valid path");
+            GameDebugLogger.Log($"[Collector] {gameObject.name} TryGetTarget: {_candidatesBuffer.Count} buildings in range but no valid path");
             return (null, true);
         }
 
         protected override void OnWorkCompletedInside()
         {
-            var storage = GetStorageInventory();
-            if (storage != null && _carriedItem.HasValue && _carriedCount > 0 && storage.HasSpaceFor(_carriedItem.Value, _carriedCount))
+            var inventory = GetHomeInventory();
+            if (inventory != null && _carriedItem.HasValue && _carriedCount > 0 && inventory.HasSpaceFor(_carriedCount))
             {
-                storage.AddItem(_carriedItem.Value, _carriedCount);
+                inventory.AddItem(_carriedItem.Value, _carriedCount, emitUnitProduced: false);
             }
             _carriedItem = null;
             _carriedCount = 0;
@@ -189,8 +164,8 @@ namespace Voxel
 
         protected override bool IsBuildingInventoryFull()
         {
-            var storage = GetStorageInventory();
-            return storage != null && _carriedItem.HasValue && _carriedCount > 0 && !storage.HasSpaceFor(_carriedItem.Value, _carriedCount);
+            var inventory = GetHomeInventory();
+            return inventory != null && _carriedItem.HasValue && _carriedCount > 0 && !inventory.HasSpaceFor(_carriedCount);
         }
     }
 }

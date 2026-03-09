@@ -120,10 +120,15 @@ namespace Voxel
                 var state = ParseActorState(saved.Value.StateId);
                 var position = new Vector3(saved.Value.PosX, saved.Value.PosY, saved.Value.PosZ);
                 behavior.RestoreState(state, position);
+                var carriedCount = saved.Value.CarriedCount > 0 ? saved.Value.CarriedCount : 1;
                 if (behavior is CarrierActorBehavior carrier && !string.IsNullOrEmpty(saved.Value.CarriedItemId) &&
                     worldBootstrap?.ItemRegistry != null &&
                     worldBootstrap.ItemRegistry.TryGetByStableId(saved.Value.CarriedItemId, out var item))
-                    carrier.SetCarriedItem(item);
+                    carrier.SetCarriedItem(item, carriedCount);
+                else if (behavior is CollectorActorBehavior collector && !string.IsNullOrEmpty(saved.Value.CarriedItemId) &&
+                    worldBootstrap?.ItemRegistry != null &&
+                    worldBootstrap.ItemRegistry.TryGetByStableId(saved.Value.CarriedItemId, out var collItem))
+                    collector.SetCarriedItem(collItem, carriedCount);
             }
 
             GameDebugLogger.Log($"[ActorSpawner] Spawned {actorDef.Name} for building at {building.position}");
@@ -171,19 +176,34 @@ namespace Voxel
                 var type = System.Type.GetType(actorDef.BehaviorTypeName);
                 if (type != null && typeof(ActorBehavior).IsAssignableFrom(type))
                     return type;
-                GameDebugLogger.LogWarning($"[ActorSpawner] BehaviorTypeName '{actorDef.BehaviorTypeName}' not found or not assignable to ActorBehavior; falling back to BehaviorKind.");
+                GameDebugLogger.LogWarning($"[ActorSpawner] BehaviorTypeName '{actorDef.BehaviorTypeName}' not found or not assignable to ActorBehavior; falling back to CategoryConfig.");
             }
-            return GetBehaviorTypeFromKind(actorDef?.BehaviorKind ?? ActorBehaviorKind.Woodchuck);
+            return GetBehaviorTypeFromConfig(actorDef?.CategoryConfig);
         }
 
-        private static System.Type GetBehaviorTypeFromKind(ActorBehaviorKind kind)
+        private static System.Type GetBehaviorTypeFromConfig(ActorCategoryConfig config)
         {
-            return kind switch
+            if (config == null) return typeof(GathererActorBehavior);
+            if (config is GathererConfig) return typeof(GathererActorBehavior);
+            if (config is CollectorConfig) return typeof(CollectorActorBehavior);
+            if (config is CarrierConfig) return typeof(CarrierActorBehavior);
+            if (config is CritterConfig) return typeof(CritterActorBehavior);
+            return typeof(GathererActorBehavior);
+        }
+
+        /// <summary>Adds CritterActorBehavior to a critter GameObject. Used by CritterSpawner.</summary>
+        public static ActorBehavior AddCritterBehavior(GameObject actorGo, ActorDefinition actorDef)
+        {
+            var existing = actorGo.GetComponent<ActorBehavior>();
+            var neededType = typeof(CritterActorBehavior);
+            if (existing != null && existing.GetType() == neededType)
+                return existing;
+            if (existing != null)
             {
-                ActorBehaviorKind.Carrier => typeof(CarrierActorBehavior),
-                ActorBehaviorKind.WheatFarm => typeof(WheatFarmActorBehavior),
-                _ => typeof(WoodchuckActorBehavior)
-            };
+                existing.enabled = false;
+                UnityEngine.Object.Destroy(existing);
+            }
+            return (ActorBehavior)actorGo.AddComponent(neededType);
         }
 
         private bool HasActorForBuilding(Transform building)

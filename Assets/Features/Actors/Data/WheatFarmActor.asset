@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Wheat Farmer
   Prefab: {fileID: 4839831951012057953, guid: 8681851548a564fbf9b16bd60858c4b8, type: 3}
-  behaviorKind: 1
+  categoryConfig: {fileID: 11400000, guid: 40125c643abba46f58fd17c44d8e9327, type: 2}
   behaviorTypeName: 
   PathingMode: 1
   WorkDurationOutside: 3

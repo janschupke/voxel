@@ -57,5 +57,11 @@ namespace Voxel
             var def = GetDefinition(item);
             return def != null ? def.StableId : item.ToString();
         }
+
+        public bool IsFinal(Item item)
+        {
+            var def = GetDefinition(item);
+            return def != null && def.IsFinal;
+        }
     }
 }

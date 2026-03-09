@@ -99,6 +99,16 @@ namespace Voxel
         [Tooltip("When true, this building uses global storage instead of per-building inventory. No BuildingInventory is added.")]
         public bool UsesGlobalStorage;
 
+        [Header("Actor Targeting")]
+        [Tooltip("When true, gatherers can target this object type (e.g. Tree, Wheat).")]
+        public bool IsGatherSite;
+        [Tooltip("When true, collectors consider this building. Default: all buildings with inventory.")]
+        public bool CollectorTarget = true;
+
+        [Header("Critter Spawning")]
+        [Tooltip("When set, a CritterSpawner is added when placing this object.")]
+        public CritterSpawnerConfig CritterSpawnerConfig;
+
         /// <summary>Blocks placement of other objects at the same block. Building and Road block; Environment does not.</summary>
         public bool BlocksPlacement => StructureType == StructureType.Building || StructureType == StructureType.Road;
 

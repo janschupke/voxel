@@ -2,13 +2,6 @@ using UnityEngine;
 
 namespace Voxel
 {
-    public enum ActorBehaviorKind
-    {
-        Woodchuck,
-        WheatFarm,
-        Carrier
-    }
-
     [CreateAssetMenu(fileName = "ActorDefinition", menuName = "Voxel/Actor Definition")]
     public class ActorDefinition : ScriptableObject
     {
@@ -18,10 +11,10 @@ namespace Voxel
         [Tooltip("Prefab to instantiate (e.g. ActorPlaceholder)")]
         public GameObject Prefab;
 
-        [Tooltip("Behavior component to add at runtime.")]
-        [SerializeField] private ActorBehaviorKind behaviorKind = ActorBehaviorKind.Woodchuck;
+        [Tooltip("Category-specific config (GathererConfig, CollectorConfig, etc.). Required. Behavior type is inferred from config.")]
+        [SerializeField] private ActorCategoryConfig categoryConfig;
 
-        [Tooltip("Optional. Override behavior type by assembly-qualified name (e.g. Voxel.CarrierActorBehavior, Assembly-CSharp). Leave empty to use BehaviorKind.")]
+        [Tooltip("Optional. Override behavior type by assembly-qualified name. Leave empty to use Category.")]
         [SerializeField] private string behaviorTypeName;
 
         [Tooltip("Pathing mode: Road (road only), Free (shortest land path), Smart (prefer road, any path)")]
@@ -47,9 +40,10 @@ namespace Voxel
         [Min(0.1f)]
         public float IdleCheckCooldownSeconds = 0.5f;
 
-        public ActorBehaviorKind BehaviorKind => behaviorKind;
+        /// <summary>Category-specific config. Required. Behavior type is inferred from config type.</summary>
+        public ActorCategoryConfig CategoryConfig => categoryConfig;
 
-        /// <summary>When non-empty, used instead of BehaviorKind to resolve the behavior Type. Enables adding new behaviors without code changes.</summary>
+        /// <summary>When non-empty, used instead of Category to resolve the behavior Type.</summary>
         public string BehaviorTypeName => behaviorTypeName;
     }
 }

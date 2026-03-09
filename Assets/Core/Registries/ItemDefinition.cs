@@ -25,5 +25,8 @@ namespace Voxel
 
         [Tooltip("2D sprite for UI display")]
         public Sprite Sprite;
+
+        [Tooltip("When true, carriers pick this item as soon as possible. When false, only collectors pick (carriers take when building full).")]
+        public bool IsFinal;
     }
 }

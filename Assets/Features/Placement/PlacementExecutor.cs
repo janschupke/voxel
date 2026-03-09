@@ -189,6 +189,7 @@ namespace Voxel
             instance.name = entry.Prefab.name;
             instance.transform.localScale = scale;
             TryAddBuildingInventory(instance, entry);
+            TryAddCritterSpawner(instance, entry);
             _worldBootstrap.NotifyObjectPlaced(entry.Name, instance.transform);
             _worldBootstrap.SpawnActorForBuildingIfNeeded(entry, instance.transform);
         }
@@ -207,6 +208,14 @@ namespace Voxel
             var inv = instance.GetComponent<BuildingInventory>();
             if (inv == null) inv = instance.AddComponent<BuildingInventory>();
             inv.Initialize(entry.Name, entry.InventoryCapacity);
+        }
+
+        private void TryAddCritterSpawner(GameObject instance, PlacedObjectEntry entry)
+        {
+            if (entry == null || entry.CritterSpawnerConfig == null || _worldBootstrap == null) return;
+            var spawner = instance.GetComponent<CritterSpawner>();
+            if (spawner == null) spawner = instance.AddComponent<CritterSpawner>();
+            spawner.Initialize(entry.CritterSpawnerConfig, _worldBootstrap);
         }
 
         private WorldScale GetWorldScale()

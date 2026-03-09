@@ -15,6 +15,7 @@ MonoBehaviour:
   Name: Woodchuck
   category: {fileID: 11400000, guid: 1dfb56d52aa6f4e808ad1b1484997543, type: 2}
   Prefab: {fileID: 2173271080134177757, guid: 064681dfe2bcf4dbb8d7adb53321c6ab, type: 3}
+  sprite: {fileID: 21300000, guid: abbb0f898da1544d5a92f14dd90f37dd, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0
@@ -31,3 +32,6 @@ MonoBehaviour:
   AssignedActor: {fileID: 11400000, guid: 91859f1e98c7423c818068e74532c75c, type: 2}
   InventoryCapacity: 10
   UsesGlobalStorage: 0
+  IsGatherSite: 0
+  CollectorTarget: 1
+  CritterSpawnerConfig: {fileID: 0}

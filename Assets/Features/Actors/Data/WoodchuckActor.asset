@@ -14,7 +14,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   Name: Woodchuck
   Prefab: {fileID: 4839831951012057953, guid: 842b106f633dd4e81b6ae2b7e027b700, type: 3}
-  behaviorKind: 0
+  categoryConfig: {fileID: 11400000, guid: 489db8fe4c9ae4e84a77fa3fe33c5191, type: 2}
   behaviorTypeName: 
   PathingMode: 1
   WorkDurationOutside: 3

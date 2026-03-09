@@ -13,9 +13,10 @@ namespace Voxel
         public float PosZ;
         public int StateId;
         public string CarriedItemId;
+        public int CarriedCount;
 
         public ActorSaveData(string actorTypeName, string homeEntryName, int homeBlockX, int homeBlockY, int homeBlockZ,
-            float posX, float posY, float posZ, int stateId, string carriedItemId = null)
+            float posX, float posY, float posZ, int stateId, string carriedItemId = null, int carriedCount = 1)
         {
             ActorTypeName = actorTypeName ?? "";
             HomeEntryName = homeEntryName ?? "";
@@ -27,6 +28,7 @@ namespace Voxel
             PosZ = posZ;
             StateId = stateId;
             CarriedItemId = carriedItemId ?? "";
+            CarriedCount = carriedCount > 0 ? carriedCount : 1;
         }
     }
 }

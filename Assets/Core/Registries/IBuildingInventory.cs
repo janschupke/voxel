@@ -16,6 +16,8 @@ namespace Voxel
         bool HasSpaceFor(int additional);
         IEnumerable<(Item Item, int Count)> GetAllItems();
         (Item Item, int Count)? TryTakeOne(Item item);
+        /// <summary>Tries to remove up to amount of the specified item. Returns (item, actualCount) if successful.</summary>
+        (Item Item, int Count)? TryTake(Item item, int amount);
         void AddItem(Item item, int amount, bool emitUnitProduced = true);
         void ClearInventory();
     }

@@ -63,6 +63,16 @@ namespace Voxel
             return removed > 0 ? (item, removed) : null;
         }
 
+        /// <summary>Tries to remove up to amount of the specified item. Returns (item, actualCount) if successful.</summary>
+        public (Item Item, int Count)? TryTake(Item item, int amount)
+        {
+            if (amount <= 0) return null;
+            var removed = _service.RemoveItem(item, amount);
+            if (removed > 0)
+                InventoryChanged?.Invoke();
+            return removed > 0 ? (item, removed) : null;
+        }
+
         public int GetCount(Item item) => _service.GetCount(item);
         public int GetTotalCount() => _service.GetTotalCount();
         public bool HasSpaceFor(int additional) => _service.HasSpaceFor(additional);

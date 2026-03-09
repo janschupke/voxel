@@ -15,6 +15,7 @@ MonoBehaviour:
   Name: Warehouse
   category: {fileID: 11400000, guid: 7bdbc6cdc133a49b591198b577c567ee, type: 2}
   Prefab: {fileID: 2707083877788281487, guid: 910f3742a889d4f00b6307099eebb329, type: 3}
+  sprite: {fileID: 21300000, guid: aad6d688893fd41af939bed877aa1172, type: 3}
   CanReplaceTrees: 1
   IsBlocking: 1
   StructureType: 0
@@ -31,3 +32,6 @@ MonoBehaviour:
   AssignedActor: {fileID: 11400000, guid: 97c22c22e39b840629a7299cb83afa1a, type: 2}
   InventoryCapacity: 100
   UsesGlobalStorage: 1
+  IsGatherSite: 0
+  CollectorTarget: 1
+  CritterSpawnerConfig: {fileID: 0}
