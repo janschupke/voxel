@@ -218,7 +218,8 @@ namespace Voxel
             if (_preview == null || _preview.Prefab != _activeEntry.Prefab)
             {
                 _preview?.Release();
-                _preview = new PlacementPreview(_activeEntry.Prefab, WorldScale, _activeEntry);
+                int voxelsPerBlock = WorldParameters?.VoxelsPerBlockAxis ?? 16;
+                _preview = new PlacementPreview(_activeEntry.Prefab, WorldScale, _activeEntry, voxelsPerBlock);
             }
 
             var dragStart = _activeEntry.PlacementMode == PlacementMode.Area || _activeEntry.PlacementMode == PlacementMode.Line

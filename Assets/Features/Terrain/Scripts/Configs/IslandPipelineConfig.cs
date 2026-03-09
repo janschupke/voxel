@@ -20,7 +20,7 @@ namespace Voxel
         public TreeScatterConfig TreeScatterConfig => treeScatterConfig;
         public MountainStageConfig MountainStageConfig => mountainStageConfig;
 
-        public List<ITerrainStage> BuildStages(Transform treeParent = null, WorldScale worldScale = default)
+        public List<ITerrainStage> BuildStages(Transform treeParent = null, WorldScale worldScale = default, int voxelsPerBlockAxis = 16)
         {
             var stages = new List<ITerrainStage>();
 
@@ -34,7 +34,7 @@ namespace Voxel
                 stages.Add(new MountainStage(mountainStageConfig));
 
             if (treeScatterConfig != null && treeParent != null)
-                stages.Add(new TreeScatterStage(treeScatterConfig, treeParent, worldScale));
+                stages.Add(new TreeScatterStage(treeScatterConfig, treeParent, worldScale, voxelsPerBlockAxis));
             else if (treeScatterConfig != null && treeParent == null)
                 GameDebugLogger.LogWarning("[TreeScatter] TreeScatterConfig is set but TreeParent is null - trees will not be placed");
 

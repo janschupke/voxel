@@ -30,19 +30,16 @@ namespace Voxel
                     : Mathf.Clamp(15, 0, height - 1);
 
                 var worldScale = new WorldScale(worldParameters != null && worldParameters.BlockScale > 0 ? worldParameters.BlockScale : 1f);
+                int voxelsPerBlock = worldParameters?.VoxelsPerBlockAxis ?? 16;
                 var heightBuffer = new HeightBuffer(width, depth);
                 var context = new TerrainPipelineContext(heightBuffer, grid, waterLevelY, islandPipelineConfig.MasterSeed);
-                var stages = islandPipelineConfig.BuildStages(treeParent, worldScale);
+                var stages = islandPipelineConfig.BuildStages(treeParent, worldScale, voxelsPerBlock);
 
                 if (stages != null && stages.Count > 0)
                     TerrainPipeline.Execute(stages, context);
             }
             else
             {
-                float heightScale = worldParameters != null ? worldParameters.HeightScale : 1f;
-                float heightOffset = worldParameters != null ? worldParameters.HeightOffset : 0f;
-                byte blockType = worldParameters != null ? worldParameters.BlockType : BlockType.Ground;
-
                 int seed = noiseParameters != null ? noiseParameters.Seed : 12345;
                 float frequency = noiseParameters != null ? noiseParameters.Frequency : 0.04f;
                 int octaves = noiseParameters != null ? noiseParameters.Octaves : 5;
@@ -50,7 +47,7 @@ namespace Voxel
                 float persistence = noiseParameters != null ? noiseParameters.Persistence : 0.5f;
 
                 var fractalNoise = new FractalNoise(frequency, octaves, lacunarity, persistence, seed);
-                var terrainGen = new TerrainGenerator(grid, fractalNoise, heightScale, heightOffset, blockType);
+                var terrainGen = new TerrainGenerator(grid, fractalNoise);
                 terrainGen.Generate();
             }
 

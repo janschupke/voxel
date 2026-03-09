@@ -11,6 +11,7 @@ namespace Voxel
         private readonly GameObject _prefab;
         private readonly WorldScale _worldScale;
         private readonly PlacedObjectEntry _entry;
+        private readonly int _voxelsPerBlockAxis;
         private readonly List<GameObject> _instances = new();
         private readonly List<(int x, int y, int z)> _previewBlocks = new();
         private readonly Dictionary<Material, Material> _validMaterialCache = new();
@@ -24,11 +25,12 @@ namespace Voxel
         /// <summary>Blocks currently shown in the preview (for hiding environment underneath).</summary>
         public IReadOnlyList<(int x, int y, int z)> PreviewBlocks => _previewBlocks;
 
-        public PlacementPreview(GameObject prefab, WorldScale worldScale, PlacedObjectEntry entry)
+        public PlacementPreview(GameObject prefab, WorldScale worldScale, PlacedObjectEntry entry, int voxelsPerBlockAxis = 16)
         {
             _prefab = prefab;
             _worldScale = worldScale;
             _entry = entry;
+            _voxelsPerBlockAxis = voxelsPerBlockAxis > 0 ? voxelsPerBlockAxis : 16;
         }
 
         /// <summary>Single placement: one instance at center of footprint. PreviewBlocks = all blocks in footprint.</summary>
@@ -192,7 +194,7 @@ namespace Voxel
             var instance = Object.Instantiate(_prefab);
             instance.name = _prefab.name + "_Preview";
 
-            var bounds = GetPrefabBounds();
+            var bounds = GetPrefabBounds(sizeX, sizeZ, _entry.HeightInBlocks);
             var scale = _worldScale.ScaleForVoxelModel(sizeX, sizeZ, _entry.HeightInBlocks, bounds);
             instance.transform.localScale = scale;
 
@@ -210,12 +212,13 @@ namespace Voxel
             return instance;
         }
 
-        private Bounds GetPrefabBounds()
+        private Bounds GetPrefabBounds(int sizeX, int sizeZ, float heightInBlocks)
         {
             var mf = _prefab.GetComponentInChildren<MeshFilter>();
             if (mf != null && mf.sharedMesh != null)
                 return mf.sharedMesh.bounds;
-            return new Bounds(Vector3.zero, Vector3.one * 16f);
+            var fallbackSize = new Vector3(sizeX * _voxelsPerBlockAxis, heightInBlocks * _voxelsPerBlockAxis, sizeZ * _voxelsPerBlockAxis);
+            return new Bounds(Vector3.zero, fallbackSize);
         }
 
         private void ApplyPreviewMaterials(GameObject go, bool valid)

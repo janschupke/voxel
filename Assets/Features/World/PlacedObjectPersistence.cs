@@ -115,7 +115,8 @@ namespace Voxel
                 int sizeX = entry?.AreaSizeX ?? 1;
                 int sizeZ = entry?.AreaSizeZ ?? 1;
                 float heightInBlocks = entry != null && entry.HeightInBlocks > 0 ? entry.HeightInBlocks : 1f;
-                var bounds = GetPrefabBounds(prefab);
+                int voxelsPerBlock = worldParameters?.VoxelsPerBlockAxis ?? 16;
+                var bounds = GetPrefabBounds(prefab, sizeX, sizeZ, heightInBlocks, voxelsPerBlock);
                 var scale = worldScale.ScaleForVoxelModel(sizeX, sizeZ, heightInBlocks, bounds);
 
                 var instance = Object.Instantiate(prefab, p.ToWorldPosition(worldScale), p.ToRotation(), parent);
@@ -140,12 +141,13 @@ namespace Voxel
             }
         }
 
-        private static Bounds GetPrefabBounds(GameObject prefab)
+        private static Bounds GetPrefabBounds(GameObject prefab, int sizeX, int sizeZ, float heightInBlocks, int voxelsPerBlock)
         {
             var mf = prefab.GetComponentInChildren<MeshFilter>();
             if (mf != null && mf.sharedMesh != null)
                 return mf.sharedMesh.bounds;
-            return new Bounds(Vector3.zero, Vector3.one * 16f);
+            var fallbackSize = new Vector3(sizeX * voxelsPerBlock, heightInBlocks * voxelsPerBlock, sizeZ * voxelsPerBlock);
+            return new Bounds(Vector3.zero, fallbackSize);
         }
     }
 }

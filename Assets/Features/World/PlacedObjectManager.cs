@@ -323,10 +323,11 @@ namespace Voxel
                 : Mathf.Clamp(15, 0, height - 1);
 
             var worldScale = new WorldScale(_worldParameters != null ? _worldParameters.BlockScale : 1f);
+            int voxelsPerBlock = _worldParameters?.VoxelsPerBlockAxis ?? 16;
             var treeParent = GetOrCreateParentForEntry(PlacedObjectKeys.Tree);
             var heightBuffer = new HeightBuffer(grid.Width, grid.Depth);
             var context = new TerrainPipelineContext(heightBuffer, grid, waterLevelY, _islandPipelineConfig.MasterSeed);
-            var stage = new TreeScatterStage(treeConfig, treeParent, worldScale);
+            var stage = new TreeScatterStage(treeConfig, treeParent, worldScale, voxelsPerBlock);
             stage.Execute(context);
         }
     }

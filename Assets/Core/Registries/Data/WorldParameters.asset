@@ -12,10 +12,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: e5f6789012345678abcdef0123456789, type: 3}
   m_Name: WorldParameters
   m_EditorClassIdentifier: 
-  width: 500
-  depth: 500
-  height: 50
+  width: 512
+  depth: 512
+  height: 64
   blockScale: 1
-  heightScale: 1
-  heightOffset: 0
-  blockType: 1
+  voxelsPerBlockAxis: 16

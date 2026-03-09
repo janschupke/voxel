@@ -191,16 +191,18 @@ namespace Voxel
         private Vector3 GetScaleForEntry(PlacedObjectEntry entry, int sizeX, int sizeZ)
         {
             var worldScale = GetWorldScale();
-            var bounds = GetPrefabBounds(entry.Prefab);
+            int voxelsPerBlock = _worldBootstrap?.WorldParameters?.VoxelsPerBlockAxis ?? 16;
+            var bounds = GetPrefabBounds(entry.Prefab, sizeX, sizeZ, entry.HeightInBlocks, voxelsPerBlock);
             return worldScale.ScaleForVoxelModel(sizeX, sizeZ, entry.HeightInBlocks, bounds);
         }
 
-        private static Bounds GetPrefabBounds(GameObject prefab)
+        private static Bounds GetPrefabBounds(GameObject prefab, int sizeX, int sizeZ, float heightInBlocks, int voxelsPerBlock)
         {
             var mf = prefab.GetComponentInChildren<MeshFilter>();
             if (mf != null && mf.sharedMesh != null)
                 return mf.sharedMesh.bounds;
-            return new Bounds(Vector3.zero, Vector3.one * 16f);
+            var fallbackSize = new Vector3(sizeX * voxelsPerBlock, heightInBlocks * voxelsPerBlock, sizeZ * voxelsPerBlock);
+            return new Bounds(Vector3.zero, fallbackSize);
         }
 
         private static void TryAddBuildingInventory(GameObject instance, PlacedObjectEntry entry)

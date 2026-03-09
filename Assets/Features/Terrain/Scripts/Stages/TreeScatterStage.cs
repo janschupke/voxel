@@ -11,14 +11,16 @@ namespace Voxel
         private readonly TreeScatterConfig _config;
         private readonly Transform _treeParent;
         private readonly WorldScale _worldScale;
+        private readonly int _voxelsPerBlockAxis;
 
         private const int SpatialCellSize = 16;
 
-        public TreeScatterStage(TreeScatterConfig config, Transform treeParent = null, WorldScale worldScale = default)
+        public TreeScatterStage(TreeScatterConfig config, Transform treeParent = null, WorldScale worldScale = default, int voxelsPerBlockAxis = 16)
         {
             _config = config ?? throw new ArgumentNullException(nameof(config));
             _treeParent = treeParent;
             _worldScale = worldScale.BlockScale > 0f ? worldScale : new WorldScale(1f);
+            _voxelsPerBlockAxis = voxelsPerBlockAxis > 0 ? voxelsPerBlockAxis : 16;
         }
 
         public void Execute(TerrainPipelineContext ctx)
@@ -133,7 +135,7 @@ namespace Voxel
 
                 var instance = UnityEngine.Object.Instantiate(_config.TreePrefab, worldPos, rotation, _treeParent);
                 instance.name = _config.TreePrefab.name;
-                var bounds = GetPrefabBounds(_config.TreePrefab);
+                var bounds = GetPrefabBounds(_config.TreePrefab, 1, 1, _config.HeightInBlocks);
                 instance.transform.localScale = _worldScale.ScaleForVoxelModel(1, 1, _config.HeightInBlocks, bounds);
 
                 spatialGrid[cellX, cellZ].Add((x, y, z));
@@ -156,12 +158,13 @@ namespace Voxel
             return -1;
         }
 
-        private static Bounds GetPrefabBounds(GameObject prefab)
+        private Bounds GetPrefabBounds(GameObject prefab, int sizeX, int sizeZ, float heightInBlocks)
         {
             var mf = prefab.GetComponentInChildren<MeshFilter>();
             if (mf != null && mf.sharedMesh != null)
                 return mf.sharedMesh.bounds;
-            return new Bounds(Vector3.zero, Vector3.one * 16f);
+            var fallbackSize = new Vector3(sizeX * _voxelsPerBlockAxis, heightInBlocks * _voxelsPerBlockAxis, sizeZ * _voxelsPerBlockAxis);
+            return new Bounds(Vector3.zero, fallbackSize);
         }
 
         private static void Shuffle<T>(List<T> list, System.Random rng)
