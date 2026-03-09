@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 9118363523296418499}
   - component: {fileID: 9174207033466340804}
   - component: {fileID: 3818851615710850385}
-  - component: {fileID: 4710232767067946676}
+  - component: {fileID: 1140249817451944384}
   m_Layer: 0
   m_Name: Beerery
   m_TagString: Untagged
@@ -91,8 +91,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!136 &4710232767067946676
-CapsuleCollider:
+--- !u!64 &1140249817451944384
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -109,8 +109,7 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 2
-  m_Height: 4
-  m_Direction: 1
-  m_Center: {x: 0, y: 2, z: 0}
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -2432090755550338912, guid: 6b552768463f04fc79712668a3539c2d, type: 3}

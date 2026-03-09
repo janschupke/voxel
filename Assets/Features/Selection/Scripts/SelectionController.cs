@@ -179,7 +179,9 @@ namespace Voxel
                 bool overUI = (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) ||
                              UIPanelUtils.IsPointerOverBlockingUI(uiDocument);
 
-                if (!overUI && _raycaster.TryGetSelectableAtRay(ray, out Transform hitTransform, out _))
+                if (overUI)
+                    _hoveredObject = null;
+                else if (_raycaster.TryGetSelectableAtRay(ray, out Transform hitTransform, out _))
                     _hoveredObject = hitTransform;
                 else
                     _hoveredObject = null;

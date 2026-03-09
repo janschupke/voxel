@@ -170,10 +170,9 @@ namespace Voxel.Editor
             mr.receiveShadows = true;
 
             var bounds = mesh.bounds;
-            var cc = go.AddComponent<CapsuleCollider>();
-            cc.radius = Mathf.Max(bounds.extents.x, bounds.extents.z);
-            cc.height = bounds.size.y;
-            cc.center = bounds.center;
+            var bc = go.AddComponent<BoxCollider>();
+            bc.size = bounds.size;
+            bc.center = bounds.center;
 
             string prefabPath = $"{PrefabsPath}/{prefabName}.prefab";
             GameObject prefab = PrefabUtility.SaveAsPrefabAsset(go, prefabPath);

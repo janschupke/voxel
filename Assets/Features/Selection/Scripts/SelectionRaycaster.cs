@@ -4,7 +4,7 @@ using Voxel.Pure;
 namespace Voxel
 {
     /// <summary>
-    /// Raycasts to find selectable placed objects. Extracted from SelectionController.
+    /// Raycasts to find selectable placed objects. Physics raycast (prefab BoxCollider) and bounds fallback.
     /// </summary>
     public class SelectionRaycaster
     {
@@ -30,8 +30,9 @@ namespace Voxel
             for (int i = 0; i < hitCount; i++)
             {
                 var hit = _raycastBuffer[i];
-                if (hit.distance < closestDistance && hit.distance > 0 &&
-                    IsSelectablePlacedObject(hit.transform, out string name))
+                if (hit.distance <= 0) continue;
+
+                if (IsSelectablePlacedObject(hit.transform, out string name) && hit.distance < closestDistance)
                 {
                     closestDistance = hit.distance;
                     hitTransform = GetRootPlacedObject(hit.transform);

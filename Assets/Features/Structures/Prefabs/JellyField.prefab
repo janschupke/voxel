@@ -11,7 +11,7 @@ GameObject:
   - component: {fileID: 5568118665656494409}
   - component: {fileID: 8508237773163529780}
   - component: {fileID: 8587727224721663204}
-  - component: {fileID: 3254673008442183916}
+  - component: {fileID: 928605757336125718}
   m_Layer: 0
   m_Name: JellyField
   m_TagString: Untagged
@@ -91,8 +91,8 @@ MeshRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_AdditionalVertexStreams: {fileID: 0}
---- !u!136 &3254673008442183916
-CapsuleCollider:
+--- !u!64 &928605757336125718
+MeshCollider:
   m_ObjectHideFlags: 0
   m_CorrespondingSourceObject: {fileID: 0}
   m_PrefabInstance: {fileID: 0}
@@ -109,8 +109,7 @@ CapsuleCollider:
   m_IsTrigger: 0
   m_ProvidesContacts: 0
   m_Enabled: 1
-  serializedVersion: 2
-  m_Radius: 2
-  m_Height: 4
-  m_Direction: 1
-  m_Center: {x: 0, y: 2, z: 0}
+  serializedVersion: 5
+  m_Convex: 0
+  m_CookingOptions: 30
+  m_Mesh: {fileID: -2432090755550338912, guid: e285d1259e54247ad9035afbe5a9b4b4, type: 3}
