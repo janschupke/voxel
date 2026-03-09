@@ -10,7 +10,11 @@ namespace Voxel
     public static class WorldPersistenceService
     {
         private const string WorldFileName = "world.dat";
-        private const int SaveVersion = 5;
+        private const int SaveVersion = 6;
+
+        /// <summary>Legacy int→string mapping for v4/v5 saves. Order matches original enum (Beer=0, Bread=1, ...).</summary>
+        private static readonly string[] LegacyItemIdToString =
+            { "Beer", "Bread", "Brick", "Chicken", "Flour", "Fruit", "Hops", "IronBar", "IronOre", "Jelly", "Stone", "Sword", "Wheat", "Wood" };
         private static string WorldPath => Path.Combine(Application.persistentDataPath, "World", WorldFileName);
 
         public static bool WorldExists()
@@ -27,7 +31,7 @@ namespace Voxel
         public static void Save(VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects = null,
             IReadOnlyList<BuildingInventorySaveData> buildingInventories = null,
             IReadOnlyList<ActorSaveData> actorData = null,
-            IReadOnlyList<(int ItemId, int Count)> globalStorageItems = null)
+            IReadOnlyList<(string ItemId, int Count)> globalStorageItems = null)
         {
             var dir = Path.GetDirectoryName(WorldPath);
             if (!string.IsNullOrEmpty(dir))
@@ -79,7 +83,7 @@ namespace Voxel
                         for (int j = 0; j < itemCount; j++)
                         {
                             var (itemId, amt) = inv.Items[j];
-                            writer.Write(itemId);
+                            writer.Write(itemId ?? "");
                             writer.Write(amt);
                         }
                     }
@@ -102,7 +106,7 @@ namespace Voxel
                     writer.Write(a.PosY);
                     writer.Write(a.PosZ);
                     writer.Write(a.StateId);
-                    writer.Write(a.CarriedItemId);
+                    writer.Write(a.CarriedItemId ?? "");
                 }
             }
 
@@ -113,7 +117,7 @@ namespace Voxel
                 for (int i = 0; i < globalCount; i++)
                 {
                     var (itemId, amt) = globalStorageItems[i];
-                    writer.Write(itemId);
+                    writer.Write(itemId ?? "");
                     writer.Write(amt);
                 }
             }
@@ -122,7 +126,7 @@ namespace Voxel
         public static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,
             IReadOnlyList<BuildingInventorySaveData> buildingInventories,
             IReadOnlyList<ActorSaveData> actorData,
-            IReadOnlyList<(int ItemId, int Count)> globalStorageItems, int saveVersion) Load()
+            IReadOnlyList<(string ItemId, int Count)> globalStorageItems, int saveVersion) Load()
         {
             if (!WorldExists())
                 throw new FileNotFoundException("No saved world found", WorldPath);
@@ -133,6 +137,11 @@ namespace Voxel
             using var reader = new BinaryReader(gzip);
             int version = reader.ReadInt32();
 
+            if (version >= 6)
+            {
+                var (g, p, b, a, gl) = LoadV6(reader);
+                return (g, p, b, a, gl, version);
+            }
             if (version >= 4)
             {
                 var (g, p, b, a, gl) = LoadV4(reader);
@@ -141,25 +150,99 @@ namespace Voxel
             if (version == 3)
             {
                 var (g, p, b, a) = LoadV3(reader);
-                return (g, p, b, a, new List<(int, int)>(), version);
+                return (g, p, b, a, new List<(string, int)>(), version);
             }
             if (version < 100)
             {
                 var (g, p) = LoadV2Core(reader);
-                return (g, p, new List<BuildingInventorySaveData>(), new List<ActorSaveData>(), new List<(int, int)>(), version);
+                return (g, p, new List<BuildingInventorySaveData>(), new List<ActorSaveData>(), new List<(string, int)>(), version);
             }
 
             var (grid, placedObjects) = LoadV1(reader, version);
-            return (grid, placedObjects, new List<BuildingInventorySaveData>(), new List<ActorSaveData>(), new List<(int, int)>(), version);
+            return (grid, placedObjects, new List<BuildingInventorySaveData>(), new List<ActorSaveData>(), new List<(string, int)>(), version);
+        }
+
+        private static string LegacyItemIdToStableId(int legacyId)
+        {
+            if (legacyId >= 0 && legacyId < LegacyItemIdToString.Length)
+                return LegacyItemIdToString[legacyId];
+            return "";
         }
 
         private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,
             IReadOnlyList<BuildingInventorySaveData> buildingInventories,
             IReadOnlyList<ActorSaveData> actorData,
-            IReadOnlyList<(int ItemId, int Count)> globalStorageItems) LoadV4(BinaryReader reader)
+            IReadOnlyList<(string ItemId, int Count)> globalStorageItems) LoadV6(BinaryReader reader)
+        {
+            var (grid, placedObjects) = LoadV2Core(reader);
+
+            var buildingInventories = new List<BuildingInventorySaveData>();
+            var actorData = new List<ActorSaveData>();
+            var globalStorageItems = new List<(string ItemId, int Count)>();
+
+            try
+            {
+                int invCount = reader.ReadInt32();
+                if (invCount > 0 && invCount < 100000)
+                {
+                    for (int i = 0; i < invCount; i++)
+                    {
+                        var entryName = reader.ReadString();
+                        var bx = reader.ReadInt32();
+                        var by = reader.ReadInt32();
+                        var bz = reader.ReadInt32();
+                        int itemCount = reader.ReadInt32();
+                        var items = new List<(string ItemId, int Count)>();
+                        for (int j = 0; j < itemCount && j < 10000; j++)
+                        {
+                            items.Add((reader.ReadString(), reader.ReadInt32()));
+                        }
+                        buildingInventories.Add(new BuildingInventorySaveData(entryName, bx, by, bz, items));
+                    }
+                }
+
+                int actorCount = reader.ReadInt32();
+                if (actorCount > 0 && actorCount < 100000)
+                {
+                    for (int i = 0; i < actorCount; i++)
+                    {
+                        actorData.Add(new ActorSaveData(
+                            reader.ReadString(),
+                            reader.ReadString(),
+                            reader.ReadInt32(),
+                            reader.ReadInt32(),
+                            reader.ReadInt32(),
+                            reader.ReadSingle(),
+                            reader.ReadSingle(),
+                            reader.ReadSingle(),
+                            reader.ReadInt32(),
+                            reader.ReadString()));
+                    }
+                }
+
+                int globalCount = reader.ReadInt32();
+                if (globalCount > 0 && globalCount < 100000)
+                {
+                    for (int i = 0; i < globalCount; i++)
+                    {
+                        globalStorageItems.Add((reader.ReadString(), reader.ReadInt32()));
+                    }
+                }
+            }
+            catch (EndOfStreamException)
+            {
+            }
+
+            return (grid, placedObjects, buildingInventories, actorData, globalStorageItems);
+        }
+
+        private static (VoxelGrid grid, IReadOnlyList<PlacedObjectData> placedObjects,
+            IReadOnlyList<BuildingInventorySaveData> buildingInventories,
+            IReadOnlyList<ActorSaveData> actorData,
+            IReadOnlyList<(string ItemId, int Count)> globalStorageItems) LoadV4(BinaryReader reader)
         {
             var (grid, placedObjects, buildingInventories, actorData) = LoadV3(reader);
-            var globalStorageItems = new List<(int ItemId, int Count)>();
+            var globalStorageItems = new List<(string ItemId, int Count)>();
             try
             {
                 int globalCount = reader.ReadInt32();
@@ -167,7 +250,11 @@ namespace Voxel
                 {
                     for (int i = 0; i < globalCount; i++)
                     {
-                        globalStorageItems.Add((reader.ReadInt32(), reader.ReadInt32()));
+                        var legacyId = reader.ReadInt32();
+                        var count = reader.ReadInt32();
+                        var stableId = LegacyItemIdToStableId(legacyId);
+                        if (!string.IsNullOrEmpty(stableId))
+                            globalStorageItems.Add((stableId, count));
                     }
                 }
             }
@@ -198,10 +285,14 @@ namespace Voxel
                         var by = reader.ReadInt32();
                         var bz = reader.ReadInt32();
                         int itemCount = reader.ReadInt32();
-                        var items = new List<(int ItemId, int Count)>();
+                        var items = new List<(string ItemId, int Count)>();
                         for (int j = 0; j < itemCount && j < 10000; j++)
                         {
-                            items.Add((reader.ReadInt32(), reader.ReadInt32()));
+                            var legacyId = reader.ReadInt32();
+                            var count = reader.ReadInt32();
+                            var stableId = LegacyItemIdToStableId(legacyId);
+                            if (!string.IsNullOrEmpty(stableId))
+                                items.Add((stableId, count));
                         }
                         buildingInventories.Add(new BuildingInventorySaveData(entryName, bx, by, bz, items));
                     }
@@ -222,7 +313,7 @@ namespace Voxel
                             reader.ReadSingle(),
                             reader.ReadSingle(),
                             reader.ReadInt32(),
-                            reader.ReadInt32()));
+                            LegacyItemIdToStableId(reader.ReadInt32())));
                     }
                 }
             }

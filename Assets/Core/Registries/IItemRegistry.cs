@@ -8,5 +8,11 @@ namespace Voxel
     public interface IItemRegistry
     {
         ItemDefinition GetDefinition(Item item);
+
+        /// <summary>Resolves stable string ID to Item. Returns true if found.</summary>
+        bool TryGetByStableId(string stableId, out Item item);
+
+        /// <summary>Returns stable string ID for persistence. Never changes when enum is reordered.</summary>
+        string GetStableId(Item item);
     }
 }

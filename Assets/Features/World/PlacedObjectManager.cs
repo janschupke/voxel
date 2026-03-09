@@ -282,9 +282,9 @@ namespace Voxel
             return PlacedObjectPersistence.CollectPlacedObjectsForSave(_parentsByEntryName, _registry, _roadOverlay, _worldParameters);
         }
 
-        public List<BuildingInventorySaveData> CollectBuildingInventoriesForSave()
+        public List<BuildingInventorySaveData> CollectBuildingInventoriesForSave(IItemRegistry itemRegistry)
         {
-            return PlacedObjectPersistence.CollectBuildingInventoriesForSave(_parentsByEntryName, _registry, _worldParameters);
+            return PlacedObjectPersistence.CollectBuildingInventoriesForSave(_parentsByEntryName, _registry, _worldParameters, itemRegistry);
         }
 
         public void LoadPlacedObjects(IReadOnlyList<PlacedObjectData> placedObjects, VoxelGrid grid, TerrainGenerationMode terrainMode,

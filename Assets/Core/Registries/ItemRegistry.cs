@@ -18,5 +18,26 @@ namespace Voxel
             }
             return null;
         }
+
+        public bool TryGetByStableId(string stableId, out Item item)
+        {
+            item = default;
+            if (string.IsNullOrEmpty(stableId) || definitions == null) return false;
+            foreach (var def in definitions)
+            {
+                if (def != null && def.StableId == stableId)
+                {
+                    item = def.ItemId;
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public string GetStableId(Item item)
+        {
+            var def = GetDefinition(item);
+            return def != null ? def.StableId : item.ToString();
+        }
     }
 }

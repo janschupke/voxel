@@ -47,7 +47,8 @@ namespace Voxel
         public static List<BuildingInventorySaveData> CollectBuildingInventoriesForSave(
             IReadOnlyDictionary<string, Transform> parentsByEntryName,
             PlacedObjectRegistry registry,
-            WorldParameters worldParameters)
+            WorldParameters worldParameters,
+            IItemRegistry itemRegistry)
         {
             var worldScale = new WorldScale(worldParameters != null ? worldParameters.BlockScale : 1f);
             var list = new List<BuildingInventorySaveData>();
@@ -68,11 +69,11 @@ namespace Voxel
                     var (bx, by, bz) = entry != null && entry.Prefab != null
                         ? GetFootprintOriginFromTransform(child, entry, worldScale, voxelsPerBlock)
                         : worldScale.WorldToBlock(child.position);
-                    var items = new List<(int ItemId, int Count)>();
+                    var items = new List<(string ItemId, int Count)>();
                     foreach (var (item, count) in inv.GetAllItems())
                     {
-                        if (count > 0)
-                            items.Add(((int)item, count));
+                        if (count > 0 && itemRegistry != null)
+                            items.Add((itemRegistry.GetStableId(item), count));
                     }
                     if (items.Count > 0)
                         list.Add(new BuildingInventorySaveData(kv.Key, bx, by, bz, items));

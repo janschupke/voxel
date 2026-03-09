@@ -58,16 +58,16 @@ namespace Voxel
             {
                 var (grid, placedObjects, buildingInventories, actorData, globalStorageItems, saveVersion) = WorldPersistenceService.Load();
                 _grid = grid;
-                var inventoryLookup = BuildInventoryLookup(buildingInventories);
+                var inventoryLookup = BuildInventoryLookup(buildingInventories, itemRegistry);
                 _placedObjectManager.LoadPlacedObjects(placedObjects, _grid, terrainMode, inventoryLookup, saveVersion);
-                if (globalStorageItems != null && globalStorageItems.Count > 0)
+                if (globalStorageItems != null && globalStorageItems.Count > 0 && itemRegistry != null)
                 {
                     var items = new List<(Item, int)>();
                     foreach (var (itemId, count) in globalStorageItems)
                     {
                         if (count <= 0) continue;
-                        if (itemId >= 0 && Enum.IsDefined(typeof(Item), itemId))
-                            items.Add(((Item)itemId, count));
+                        if (itemRegistry.TryGetByStableId(itemId, out var item))
+                            items.Add((item, count));
                     }
                     if (items.Count > 0)
                         _storageInventory.LoadFrom(items);
@@ -153,7 +153,7 @@ namespace Voxel
                 WorldPersistenceService.Save(
                     _grid,
                     _placedObjectManager.CollectPlacedObjectsForSave(),
-                    _placedObjectManager.CollectBuildingInventoriesForSave(),
+                    _placedObjectManager.CollectBuildingInventoriesForSave(itemRegistry),
                     CollectActorDataForSave(),
                     globalStorageItems);
             }
@@ -172,23 +172,24 @@ namespace Voxel
             _storageInventory.Initialize(capacity);
         }
 
-        private List<(int ItemId, int Count)> CollectGlobalStorageForSave()
+        private List<(string ItemId, int Count)> CollectGlobalStorageForSave()
         {
-            var list = new List<(int ItemId, int Count)>();
-            if (_storageInventory == null) return list;
+            var list = new List<(string ItemId, int Count)>();
+            if (_storageInventory == null || itemRegistry == null) return list;
             foreach (var (item, count) in _storageInventory.GetAllItems())
             {
                 if (count > 0)
-                    list.Add(((int)item, count));
+                    list.Add((itemRegistry.GetStableId(item), count));
             }
             return list;
         }
 
         private static Dictionary<(string, int, int, int), List<(Item, int)>> BuildInventoryLookup(
-            IReadOnlyList<BuildingInventorySaveData> buildingInventories)
+            IReadOnlyList<BuildingInventorySaveData> buildingInventories,
+            IItemRegistry itemRegistry)
         {
             var lookup = new Dictionary<(string, int, int, int), List<(Item, int)>>();
-            if (buildingInventories == null) return lookup;
+            if (buildingInventories == null || itemRegistry == null) return lookup;
             foreach (var inv in buildingInventories)
             {
                 var items = new List<(Item, int)>();
@@ -197,8 +198,8 @@ namespace Voxel
                     foreach (var (itemId, count) in inv.Items)
                     {
                         if (count <= 0) continue;
-                        if (itemId >= 0 && Enum.IsDefined(typeof(Item), itemId))
-                            items.Add(((Item)itemId, count));
+                        if (itemRegistry.TryGetByStableId(itemId, out var item))
+                            items.Add((item, count));
                     }
                 }
                 if (items.Count > 0)
@@ -220,9 +221,9 @@ namespace Voxel
                 var (hx, hy, hz) = worldScale.WorldToBlock(ab.HomeBuildingTransform.position);
                 var homeEntryName = _placedObjectManager.GetEntryNameForTransform(ab.HomeBuildingTransform) ?? "";
                 var actorTypeName = ab.ActorTypeNameForSave;
-                var carriedItemId = -1;
-                if (ab is CarrierActorBehavior carrier && carrier.CarriedItem.HasValue)
-                    carriedItemId = (int)carrier.CarriedItem.Value;
+                var carriedItemId = "";
+                if (ab is CarrierActorBehavior carrier && carrier.CarriedItem.HasValue && itemRegistry != null)
+                    carriedItemId = itemRegistry.GetStableId(carrier.CarriedItem.Value);
 
                 list.Add(new ActorSaveData(
                     actorTypeName,

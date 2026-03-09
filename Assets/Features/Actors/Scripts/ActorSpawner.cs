@@ -120,9 +120,10 @@ namespace Voxel
                 var state = ParseActorState(saved.Value.StateId);
                 var position = new Vector3(saved.Value.PosX, saved.Value.PosY, saved.Value.PosZ);
                 behavior.RestoreState(state, position);
-                if (behavior is CarrierActorBehavior carrier && saved.Value.CarriedItemId >= 0 &&
-                    Enum.IsDefined(typeof(Item), saved.Value.CarriedItemId))
-                    carrier.SetCarriedItem((Item)saved.Value.CarriedItemId);
+                if (behavior is CarrierActorBehavior carrier && !string.IsNullOrEmpty(saved.Value.CarriedItemId) &&
+                    worldBootstrap?.ItemRegistry != null &&
+                    worldBootstrap.ItemRegistry.TryGetByStableId(saved.Value.CarriedItemId, out var item))
+                    carrier.SetCarriedItem(item);
             }
 
             GameDebugLogger.Log($"[ActorSpawner] Spawned {actorDef.Name} for building at {building.position}");

@@ -9,15 +9,15 @@ namespace Voxel
         public int BlockX;
         public int BlockY;
         public int BlockZ;
-        public List<(int ItemId, int Count)> Items;
+        public List<(string ItemId, int Count)> Items;
 
-        public BuildingInventorySaveData(string entryName, int blockX, int blockY, int blockZ, List<(int ItemId, int Count)> items)
+        public BuildingInventorySaveData(string entryName, int blockX, int blockY, int blockZ, List<(string ItemId, int Count)> items)
         {
             EntryName = entryName ?? "";
             BlockX = blockX;
             BlockY = blockY;
             BlockZ = blockZ;
-            Items = items ?? new List<(int, int)>();
+            Items = items ?? new List<(string, int)>();
         }
     }
 }
