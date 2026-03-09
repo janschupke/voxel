@@ -24,6 +24,7 @@ namespace Voxel
         [SerializeField, Tooltip("Outline thickness in pixels")] private float selectedOutlineWidth = 6f;
 
         private VisualElement _selectionDetail;
+        private VisualElement _selectionIcon;
         private VisualElement _inventorySection;
         private VisualElement _debugSection;
         private Label _selectionName;
@@ -69,6 +70,7 @@ namespace Voxel
             if (uiDocument?.rootVisualElement != null)
             {
                 _selectionDetail = uiDocument.rootVisualElement.Q<VisualElement>("SelectionDetail");
+                _selectionIcon = uiDocument.rootVisualElement.Q<VisualElement>("SelectionIcon");
                 _selectionName = uiDocument.rootVisualElement.Q<Label>("SelectionName");
                 _inventorySection = uiDocument.rootVisualElement.Q<VisualElement>("InventorySection");
                 _locateButton = uiDocument.rootVisualElement.Q<Button>("Locate");
@@ -235,6 +237,15 @@ namespace Voxel
                 _selectionDetail.RemoveFromClassList("hidden");
             if (_selectionName != null)
                 _selectionName.text = name;
+            if (_selectionIcon != null)
+            {
+                var entry = registry?.GetByName(name);
+                var sprite = entry?.Sprite;
+                if (sprite != null)
+                    _selectionIcon.style.backgroundImage = new StyleBackground(sprite);
+                else
+                    _selectionIcon.style.backgroundImage = StyleKeyword.None;
+            }
             if (_inventorySection != null)
             {
                 var entry = registry?.GetByName(name);

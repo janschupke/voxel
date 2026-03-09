@@ -28,6 +28,12 @@ namespace Voxel
         [Tooltip("Prefab to instantiate when placing")]
         public GameObject Prefab;
 
+        [Tooltip("Optional sprite for UI (building menu, selection detail). When unset, a fallback may be used.")]
+        [SerializeField] private Sprite sprite;
+
+        /// <summary>Sprite for UI display (placement buttons, selection detail). Null when not configured.</summary>
+        public Sprite Sprite => sprite;
+
         [Tooltip("When placing, remove trees at the target block(s). Deprecated: use StructureType.")]
         public bool CanReplaceTrees;
 

@@ -94,10 +94,24 @@
     padding-top: 10px;
 }
 
+.selection-header {
+    flex-direction: row;
+    align-items: center;
+    padding-bottom: 5px;
+}
+
+.selection-icon {
+    width: 24px;
+    height: 24px;
+    min-width: 24px;
+    min-height: 24px;
+    margin-right: 6px;
+}
+
 #SelectionName {
     color: white;
     font-size: 10px;
-    padding-bottom: 5px;
+    flex-grow: 1;
 }
 
 #InventorySection {

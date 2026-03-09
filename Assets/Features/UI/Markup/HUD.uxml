@@ -17,7 +17,10 @@
                 <ui:VisualElement name="PlacementCategoryButtons" class="placement-category-select"/>
                 <ui:VisualElement name="PlacementButtons" class="placement-grid"/>
                 <ui:VisualElement name="SelectionDetail" class="hidden">
-                    <ui:Label name="SelectionName" text=""/>
+                    <ui:VisualElement name="SelectionHeader" class="selection-header">
+                        <ui:VisualElement name="SelectionIcon" class="selection-icon"/>
+                        <ui:Label name="SelectionName" text=""/>
+                    </ui:VisualElement>
                     <ui:VisualElement name="InventorySection"/>
                     <ui:Button text="Locate" name="Locate" focusable="false"/>
                     <ui:VisualElement name="DebugSection" class="debug-only">

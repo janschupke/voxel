@@ -454,7 +454,7 @@ public class HUDController : MonoBehaviour
 
         _placementButtons.Clear();
         var itemRegistry = worldBootstrap?.ItemRegistry;
-        var sprite = itemRegistry?.GetDefinition(Item.Wood)?.Sprite;
+        var fallbackSprite = itemRegistry?.GetDefinition(Item.Wood)?.Sprite;
 
         var buttonRow = new VisualElement();
         buttonRow.AddToClassList("placement-category-buttons");
@@ -467,8 +467,9 @@ public class HUDController : MonoBehaviour
             var button = new Button { focusable = false };
             button.name = entry.Name;
             button.AddToClassList("placement-button");
-            if (sprite != null)
-                button.style.backgroundImage = new StyleBackground(sprite);
+            var entrySprite = entry.Sprite ?? fallbackSprite;
+            if (entrySprite != null)
+                button.style.backgroundImage = new StyleBackground(entrySprite);
             if (!entry.IsSurfaceOverlay && entry.Prefab == null)
                 button.SetEnabled(false);
             buttonRow.Add(button);
